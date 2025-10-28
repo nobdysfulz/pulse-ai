@@ -1,9 +1,8 @@
-
 import React from 'react';
-import AppLayout from './components/layout/AppLayout';
-import UserProvider from './components/context/UserProvider';
-import ReferralTracker from './components/referrals/ReferralTracker';
-import SupportChatWidget from './components/support/SupportChatWidget';
+import AppLayout from '../components/layout/AppLayout';
+import UserProvider from '../components/context/UserProvider';
+import ReferralTracker from '../components/referrals/ReferralTracker';
+import SupportChatWidget from '../components/support/SupportChatWidget';
 
 const DesignSystemStyles = () => (
   <style jsx global>{`
