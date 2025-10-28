@@ -35,9 +35,10 @@ export default function UserProvider({ children }) {
             } catch (userError) {
                 console.error('[UserProvider] Error fetching user:', userError);
                 
+                // Don't throw error for auth failures - let ProtectedRoute handle redirects
                 if (userError.response?.status === 403 || userError.response?.status === 401) {
-                    console.log("[UserProvider] User not authenticated, redirecting to login...");
-                    await base44.auth.redirectToLogin();
+                    console.log("[UserProvider] User not authenticated");
+                    setLoading(false);
                     return;
                 }
                 throw userError;
