@@ -11,8 +11,7 @@ const Settings = React.lazy(() => import('./Settings'));
 const GoalPlanner = React.lazy(() => import('./GoalPlanner'));
 const ContentStudio = React.lazy(() => import('./ContentStudio'));
 const RolePlay = React.lazy(() => import('./RolePlay'));
-const SuccessIndex = React.lazy(() => import('./SuccessIndex'));
-const Onboarding = React.lazy(() => import('./Onboarding')); // FIX: Capitalized import
+const Onboarding = React.lazy(() => import('./Onboarding'));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -35,8 +34,7 @@ export default function AppRoutes() {
         <Route path="/goal-planner" element={<GoalPlanner />} />
         <Route path="/content-studio" element={<ContentStudio />} />
         <Route path="/role-play" element={<RolePlay />} />
-        <Route path="/success-index" element={<SuccessIndex />} />
-        <Route path="/onboarding" element={<Onboarding />} /> {/* FIX: Capitalized component */}
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </React.Suspense>
