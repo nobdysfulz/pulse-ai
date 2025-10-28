@@ -8,7 +8,6 @@ import { createPageUrl } from '@/utils';
 import { BusinessPlan } from '@/api/entities';
 import { cn } from '@/lib/utils';
 import { UserContext } from "../components/context/UserContext";
-import AnnualGoalPlannerModal from '../components/goal-planner/AnnualGoalPlannerModal';
 import ProductionPlannerModal from '../components/goal-planner/ProductionPlannerModal';
 import { toast } from "sonner";
 
@@ -59,7 +58,6 @@ export default function GoalPlanner() {
     const [activePlan, setActivePlan] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showProductionPlanner, setShowProductionPlanner] = useState(false);
-    const [showAnnualPlannerModal, setShowAnnualPlannerModal] = useState(false); // Kept as per original structure, though not triggered by cards now.
 
     const loadActivePlan = async () => {
         setLoading(true);
@@ -83,11 +81,6 @@ export default function GoalPlanner() {
 
     const handleProductionPlannerClose = () => {
         setShowProductionPlanner(false);
-        loadActivePlan(); // Single call to refresh active plan status
-    };
-
-    const handleModalClose = () => {
-        setShowAnnualPlannerModal(false); // Close AnnualGoalPlannerModal
         loadActivePlan(); // Single call to refresh active plan status
     };
 
@@ -172,11 +165,6 @@ export default function GoalPlanner() {
             <ProductionPlannerModal
                 isOpen={showProductionPlanner}
                 onClose={handleProductionPlannerClose}
-                existingPlan={activePlan} />
-
-            <AnnualGoalPlannerModal
-                isOpen={showAnnualPlannerModal} // This modal is still rendered but not triggered by cards.
-                onClose={handleModalClose}
                 existingPlan={activePlan} />
 
         </div>
