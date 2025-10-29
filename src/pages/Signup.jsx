@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,13 +17,9 @@ export default function Signup() {
   useEffect(() => {
     // Check if already logged in
     const checkAuth = async () => {
-      try {
-        const user = await base44.auth.me();
-        if (user) {
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        // Not logged in, stay on signup page
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
       }
     };
     checkAuth();
@@ -53,7 +49,19 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      await base44.auth.signUp({ email, password, name });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: name,
+          }
+        }
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Account created!",
         description: "Welcome to the platform.",

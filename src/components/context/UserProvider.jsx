@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserContext } from './UserContext';
 import { differenceInDays } from 'date-fns';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function UserProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -27,124 +27,78 @@ export default function UserProvider({ children }) {
         setError(null);
         
         try {
-            let userData;
-            try {
-                console.log('[UserProvider] Attempting to fetch user...');
-                userData = await base44.auth.me();
-                console.log('[UserProvider] User loaded:', userData?.email);
-            } catch (userError) {
-                console.error('[UserProvider] Error fetching user:', userError);
-                
-                // Don't throw error for auth failures - let ProtectedRoute handle redirects
-                if (userError.response?.status === 403 || userError.response?.status === 401) {
-                    console.log("[UserProvider] User not authenticated");
-                    setLoading(false);
-                    return;
-                }
-                throw userError;
+            // Get authenticated user from Supabase
+            console.log('[UserProvider] Fetching authenticated user...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError || !session) {
+                console.log("[UserProvider] No active session");
+                setLoading(false);
+                return;
             }
 
-            if (!userData || !userData.id) {
-                console.error("[UserProvider] User data is invalid:", userData);
-                throw new Error("Invalid user data received");
+            // Get user profile from profiles table
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profileError) {
+                console.error('[UserProvider] Error fetching profile:', profileError);
+                throw profileError;
             }
 
+            const userData = {
+                id: session.user.id,
+                email: session.user.email,
+                ...profile
+            };
+
+            console.log('[UserProvider] User loaded:', userData.email);
             setUser(userData);
 
-            // Handle subscription status
-            if (userData.subscriptionStatus === 'past_due' && userData.pastDueStartDate) {
-                const daysPastDue = differenceInDays(new Date(), new Date(userData.pastDueStartDate));
-                if (daysPastDue >= 7 && userData.subscriptionStatus !== 'locked_out') {
-                    try {
-                        await base44.auth.updateMe({ subscriptionStatus: 'locked_out' });
-                        userData.subscriptionStatus = 'locked_out';
-                        setUser({ ...userData });
-                    } catch (updateError) {
-                        console.error("[UserProvider] Failed to update subscription status:", updateError);
-                    }
-                }
-            }
+            // Fetch additional context from database
+            console.log('[UserProvider] Fetching user context...');
             
-            // Fetch context with improved error handling
-            console.log('[UserProvider] Fetching agent context...');
-            let agentContext = null;
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            while (retryCount <= maxRetries && !agentContext) {
-                try {
-                    const { data, error: contextError } = await base44.functions.invoke('getAgentContext');
-                    
-                    if (contextError) {
-                        throw new Error(contextError.message || "Could not retrieve full user context.");
-                    }
-                    
-                    if (!data) {
-                        throw new Error("No data returned from getAgentContext");
-                    }
-                    
-                    agentContext = data;
-                    console.log('[UserProvider] Agent context received successfully');
-                    
-                    // Validate critical fields
-                    if (!agentContext.onboarding) {
-                        console.warn('[UserProvider] No onboarding data in context, this may cause issues');
-                    }
-                    if (!agentContext.preferences) {
-                        console.warn('[UserProvider] No preferences data in context, this may cause issues');
-                    }
-                    
-                } catch (fetchError) {
-                    retryCount++;
-                    console.error(`[UserProvider] Attempt ${retryCount} failed:`, fetchError.message);
-                    
-                    if (retryCount > maxRetries) {
-                        console.error('[UserProvider] Max retries reached, using minimal context');
-                        // Create minimal viable context
-                        agentContext = {
-                            user: userData,
-                            onboarding: {
-                                userId: userData.id,
-                                onboardingCompleted: false,
-                                agentOnboardingCompleted: false,
-                                callCenterOnboardingCompleted: false,
-                                completedSteps: []
-                            },
-                            marketConfig: null,
-                            agentProfile: null,
-                            preferences: {
-                                userId: userData.id,
-                                coachingStyle: 'balanced',
-                                activityMode: 'get_moving',
-                                dailyReminders: true,
-                                weeklyReports: true,
-                                marketUpdates: true,
-                                emailNotifications: true,
-                                timezone: 'America/New_York'
-                            },
-                            actions: [],
-                            agentConfig: null,
-                            userAgentSubscription: null,
-                            goals: [],
-                            businessPlan: null,
-                            pulseHistory: [],
-                            pulseConfig: null,
-                            performanceAnalysis: {
-                                planningAdherence: 0,
-                                urgencyManagement: 0,
-                                leadEngagement: 0,
-                                systemsUtilization: 0,
-                                executionConsistency: 0,
-                                overallPulseScore: 0,
-                                hasInsufficientData: true
-                            }
-                        };
-                    } else {
-                        // Wait before retry (exponential backoff)
-                        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                    }
-                }
-            }
+            // Fetch onboarding status
+            const { data: onboardingData } = await supabase
+                .from('user_onboarding')
+                .select('*')
+                .eq('user_id', userData.id)
+                .maybeSingle();
+
+            // Create minimal viable context
+            const agentContext = {
+                user: userData,
+                onboarding: onboardingData || {
+                    userId: userData.id,
+                    onboardingCompleted: false,
+                    agentOnboardingCompleted: false,
+                    completedSteps: []
+                },
+                marketConfig: null,
+                agentProfile: null,
+                preferences: {
+                    userId: userData.id,
+                    coachingStyle: 'balanced',
+                    activityMode: 'get_moving',
+                    dailyReminders: true,
+                    weeklyReports: true,
+                    marketUpdates: true,
+                    emailNotifications: true,
+                    timezone: 'America/New_York'
+                },
+                actions: [],
+                agentConfig: null,
+                userAgentSubscription: null,
+                goals: [],
+                businessPlan: null,
+                pulseHistory: [],
+                pulseConfig: null
+            };
+
+            console.log('[UserProvider] Context loaded successfully');
 
             // Set all context data with safety checks
             setOnboarding(agentContext.onboarding || null);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,13 +15,9 @@ export default function Login() {
   useEffect(() => {
     // Check if already logged in
     const checkAuth = async () => {
-      try {
-        const user = await base44.auth.me();
-        if (user) {
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        // Not logged in, stay on login page
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
       }
     };
     checkAuth();
@@ -32,7 +28,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await base44.auth.signIn({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Welcome back!",
         description: "Successfully logged in.",
