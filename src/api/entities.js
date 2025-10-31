@@ -59,3 +59,5 @@ export const Referral = createStubEntity('Referral');
 export const BrandColorPalette = createStubEntity('BrandColorPalette');
 export const UserAgentSubscription = createStubEntity('UserAgentSubscription');
 export const LegalDocument = createStubEntity('LegalDocument');
+export const EmailTemplate = createStubEntity('EmailTemplate');
+export const EmailCampaign = createStubEntity('EmailCampaign');
