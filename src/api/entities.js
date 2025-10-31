@@ -58,3 +58,4 @@ export const ObjectionScript = createStubEntity('ObjectionScript');
 export const Referral = createStubEntity('Referral');
 export const BrandColorPalette = createStubEntity('BrandColorPalette');
 export const UserAgentSubscription = createStubEntity('UserAgentSubscription');
+export const LegalDocument = createStubEntity('LegalDocument');
