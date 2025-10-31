@@ -55,3 +55,4 @@ export const RolePlaySessionLog = createStubEntity('RolePlaySessionLog');
 export const RolePlayUserProgress = createStubEntity('RolePlayUserProgress');
 export const RolePlayAnalysisReport = createStubEntity('RolePlayAnalysisReport');
 export const ObjectionScript = createStubEntity('ObjectionScript');
+export const Referral = createStubEntity('Referral');
