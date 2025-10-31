@@ -90,54 +90,8 @@ export default function GoalsPage() {
   const handleSyncFromCrm = async () => {
     setIsSyncingCrm(true);
     try {
-      let metricsData = null;
-
-      if (crmConnected === 'lofty' || crmConnected === 'both') {
-        const { loftySync } = await import('@/api/functions');
-        const { data } = await loftySync({ action: 'getGoalMetrics' });
-        if (data?.success) metricsData = data.metrics;
-      } else if (crmConnected === 'follow_up_boss') {
-        const { followUpBossSync } = await import('@/api/functions');
-        const { data } = await followUpBossSync({ action: 'getGoalMetrics' });
-        if (data?.success) metricsData = data.metrics;
-      }
-
-      if (metricsData) {
-        const updates = [];
-
-        goals.forEach((goal) => {
-          let newValue = null;
-
-          if (goal.title === "Total GCI") {
-            newValue = metricsData.totalGCI;
-          } else if (goal.title === "Total Sales Volume") {
-            newValue = metricsData.totalVolume;
-          } else if (goal.title === "Total Buyers Closed") {
-            newValue = metricsData.buyerDeals;
-          } else if (goal.title === "Total Listings Closed") {
-            newValue = metricsData.listingDeals;
-          }
-
-          if (newValue !== null && newValue !== goal.currentValue) {// Only update if value has changed
-            updates.push({ goalId: goal.id, newValue });
-          }
-        });
-
-        if (updates.length > 0) {
-          for (const update of updates) {
-            await supabase
-              .from('goals')
-              .update({ current_value: update.newValue })
-              .eq('id', update.goalId);
-          }
-          toast.success(`Synced ${updates.length} goal(s) from CRM`);
-          await refreshUserData();
-        } else {
-          toast.info("No updates needed - goals are already current or no relevant metrics found.");
-        }
-      } else {
-        toast.error("Failed to retrieve metrics from CRM.");
-      }
+      // TODO: Implement CRM sync functionality
+      toast.info("CRM sync functionality coming soon!");
     } catch (error) {
       console.error("Failed to sync from CRM:", error);
       toast.error("Failed to sync goals from CRM");
