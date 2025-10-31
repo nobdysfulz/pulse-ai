@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { CallLog, UserOnboarding } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CalendarPlus, Phone, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ import KnowledgePanel from '../components/agents/KnowledgePanel';
 import PastContentPanel from '../components/agents/PastContentPanel';
 import CurrentTransactionsPanel from '../components/agents/CurrentTransactionsPanel';
 import AgentOnboardingFlow from '../components/agents/onboarding/AgentOnboardingFlow';
-import LoadingIndicator from '../components/ui/LoadingIndicator'; // Added import
+import LoadingIndicator from '../components/ui/LoadingIndicator';
 
 // Lead Concierge imports (DO NOT MODIFY)
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -46,8 +46,14 @@ export default function AgentsPage() {
     const checkOnboarding = async () => {
       if (user) {
         try {
-          const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
-          if (onboardingRecords.length === 0 || !onboardingRecords[0].agentOnboardingCompleted) {
+          const { data: onboardingRecords, error } = await supabase
+            .from('user_onboarding')
+            .select('*')
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+
+          if (!onboardingRecords || onboardingRecords.length === 0 || !onboardingRecords[0].agent_onboarding_completed) {
             setShowOnboarding(true);
           }
         } catch (error) {
@@ -114,8 +120,9 @@ export default function AgentsPage() {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      const logsData = await CallLog.filter({ userEmail: user.email }, '-created_date');
-      setCallLogs(logsData || []);
+      // For now, return empty array since call_logs table doesn't exist yet
+      // This will be implemented when we add the call center functionality
+      setCallLogs([]);
     } catch (error) {
       console.error('Error loading agent data:', error);
       toast.error('Failed to load agent data');
