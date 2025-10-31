@@ -2,10 +2,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, TrendingUp, BarChart3, DollarSign, Check } from 'lucide-react'; // Updated lucide-react imports
+import { Target, TrendingUp, BarChart3, DollarSign, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { BusinessPlan } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { UserContext } from "../components/context/UserContext";
 import ProductionPlannerModal from '../components/goal-planner/ProductionPlannerModal';
@@ -62,9 +62,22 @@ export default function GoalPlanner() {
     const loadActivePlan = async () => {
         setLoading(true);
         try {
-            // Fetch the most recent active business plan.
-            const plans = await BusinessPlan.filter({ isActive: true }, '-planYear', 1);
-            setActivePlan(plans.length > 0 ? plans[0] : null);
+            // Fetch the most recent business plan for the current user
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) {
+                setActivePlan(null);
+                return;
+            }
+
+            const { data: plans, error } = await supabase
+                .from('business_plans')
+                .select('*')
+                .eq('user_id', authUser.id)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+            setActivePlan(plans && plans.length > 0 ? plans[0] : null);
         } catch (error) {
             console.error('Error loading business plan:', error);
             toast.error('Failed to load business plan');
