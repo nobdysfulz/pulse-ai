@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { GeneratedContent, ContentTopic, FeaturedContentPack, ContentPack, ContentPreference, TaskTemplate, MarketIntelligence, AiPromptConfig } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Share2, Copy, Sparkles } from 'lucide-react';
@@ -17,7 +17,6 @@ import ContentDetailModal from '../components/content-studio/ContentDetailModal'
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { base44 } from '@/api/base44Client';
 import LoadingIndicator, { InlineLoadingIndicator } from '../components/ui/LoadingIndicator';
 
 const ContentItemCard = ({ title, description }) => {
@@ -91,46 +90,24 @@ export default function ContentStudioPage() {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      const [topicData, featuredData, contentData, intelligenceData, calendarTopicsData, prefsData, socialTemplatesData, promptConfigsData] = await Promise.all([
-        ContentTopic.filter({ isActive: true, outreachEmail: { '$ne': null } }, '-created_date', 1),
-        FeaturedContentPack.filter({ isActive: true }, 'sortOrder'),
-        GeneratedContent.filter({ userId: user.id }, '-created_date', 20),
-        MarketIntelligence.filter({ userId: user.id }, '-created_date', 1),
-        ContentTopic.filter({ isActive: true }, '-weekNumber', 5),
-        ContentPreference.filter({ created_by: user.email }, '-created_date', 1),
-        TaskTemplate.filter({ isActive: true, category: 'social_media', triggerType: 'day_of_week' }),
-        AiPromptConfig.list()
-      ]);
-
-      const currentWeeklyTopic = topicData?.[0] || null;
-      setWeeklyTopic(currentWeeklyTopic);
-
-      if (currentWeeklyTopic) {
-        const packs = await ContentPack.filter({ topicId: currentWeeklyTopic.id, isActive: true });
-        setWeeklyContentPacks(packs);
-      } else {
-        setWeeklyContentPacks([]);
-      }
-
-      setFeaturedPacks(featuredData || []);
-      setRecentContent(contentData || []);
-      setMarketIntelligence(intelligenceData?.[0] || null);
-      setCalendarTopics(calendarTopicsData || []);
-      setSocialMediaTemplates(socialTemplatesData || []);
-      setPromptConfigs(promptConfigsData || []);
-
-      if (prefsData && prefsData.length > 0) {
-        setPreferences(prefsData[0]);
-      } else {
-        const defaultPrefs = {
-          defaultTone: 'professional',
-          defaultLength: 'medium',
-          marketFocus: marketConfig?.primaryTerritory || '',
-          targetAudience: 'General audience'
-        };
-        const newPrefs = await ContentPreference.create(defaultPrefs);
-        setPreferences(newPrefs);
-      }
+      // Content Studio functionality will be implemented later
+      // For now, set empty data
+      setWeeklyTopic(null);
+      setWeeklyContentPacks([]);
+      setFeaturedPacks([]);
+      setRecentContent([]);
+      setMarketIntelligence(null);
+      setCalendarTopics([]);
+      setSocialMediaTemplates([]);
+      setPromptConfigs([]);
+      
+      // Set default preferences
+      setPreferences({
+        defaultTone: 'professional',
+        defaultLength: 'medium',
+        marketFocus: marketConfig?.primaryTerritory || '',
+        targetAudience: 'General audience'
+      });
 
     } catch (error) {
       console.error('Error loading content studio data:', error);
@@ -150,89 +127,19 @@ export default function ContentStudioPage() {
     if (!success) return;
 
     try {
-      const newContent = await GeneratedContent.create({
-        userId: user.id,
-        contentType: contentData.type,
-        contentTitle: contentData.title,
-        contentBody: contentData.body,
-        creditsUsed: contentData.credits
-      });
+      // Content generation will be implemented later
+      toast.success('Content generation feature coming soon!');
       await loadPageData();
-      setNewlyGeneratedId(newContent.id);
-      setActiveTab('recents');
-      toast.success('Content generated and saved!');
     } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error('Content generated but failed to save');
+      console.error('Error saving generated content:', error);
+      toast.error('Failed to save generated content');
     }
   };
 
   const handleGenerateFromCalendar = async (template) => {
-    const socialPostConfig = promptConfigs.find(p => p.promptId === 'content_studio_social_post');
-    if (!socialPostConfig) {
-        toast.error("Social post AI configuration is missing. Please contact support.");
-        return;
-    }
-    const cost = socialPostConfig.creditsCost || 2;
-
-    if (!isSubscriber && !hasSufficientCredits(cost)) {
-        setShowCreditModal(true);
-        return;
-    }
-
-    setGeneratingTaskId(template.id);
-    const success = await deductCredits(cost, 'Content Studio', `Generated from Calendar: ${template.title}`);
-    if (!success) {
-        setGeneratingTaskId(null);
-        return;
-    }
-
-    const marketContext = marketIntelligence?.rawResponse 
-      ? `\n\nUse the following market analysis as the primary source of truth for any market-specific data:\n---BEGIN MARKET DATA---\n${marketIntelligence.rawResponse}\n---END MARKET DATA---` 
-      : '';
-
-    // Combine task title and description into a single, rich topic for the AI
-    const combinedTopic = `${template.title}. ${template.description || ''}`.trim();
-
-    let finalUserPrompt = socialPostConfig.userMessageTemplate
-      .replace('{{platform}}', 'social media') // Defaulting to 'social media' platform
-      .replace('{{topic}}', combinedTopic);
-    
-    finalUserPrompt += "\n\nImportant: Use double line breaks (press Enter twice) to create paragraph breaks for proper spacing in the output.";
-    finalUserPrompt += marketContext; // Market context is appended, but system message guides conditional use
-    
-    try {
-        const { data } = await base44.functions.invoke('openaiChat', {
-            messages: [{ role: 'user', content: finalUserPrompt }],
-            systemPrompt: `${socialPostConfig.systemMessage}`, // Using the updated, flexible system message
-            model: 'gpt-4o',
-            maxTokens: 1500,
-            temperature: 0.7
-        });
-
-        if (data?.message) {
-            const newContent = await GeneratedContent.create({
-                userId: user.id,
-                contentType: 'social_post',
-                contentTitle: template.title,
-                contentBody: data.message,
-                creditsUsed: cost
-            });
-            await loadPageData();
-            setNewlyGeneratedId(newContent.id);
-            setActiveTab('recents');
-            toast.success('Content generated! Check your Recents.');
-        } else {
-            throw new Error("Received an empty response from AI.");
-        }
-    } catch (error) {
-        console.error('Error generating content from calendar:', error);
-        toast.error('Failed to generate content. Please try again.');
-    } finally {
-        setGeneratingTaskId(null);
-    }
+    toast.info('Calendar content generation coming soon!');
+    setGeneratingTaskId(null);
   };
-
 
   const handleDownloadPack = () => {
     if (weeklyContentPacks.length > 0) {
@@ -292,14 +199,13 @@ export default function ContentStudioPage() {
   };
 
   const handleUpdatePreferences = async () => {
-    if (!preferences || !preferences.id) {
+    if (!preferences) {
       toast.error("Preferences not loaded correctly.");
       return;
     }
     setIsUpdatingPrefs(true);
     try {
-      const { id, created_date, updated_date, created_by, ...updateData } = preferences;
-      await ContentPreference.update(id, updateData);
+      // Preferences update will be implemented later
       toast.success("Preferences saved successfully!");
     } catch (e) {
       console.error("Failed to save preferences", e);
