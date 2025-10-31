@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { UserContext } from '../components/context/UserContext';
-import { Goal } from "@/api/entities";
-import { CrmConnection } from "@/api/entities";
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, PlusCircle, TrendingUp, Edit, Printer, Download, Lightbulb, Target, Activity, AlertCircle } from "lucide-react";
@@ -19,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import { generateDailyTasks } from "../components/actions/taskGeneration";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
-import { base44 } from '@/api/base44Client'; // Corrected import for base44
+// base44 import removed - using supabase directly
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -73,23 +72,8 @@ export default function GoalsPage() {
       setGoals(allGoalsWithConfidence); // Set all goals from context
 
       if (user) {
-        const connections = await CrmConnection.filter({
-          userId: user.id,
-          connectionStatus: 'connected'
-        });
-
-        const loftyConn = connections.find((c) => c.crmType === 'lofty' && c.syncSettings?.syncGoals);
-        const fubConn = connections.find((c) => c.crmType === 'follow_up_boss' && c.syncSettings?.syncGoals);
-
-        if (loftyConn && fubConn) {
-          setCrmConnected('both');
-        } else if (loftyConn) {
-          setCrmConnected('lofty');
-        } else if (fubConn) {
-          setCrmConnected('follow_up_boss');
-        } else {
-          setCrmConnected(null);
-        }
+        // TODO: Implement CRM connections checking
+        setCrmConnected(null);
       }
     } catch (error) {
       console.error("Error loading goals:", error);
@@ -141,10 +125,13 @@ export default function GoalsPage() {
 
         if (updates.length > 0) {
           for (const update of updates) {
-            await Goal.update(update.goalId, { currentValue: update.newValue });
+            await supabase
+              .from('goals')
+              .update({ current_value: update.newValue })
+              .eq('id', update.goalId);
           }
           toast.success(`Synced ${updates.length} goal(s) from CRM`);
-          await refreshUserData(); // Refresh user data to get updated goals from context
+          await refreshUserData();
         } else {
           toast.info("No updates needed - goals are already current or no relevant metrics found.");
         }
@@ -167,10 +154,17 @@ export default function GoalsPage() {
         return;
       }
       const isCompleted = progressData.currentValue >= goalToUpdate.targetValue;
-      const finalData = { ...progressData, status: isCompleted ? 'completed' : 'active' };
+      const finalData = { 
+        current_value: progressData.currentValue,
+        status: isCompleted ? 'completed' : 'active' 
+      };
 
-      await Goal.update(goalId, finalData);
-      await refreshUserData(); // Refresh user data to get updated goals from context
+      await supabase
+        .from('goals')
+        .update(finalData)
+        .eq('id', goalId);
+        
+      await refreshUserData();
       setShowUpdateProgress(false);
       setSelectedGoal(null);
       toast.success("Goal progress updated!");
@@ -183,13 +177,22 @@ export default function GoalsPage() {
   const handleAddGoal = async (goalData) => {
     try {
       const payload = {
-        ...goalData,
-        userId: user.id,
-        type: 'custom',
-        status: 'active'
+        title: goalData.title,
+        user_id: user.id,
+        goal_type: 'custom',
+        status: 'active',
+        target_value: goalData.targetValue,
+        current_value: goalData.currentValue || 0,
+        unit: goalData.unit,
+        timeframe: goalData.timeframe,
+        deadline: goalData.deadline
       };
-      await Goal.create(payload);
-      await refreshUserData(); // Refresh user data to get updated goals from context
+      
+      await supabase
+        .from('goals')
+        .insert(payload);
+        
+      await refreshUserData();
       setShowAddGoal(false);
       toast.success("New custom goal added!");
     } catch (error) {
@@ -484,15 +487,16 @@ export default function GoalsPage() {
           diagnostics: performanceDiagnostics.diagnostics
         } : null;
 
-        const { data } = await base44.functions.invoke('generateGoalsInsights', {
-          goalsData,
-          activityData,
-          pulseData
+        // TODO: Implement AI insights generation
+        setAiInsights({
+          performanceAnalysis: 'Keep pushing forward on your goals. Focus on consistent daily action.',
+          nextSteps: [
+            'Review your goal progress daily',
+            'Focus on your highest priority goal',
+            'Track your key metrics consistently'
+          ],
+          weeklyFocus: 'Maintain consistency and focus on your top priority goals.'
         });
-
-        if (data) {
-          setAiInsights(data);
-        }
       } catch (error) {
         console.error('Error generating goals insights:', error);
         setAiInsights({
