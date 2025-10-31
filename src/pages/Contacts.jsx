@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { Contact } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Filter } from 'lucide-react';
@@ -25,8 +25,9 @@ export default function ContactsPage() {
   const loadContacts = async () => {
     setLoading(true);
     try {
-      const data = await Contact.list('-created_date');
-      setContacts(data || []);
+      // Contacts functionality will be implemented later
+      // For now, return empty array
+      setContacts([]);
     } catch (error) {
       console.error('Error loading contacts:', error);
       toast.error('Failed to load contacts');
