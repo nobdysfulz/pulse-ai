@@ -7,6 +7,7 @@ import React from 'react'
 const Login = React.lazy(() => import('./pages/Login'))
 const Signup = React.lazy(() => import('./pages/Signup'))
 const Dashboard = React.lazy(() => import('./pages/Dashboard'))
+const ToDo = React.lazy(() => import('./pages/ToDo'))
 const Agents = React.lazy(() => import('./pages/Agents'))
 const Goals = React.lazy(() => import('./pages/Goals'))
 const Market = React.lazy(() => import('./pages/Market'))
@@ -15,6 +16,7 @@ const Settings = React.lazy(() => import('./pages/Settings'))
 const GoalPlanner = React.lazy(() => import('./pages/GoalPlanner'))
 const ContentStudio = React.lazy(() => import('./pages/ContentStudio'))
 const RolePlay = React.lazy(() => import('./pages/RolePlay'))
+const PersonalAdvisor = React.lazy(() => import('./pages/PersonalAdvisor'))
 const Onboarding = React.lazy(() => import('./pages/Onboarding'))
 
 import ProtectedRoute from './components/ProtectedRoute'
@@ -40,6 +42,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><Dashboard /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/to-do"
+            element={
+              <ProtectedRoute>
+                <Layout><ToDo /></Layout>
               </ProtectedRoute>
             }
           />
@@ -104,6 +114,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><RolePlay /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/personaladvisor"
+            element={
+              <ProtectedRoute>
+                <Layout><PersonalAdvisor /></Layout>
               </ProtectedRoute>
             }
           />
