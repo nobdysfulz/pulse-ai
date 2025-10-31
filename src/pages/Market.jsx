@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { MarketIntelligence, UserMarketConfig } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, TrendingUp, Home, DollarSign, Calendar, Send, Sparkles, Download, Printer, RefreshCw, AlertCircle, MessageSquare, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
 import ContextualTopNav from '../components/layout/ContextualTopNav';
 import ContextualSidebar from '../components/layout/ContextualSidebar';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -169,9 +168,9 @@ export default function MarketPage() {
   const loadMarketData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.MarketIntelligence.filter({ userId: user.id }, '-created_date', 1);
-      setMarketData(data?.[0] || null);
-      console.log('[Market Page] Market intelligence loaded:', data?.[0]);
+      // TODO: Implement market intelligence data loading
+      setMarketData(null);
+      console.log('[Market Page] Market intelligence loading - coming soon');
     } catch (error) {
       console.error('Error loading market data:', error);
       toast.error('Failed to load market data');
@@ -218,30 +217,8 @@ export default function MarketPage() {
     console.log('[Market Page] User:', user);
     console.log('[Market Page] Market Config from Context:', marketConfig);
     
-    // First, run diagnostics
-    try {
-      console.log('[Market Page] Running diagnostics...');
-      const { data: debugData } = await base44.functions.invoke('debugMarketConfig');
-      console.log('[Market Page] Debug data:', debugData);
-    } catch (debugError) {
-      console.error('[Market Page] Debug error:', debugError);
-    }
-    
-    // If no marketConfig in context, try to fetch it directly
+    // Use marketConfig from context
     let configToUse = marketConfig;
-    
-    if (!configToUse) {
-      console.log('[Market Page] No config in context, fetching directly...');
-      try {
-        const configs = await base44.entities.UserMarketConfig.filter({ userId: user.id }, '-created_date', 1);
-        if (configs && configs.length > 0) {
-          configToUse = configs[0];
-          console.log('[Market Page] Direct fetch found config:', configToUse);
-        }
-      } catch (fetchError) {
-        console.error('[Market Page] Direct config fetch failed:', fetchError);
-      }
-    }
     
     if (!configToUse) {
       console.error('[Market Page] No market config found anywhere');
@@ -266,32 +243,8 @@ export default function MarketPage() {
     setGeneratingReport(true);
     
     try {
-      const { data, error } = await base44.functions.invoke('openaiMarketAnalysis', {
-        marketArea: configToUse.primaryTerritory,
-        refreshData: true
-      });
-
-      if (error) {
-        console.error('[Market Page] Error from openaiMarketAnalysis:', error);
-        throw new Error(error.error || error.message || 'Failed to generate market report');
-      }
-
-      if (!data || !data.analysis) {
-        console.error('[Market Page] Invalid response from openaiMarketAnalysis:', data);
-        throw new Error('Invalid response from market analysis');
-      }
-
-      console.log('[Market Page] Analysis received successfully');
-
-      const newMarketData = await base44.entities.MarketIntelligence.create({
-        userId: user.id,
-        territory: configToUse.primaryTerritory,
-        rawResponse: JSON.stringify(data.analysis)
-      });
-
-      console.log('[Market Page] Market data saved:', newMarketData.id);
-      setMarketData(newMarketData);
-      toast.success('Market report generated successfully!');
+      // TODO: Implement market report generation
+      toast.info('Market report generation coming soon!');
       
     } catch (error) {
       console.error('[Market Page] Error generating market report:', error);
@@ -460,15 +413,8 @@ export default function MarketPage() {
     setSendingMessage(true);
 
     try {
-      const context = marketData?.rawResponse ?
-      `\n\nUse the following market analysis as context:\n${marketData.rawResponse}` : '';
-
-      const { data } = await base44.functions.invoke('openaiMarketAnalysis', {
-        marketArea: marketConfig?.primaryTerritory || 'the local market',
-        specificQuery: advisorQuery + context
-      });
-
-      const assistantMessage = { role: 'assistant', content: data.analysis };
+      // TODO: Implement market advisor query
+      const assistantMessage = { role: 'assistant', content: "Market advisor functionality coming soon! This will provide AI-powered insights about your market." };
       setChatMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error getting response:', error);
