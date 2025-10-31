@@ -14,6 +14,222 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_config: {
+        Row: {
+          agent_type: string
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          personality_traits: string[] | null
+          response_style: string | null
+          updated_at: string | null
+          user_id: string
+          voice_id: string | null
+          voice_name: string | null
+        }
+        Insert: {
+          agent_type: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          personality_traits?: string[] | null
+          response_style?: string | null
+          updated_at?: string | null
+          user_id: string
+          voice_id?: string | null
+          voice_name?: string | null
+        }
+        Update: {
+          agent_type?: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          personality_traits?: string[] | null
+          response_style?: string | null
+          updated_at?: string | null
+          user_id?: string
+          voice_id?: string | null
+          voice_name?: string | null
+        }
+        Relationships: []
+      }
+      business_plans: {
+        Row: {
+          annual_gci_goal: number | null
+          average_commission: number | null
+          conversion_rates: Json | null
+          created_at: string | null
+          id: string
+          lead_sources: Json | null
+          monthly_breakdown: Json | null
+          transactions_needed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          annual_gci_goal?: number | null
+          average_commission?: number | null
+          conversion_rates?: Json | null
+          created_at?: string | null
+          id?: string
+          lead_sources?: Json | null
+          monthly_breakdown?: Json | null
+          transactions_needed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          annual_gci_goal?: number | null
+          average_commission?: number | null
+          conversion_rates?: Json | null
+          created_at?: string | null
+          id?: string
+          lead_sources?: Json | null
+          monthly_breakdown?: Json | null
+          transactions_needed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_actions: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string
+          duration_minutes: number | null
+          id: string
+          priority: string | null
+          scheduled_time: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date: string
+          duration_minutes?: number | null
+          id?: string
+          priority?: string | null
+          scheduled_time?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string
+          duration_minutes?: number | null
+          id?: string
+          priority?: string | null
+          scheduled_time?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          current_value: number | null
+          deadline: string | null
+          goal_type: string
+          id: string
+          status: string | null
+          target_value: number | null
+          timeframe: string | null
+          title: string
+          unit: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          current_value?: number | null
+          deadline?: string | null
+          goal_type: string
+          id?: string
+          status?: string | null
+          target_value?: number | null
+          timeframe?: string | null
+          title: string
+          unit?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          current_value?: number | null
+          deadline?: string | null
+          goal_type?: string
+          id?: string
+          status?: string | null
+          target_value?: number | null
+          timeframe?: string | null
+          title?: string
+          unit?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      market_config: {
+        Row: {
+          average_price: number | null
+          city: string | null
+          created_at: string | null
+          id: string
+          inventory_level: string | null
+          market_name: string
+          market_trend: string | null
+          median_dom: number | null
+          state: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          average_price?: number | null
+          city?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_level?: string | null
+          market_name: string
+          market_trend?: string | null
+          median_dom?: number | null
+          state?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          average_price?: number | null
+          city?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_level?: string | null
+          market_name?: string
+          market_trend?: string | null
+          median_dom?: number | null
+          state?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brokerage_name: string | null
@@ -50,6 +266,48 @@ export type Database = {
           specialization?: string | null
           updated_at?: string | null
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      pulse_scores: {
+        Row: {
+          activities_score: number | null
+          created_at: string | null
+          date: string
+          id: string
+          metrics: Json | null
+          mindset_score: number | null
+          overall_score: number
+          pipeline_score: number | null
+          production_score: number | null
+          systems_score: number | null
+          user_id: string
+        }
+        Insert: {
+          activities_score?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          metrics?: Json | null
+          mindset_score?: number | null
+          overall_score: number
+          pipeline_score?: number | null
+          production_score?: number | null
+          systems_score?: number | null
+          user_id: string
+        }
+        Update: {
+          activities_score?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          metrics?: Json | null
+          mindset_score?: number | null
+          overall_score?: number
+          pipeline_score?: number | null
+          production_score?: number | null
+          systems_score?: number | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -131,6 +389,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_preferences: {
+        Row: {
+          auto_response_enabled: boolean | null
+          brand_accent_color: string | null
+          brand_primary_color: string | null
+          brand_secondary_color: string | null
+          communication_style: string | null
+          content_themes: string[] | null
+          created_at: string | null
+          email_categories: string[] | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_response_enabled?: boolean | null
+          brand_accent_color?: string | null
+          brand_primary_color?: string | null
+          brand_secondary_color?: string | null
+          communication_style?: string | null
+          content_themes?: string[] | null
+          created_at?: string | null
+          email_categories?: string[] | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_response_enabled?: boolean | null
+          brand_accent_color?: string | null
+          brand_primary_color?: string | null
+          brand_secondary_color?: string | null
+          communication_style?: string | null
+          content_themes?: string[] | null
+          created_at?: string | null
+          email_categories?: string[] | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
