@@ -1,7 +1,4 @@
-import { TaskTemplate } from "@/api/entities";
-import { DailyAction } from "@/api/entities";
-import { CrmConnection } from '@/api/entities';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Helper function to sync CRM tasks into PULSE Daily Actions
@@ -9,54 +6,8 @@ import { base44 } from '@/api/base44Client';
  * @returns {Promise<Array<object>>} A promise that resolves to an array of CRM tasks.
  */
 async function syncCrmTasks(user) {
-    const crmTasks = [];
-
-    try {
-        const connections = await CrmConnection.filter({
-            userId: user.id,
-            connectionStatus: 'connected'
-        });
-
-        for (const connection of connections) {
-            if (!connection.syncSettings || !connection.syncSettings.syncTasks) {
-                continue;
-            }
-
-            try {
-                let syncResult;
-
-                if (connection.crmType === 'lofty') {
-                    const { data } = await base44.functions.invoke('loftySync', {
-                        action: 'syncTasks'
-                    });
-                    syncResult = { data };
-                } else if (connection.crmType === 'follow_up_boss') {
-                    const { data } = await base44.functions.invoke('followUpBossSync', {
-                        action: 'syncTasks'
-                    });
-                    syncResult = { data };
-                }
-
-                if (syncResult?.data?.success && syncResult.data.tasks && syncResult.data.tasks.length > 0) {
-                    const tasks = syncResult.data.tasks.map(task => ({
-                        title: task.title || task.subject || task.name || 'CRM Task',
-                        description: task.description || task.notes || 'Task from CRM',
-                        crmType: connection.crmType,
-                        crmTaskId: task.id,
-                        dueDate: task.due_date || task.dueDate,
-                        priority: task.priority && ['high', 'medium', 'low'].includes(task.priority.toLowerCase()) ? task.priority.toLowerCase() : 'medium'
-                    }));
-                    crmTasks.push(...tasks);
-                }
-            } catch (syncError) {
-                console.error(`Failed to sync tasks from ${connection.crmType}:`, syncError);
-            }
-        }
-    } catch (error) {
-        console.error("Error checking CRM connection:", error);
-    }
-
-    return crmTasks;
+    // TODO: Implement CRM task sync
+    return [];
 }
 
 export const generateTasksForToday = async (user, profile, marketConfig, businessPlan) => {
@@ -114,14 +65,7 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
 
         // Get current Pulse Score (default to 50 if unavailable)
         let currentPulseScore = 50;
-        try {
-            const { data: agentContext } = await base44.functions.invoke('getAgentContext');
-            if (agentContext?.performanceAnalysis?.overallPulseScore) {
-                currentPulseScore = agentContext.performanceAnalysis.overallPulseScore;
-            }
-        } catch (error) {
-            console.warn("[taskGeneration] Could not fetch Pulse Score, using default:", error.message);
-        }
+        // TODO: Implement pulse score fetching
 
         let tasksToGenerate = [];
 

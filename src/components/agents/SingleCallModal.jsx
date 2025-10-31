@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { UserContext } from '../context/UserContext';
 
 const callTypes = [
@@ -70,15 +70,10 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
                 agent_phone: user?.phone
             };
 
-            const { data } = await base44.functions.invoke('sendContactsToElevenLabs', { contacts, callType, agentData, campaignName: "Single Call" });
-            
-            if (data.requiresOnboarding) {
-                 toast.error("AI Agent Setup Incomplete", { description: data.error });
-            } else {
-                toast.success('Call initiated!', { description: `Calling ${firstName} ${lastName} at ${fullPhoneNumber}.` });
-                onCallStarted();
-                onClose();
-            }
+            // TODO: Implement ElevenLabs call initiation
+            toast.info('Call initiation feature coming soon!');
+            onCallStarted();
+            onClose();
 
         } catch (error) {
             console.error('Error starting single call:', error);
