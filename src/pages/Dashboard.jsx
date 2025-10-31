@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { UserContext } from '../components/context/UserContext';
-import { DailyAction } from "@/api/entities";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { generateDailyTasks } from "../components/actions/taskGeneration";
-import { base44 } from '@/api/base44Client';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
 import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
@@ -102,13 +101,13 @@ export default function DashboardPage() {
     const endOfLastWeek = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
     const actionsThisWeek = allActions.filter((a) => {
-      if (!a.created_date) return false;
-      return new Date(a.created_date) >= startOfThisWeek;
+      if (!a.created_at) return false;
+      return new Date(a.created_at) >= startOfThisWeek;
     });
     
     const actionsLastWeek = allActions.filter((a) => {
-      if (!a.created_date) return false;
-      const created = new Date(a.created_date);
+      if (!a.created_at) return false;
+      const created = new Date(a.created_at);
       return created >= startOfLastWeek && created <= endOfLastWeek;
     });
 
@@ -125,41 +124,29 @@ export default function DashboardPage() {
 
   // Generate dashboard insight
   useEffect(() => {
-    const generateInsight = async () => {
-      if (!pulseData || !user) return;
+    if (!pulseData || !user) return;
 
-      setInsightLoading(true);
-      try {
-        const completionRateDelta = analyticsData?.completionRateDelta || 0;
-
-        const { data } = await base44.functions.invoke('generateDashboardInsight', {
-          performanceAnalysis: pulseData,
-          completionRateDelta,
-          userProfile: {
-            experienceLevel: agentProfile?.experienceLevel,
-            activityMode: preferences?.activityMode
-          }
-        });
-
-        if (data?.insight) {
-          setDashboardInsight(data.insight);
-        }
-      } catch (error) {
-        console.error('Error generating dashboard insight:', error);
-        setDashboardInsight('Keep up the great work! Focus on maintaining your momentum and completing high-priority tasks.');
-      } finally {
-        setInsightLoading(false);
-      }
-    };
-
-    if (pulseData) {
-      generateInsight();
+    // Simple insight based on pulse score
+    const score = pulseData?.overallPulseScore || 0;
+    let insight = '';
+    
+    if (score >= 80) {
+      insight = '🎉 Outstanding performance! You\'re crushing your goals. Keep up this amazing momentum!';
+    } else if (score >= 60) {
+      insight = '💪 Great work! You\'re on track. Focus on consistency to reach your targets.';
+    } else if (score >= 40) {
+      insight = '📈 Making progress! Increase your daily activities to boost your PULSE score.';
+    } else {
+      insight = '🎯 Let\'s build momentum! Complete today\'s tasks and update your progress to improve your score.';
     }
-  }, [pulseData, user, analyticsData, agentProfile, preferences]);
+    
+    setDashboardInsight(insight);
+    setInsightLoading(false);
+  }, [pulseData, user]);
 
   // All tasks for today
   const allTodaysTasks = useMemo(() => {
-    return (allActions || []).filter((a) => a.actionDate === todayFormatted && a.status !== 'completed');
+    return (allActions || []).filter((a) => a.due_date === todayFormatted && a.status !== 'completed');
   }, [allActions, todayFormatted]);
 
   // First 4 tasks to display
@@ -170,8 +157,8 @@ export default function DashboardPage() {
   const completedToday = useMemo(() => {
     return (allActions || []).filter((a) =>
       a.status === 'completed' &&
-      a.completionDate &&
-      new Date(a.completionDate).toDateString() === new Date().toDateString()
+      a.completed_at &&
+      new Date(a.completed_at).toDateString() === new Date().toDateString()
     ).length;
   }, [allActions]);
 
@@ -179,8 +166,8 @@ export default function DashboardPage() {
     const today = new Date(todayFormatted);
     return (allActions || []).filter((a) =>
       a.status !== 'completed' &&
-      a.actionDate &&
-      new Date(a.actionDate) < today
+      a.due_date &&
+      new Date(a.due_date) < today
     ).length;
   }, [allActions, todayFormatted]);
 
@@ -220,12 +207,19 @@ export default function DashboardPage() {
   };
 
   const handleToggleTask = useCallback(async (actionId, isCompleted) => {
-    const newStatus = isCompleted ? 'completed' : 'not_started';
+    const newStatus = isCompleted ? 'completed' : 'pending';
     try {
-      await DailyAction.update(actionId, {
-        status: newStatus,
-        completionDate: newStatus === 'completed' ? new Date().toISOString() : null
-      });
+      const { error } = await supabase
+        .from('daily_actions')
+        .update({
+          status: newStatus,
+          completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', actionId);
+
+      if (error) throw error;
+      
       await refreshUserData();
       toast.success(isCompleted ? "Task completed!" : "Task marked incomplete");
     } catch (error) {
