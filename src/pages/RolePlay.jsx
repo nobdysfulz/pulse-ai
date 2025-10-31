@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { RolePlayScenario, RolePlaySessionLog, RolePlayUserProgress, ObjectionScript, RolePlayAnalysisReport } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react'; // Loader2 is removed
+import { Play, Clock, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -15,8 +15,7 @@ import ContextualTopNav from '../components/layout/ContextualTopNav';
 import ContextualSidebar from '../components/layout/ContextualSidebar';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import useCredits from '@/components/credits/useCredits';
-import { base44 } from '@/api/base44Client';
-import LoadingIndicator from '../components/ui/LoadingIndicator'; // New import for custom loader
+import LoadingIndicator from '../components/ui/LoadingIndicator';
 
 // --- RIGHT SIDEBAR COMPONENTS ---
 
@@ -92,25 +91,10 @@ const SessionResultsSidebar = ({ sessionLog, onDelete }) => {
     const loadDetails = async () => {
       setLoading(true);
       try {
-        const [analysisData, scenarioData] = await Promise.all([
-          RolePlayAnalysisReport.filter({ sessionId: sessionLog.id }),
-          RolePlayScenario.get(sessionLog.scenarioId)]
-        );
-        setAnalysis(analysisData?.[0] || null);
-        setScenario(scenarioData || null);
-
-        if (sessionLog.recordingUrl) {
-          setAudioLoading(true);
-          try {
-            const { data } = await base44.functions.invoke('getSignedAudioUrl', { file_uri: sessionLog.recordingUrl });
-            setAudioUrl(data.signed_url);
-          } catch (audioError) {
-            console.error("Failed to get signed audio URL", audioError);
-            toast.error("Could not load audio recording.");
-          } finally {
-            setAudioLoading(false);
-          }
-        }
+        // TODO: Implement role-play analysis and scenario loading
+        setAnalysis(null);
+        setScenario(null);
+        setAudioUrl(null);
       } catch (error) {
         console.error("Error loading session details", error);
         toast.error("Failed to load session details.");
@@ -230,8 +214,8 @@ const ScriptsSidebar = () => {
 
   useEffect(() => {
     const fetchScripts = async () => {
-      const data = await ObjectionScript.filter({ isActive: true });
-      setScripts(data || []);
+      // TODO: Implement objection scripts loading
+      setScripts([]);
     };
     fetchScripts();
   }, []);
@@ -325,17 +309,11 @@ export default function RolePlayPage() {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      const [scenariosData, progressData, logsData] = await Promise.all([
-        RolePlayScenario.filter({ isActive: true }),
-        RolePlayUserProgress.filter({ userId: user.id }),
-        RolePlaySessionLog.filter({ userId: user.id }, '-startTime')]
-      );
-
-      setAllScenarios(scenariosData || []);
-      setFeaturedScenarios(scenariosData?.filter((s) => s.isPopular) || []);
-      setUserProgress(progressData?.[0] || { total_sessions: 0, total_time: 0 });
-      setSessionLogs(logsData || []);
-
+      // TODO: Implement role-play scenarios and sessions loading
+      setAllScenarios([]);
+      setFeaturedScenarios([]);
+      setUserProgress({ total_sessions: 0, total_time: 0 });
+      setSessionLogs([]);
     } catch (error) {
       console.error('Error loading role-play data:', error);
       toast.error('Failed to load scenarios');
@@ -360,16 +338,9 @@ export default function RolePlayPage() {
     setIsInitiating(true);
     try {
       await deductCredits(creditsCost, "Role-Play", `Initiated: ${scenario.name}`);
-      const { data, error } = await base44.functions.invoke('initElevenLabsRolePlaySession', {
-        scenarioId: scenario.id
-      });
-
-      if (error) {
-        throw new Error(error.details || "Failed to initiate session.");
-      }
-
-      toast.success(data.message || "Call initiated! Please answer your phone to begin.");
-      loadPageData(); // Refresh logs to potentially see the new session being initiated
+      // TODO: Implement ElevenLabs role-play session initiation
+      toast.info("Role-play functionality coming soon!");
+      loadPageData();
     } catch (err) {
       console.error("Error starting scenario:", err);
       toast.error(`Error: ${err.message}`);
@@ -386,11 +357,7 @@ export default function RolePlayPage() {
   const handleDeleteSession = async (sessionId) => {
     if (!window.confirm('Are you sure you want to delete this session forever?')) return;
     try {
-      await RolePlaySessionLog.delete(sessionId);
-      const analysisToDelete = await RolePlayAnalysisReport.filter({ sessionId });
-      if (analysisToDelete?.[0]) {
-        await RolePlayAnalysisReport.delete(analysisToDelete[0].id);
-      }
+      // TODO: Implement session deletion
       toast.success("Session deleted.");
       setSelectedSessionLog(null);
       setActiveTab('search');
