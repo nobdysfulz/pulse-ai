@@ -49,10 +49,24 @@ export default function UserProvider({ children }) {
                 throw profileError;
             }
 
+            // Fetch roles from protected user_roles table (RLS allows users to read only their own)
+            const { data: userRoles, error: rolesError } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id);
+            if (rolesError) {
+                console.warn('[UserProvider] Failed to load user roles:', rolesError.message);
+            }
+            const roles = Array.isArray(userRoles) ? userRoles.map(r => r.role) : [];
+            const isAdmin = roles.includes('admin');
+
             const userData = {
                 id: session.user.id,
                 email: session.user.email,
-                ...profile
+                role: isAdmin ? 'admin' : 'user', // Backward compatibility for existing UI checks
+                roles,
+                isAdmin,
+                ...profile,
             };
 
             console.log('[UserProvider] User loaded:', userData.email);
