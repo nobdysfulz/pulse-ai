@@ -54,12 +54,23 @@ export default function GuidelinesPanel({ agentType }) {
 
     setAdding(true);
     try {
+      // Import and apply validation
+      const { validateOrThrow, guidelineSchema } = await import('@/lib/validation');
+      
+      const validatedData = validateOrThrow(guidelineSchema, {
+        user_id: user.id,
+        agent_type: agentType,
+        guideline_category: 'custom_instructions',
+        guideline_text: newGuideline.trim(),
+        guideline_type: 'custom'
+      });
+
       const newGuidelineRecord = await UserGuidelines.create({
-        userId: user.id,
-        agentType: agentType,
-        guidelineCategory: 'custom_instructions',
-        guidelineText: newGuideline.trim(),
-        guidelineType: 'custom'
+        userId: validatedData.user_id,
+        agentType: validatedData.agent_type,
+        guidelineCategory: validatedData.guideline_category,
+        guidelineText: validatedData.guideline_text,
+        guidelineType: validatedData.guideline_type
       });
       
       setGuidelines(prev => [...prev, newGuidelineRecord]);
@@ -67,7 +78,7 @@ export default function GuidelinesPanel({ agentType }) {
       toast.success('Guideline added');
     } catch (error) {
       console.error('Error adding guideline:', error);
-      toast.error('Failed to add guideline');
+      toast.error(error.message || 'Failed to add guideline');
     } finally {
       setAdding(false);
     }

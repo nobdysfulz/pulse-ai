@@ -118,17 +118,15 @@ export default function UserManagementTab() {
         return sortableUsers;
     }, [users, searchTerm, sortConfig]);
 
-    const handleImpersonateUser = (user) => { // Renamed to match dropdown item handler
-        if (!confirm(`Are you sure you want to view the app as ${user.firstName} ${user.lastName}?`)) return;
-        
-        // Store current admin email in sessionStorage
-        sessionStorage.setItem('impersonating', user.email);
-        sessionStorage.setItem('adminEmail', window.btoa(user.email)); // Base64 encode for basic obfuscation
-        
-        toast.success(`Now viewing as ${user.firstName} ${user.lastName}. Reload to return to admin view.`);
-        
-        // Reload the page to trigger UserProvider with impersonation
-        window.location.href = '/';
+    const handleImpersonateUser = (user) => {
+        // SECURITY: Impersonation feature has been disabled for security reasons
+        // Client-side impersonation via sessionStorage is a critical security vulnerability
+        // To re-enable, implement server-side impersonation with:
+        // 1. Edge function to create secure impersonation tokens
+        // 2. Server-side admin validation
+        // 3. Database-stored impersonation state with expiration
+        // 4. Audit logging of all impersonation attempts
+        toast.error('Impersonation feature is currently disabled for security reasons.');
     };
     
     const handleUpdateUser = async (userId, payload) => {
