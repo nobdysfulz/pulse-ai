@@ -19,17 +19,17 @@ export default function PrimarySidebar({ onNavigate }) {
   };
 
   // Calculate active states based on currentPath
-  const isDashboardActive = currentPath === createPageUrl('Dashboard') || currentPath === '/';
-  const isToDoActive = currentPath === createPageUrl('ToDo');
-  const isGoalsActive = currentPath === createPageUrl('Goals');
-  const isContentActive = currentPath === createPageUrl('ContentStudio');
-  const isSkillsActive = currentPath === createPageUrl('RolePlay');
-  const isAdvisorActive = currentPath === createPageUrl('PersonalAdvisor');
-  const isMarketActive = currentPath === createPageUrl('Market');
-  const isAgentsActive = currentPath === createPageUrl('Agents');
+  const isDashboardActive = currentPath === '/dashboard' || currentPath === '/';
+  const isToDoActive = currentPath === '/to-do';
+  const isGoalsActive = currentPath === '/goals';
+  const isContentActive = currentPath === '/content-studio';
+  const isSkillsActive = currentPath === '/role-play';
+  const isAdvisorActive = currentPath === '/personaladvisor';
+  const isMarketActive = currentPath === '/market';
+  const isAgentsActive = currentPath === '/agents';
 
   // Determine where My AI Agents should link to
-  const aiAgentsLink = isSubscriberOrAdmin ? createPageUrl('Agents') : createPageUrl('Plans');
+  const aiAgentsLink = isSubscriberOrAdmin ? '/agents' : '/plans';
 
   return (
     <aside className="bg-white w-40 flex flex-col h-full border-r border-[#E2E8F0] shadow-sm pt-4">
@@ -37,7 +37,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* Dashboard */}
         <NavLink
           key="dashboard"
-          to={createPageUrl('Dashboard')}
+          to="/dashboard"
           end={true}
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
@@ -52,7 +52,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* To-Do */}
         <NavLink
           key="todo"
-          to={createPageUrl('ToDo')}
+          to="/to-do"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isToDoActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -66,7 +66,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* Goals */}
         <NavLink
           key="goals"
-          to={createPageUrl('Goals')}
+          to="/goals"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isGoalsActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -80,7 +80,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* Content */}
         <NavLink
           key="content"
-          to={createPageUrl('ContentStudio')}
+          to="/content-studio"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isContentActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -94,7 +94,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* Skills */}
         <NavLink
           key="skills"
-          to={createPageUrl('RolePlay')}
+          to="/role-play"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isSkillsActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -108,7 +108,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* My Advisor */}
         <NavLink
           key="advisor"
-          to={createPageUrl('PersonalAdvisor')}
+          to="/personaladvisor"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isAdvisorActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -122,7 +122,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* My Market */}
         <NavLink
           key="market"
-          to={createPageUrl('Market')}
+          to="/market"
           className={
             `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
             ${isMarketActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
@@ -152,7 +152,7 @@ export default function PrimarySidebar({ onNavigate }) {
         {/* The Upgrade link is visible only if the user is NOT an admin */}
         {!isAdmin && ( 
           <NavLink
-            to={createPageUrl('Plans')}
+            to="/plans"
             className="text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-medium flex items-center transition-colors hover:bg-[#F8FAFC]"
             onClick={() => onNavigate?.()}
           >
