@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp, Brain, Globe, RefreshCw, CheckCircle } from 'lucide-react';
+import { Loader2, TrendingUp, Brain, Globe, RefreshCw, CheckCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function IntelligencePage() {
   const [context, setContext] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [processingActions, setProcessingActions] = useState(new Set());
+  const previousScores = useRef(null);
 
   const fetchGraphContext = async (fresh = false) => {
     try {
@@ -32,7 +34,82 @@ export default function IntelligencePage() {
 
   useEffect(() => {
     fetchGraphContext();
+
+    // Set up realtime subscriptions for all snapshot tables
+    const channel = supabase
+      .channel('intelligence-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pulse_engine_snapshots' },
+        (payload) => {
+          console.log('Pulse score updated:', payload);
+          handleScoreUpdate('pulse', payload.new.score);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gane_engine_snapshots' },
+        (payload) => {
+          console.log('GANE score updated:', payload);
+          handleScoreUpdate('gane', payload.new.score);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'moro_engine_snapshots' },
+        (payload) => {
+          console.log('MORO score updated:', payload);
+          handleScoreUpdate('moro', payload.new.score);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'graph_context_cache' },
+        (payload) => {
+          console.log('Graph context updated:', payload);
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setContext(payload.new.context);
+            toast.success('Intelligence data refreshed');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const handleScoreUpdate = (scoreType, newScore) => {
+    if (!previousScores.current) {
+      previousScores.current = context?.scores || {};
+      return;
+    }
+
+    const oldScore = previousScores.current[scoreType];
+    if (oldScore !== undefined && oldScore !== newScore) {
+      const diff = newScore - oldScore;
+      const isImprovement = diff > 0;
+      
+      toast(
+        isImprovement 
+          ? `${scoreType.toUpperCase()} score improved by ${Math.abs(diff).toFixed(1)} points! 🎉`
+          : `${scoreType.toUpperCase()} score decreased by ${Math.abs(diff).toFixed(1)} points`,
+        { 
+          description: `New score: ${newScore}`,
+          duration: 5000 
+        }
+      );
+    }
+
+    previousScores.current = {
+      ...previousScores.current,
+      [scoreType]: newScore
+    };
+
+    // Refresh full context to get updated insights
+    fetchGraphContext();
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -51,6 +128,75 @@ export default function IntelligencePage() {
     if (score >= 60) return 'Good';
     if (score >= 50) return 'Fair';
     return 'Critical';
+  };
+
+  const handleAddActionToTodo = async (action, index) => {
+    try {
+      setProcessingActions(prev => new Set(prev).add(index));
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Map action type to daily_actions category
+      const categoryMap = {
+        'database': 'data_management',
+        'agent_config': 'system_improvement',
+        'market_analysis': 'market_research',
+        'goal_setting': 'planning',
+        'system_usage': 'system_improvement'
+      };
+
+      const category = categoryMap[action.type] || 'other';
+
+      // Insert into daily_actions
+      const { error: insertError } = await supabase
+        .from('daily_actions')
+        .insert({
+          user_id: user.id,
+          title: action.title,
+          description: `AI-recommended action from Intelligence Engine`,
+          category: category,
+          priority: action.priority || 'medium',
+          due_date: new Date().toISOString().split('T')[0],
+          status: 'pending'
+        });
+
+      if (insertError) throw insertError;
+
+      // Log to ai_actions_log
+      const { error: logError } = await supabase
+        .from('ai_actions_log')
+        .insert({
+          user_id: user.id,
+          action_type: 'recommendation_accepted',
+          status: 'completed',
+          action_data: {
+            recommendation: action.title,
+            type: action.type,
+            priority: action.priority,
+            source: 'intelligence_engine'
+          }
+        });
+
+      if (logError) console.error('Failed to log action:', logError);
+
+      toast.success('Action added to your To-Do list', {
+        description: action.title,
+        action: {
+          label: 'View To-Do',
+          onClick: () => window.location.href = '/todo'
+        }
+      });
+    } catch (error) {
+      console.error('Error adding action to todo:', error);
+      toast.error('Failed to add action to To-Do list');
+    } finally {
+      setProcessingActions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    }
   };
 
   if (loading) {
@@ -240,6 +386,21 @@ export default function IntelligencePage() {
                       {action.type?.replace('_', ' ')} • {action.priority} priority
                     </p>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAddActionToTodo(action, idx)}
+                    disabled={processingActions.has(idx)}
+                  >
+                    {processingActions.has(idx) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add to To-Do
+                      </>
+                    )}
+                  </Button>
                 </div>
               ))}
             </div>
