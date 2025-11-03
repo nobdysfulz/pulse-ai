@@ -29,7 +29,7 @@ export default function ClientPersonaManager() {
   const loadPersonas = async () => {
     setLoading(true);
     try {
-      const data = await ClientPersona.list('-created_date');
+      const data = await ClientPersona.list('-createdAt');
       setPersonas(data || []);
     } catch (error) {
       console.error('Error loading personas:', error);
