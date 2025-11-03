@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from "sonner";
-import { processReferral } from "@/api/functions";
+import { supabase } from '@/integrations/supabase/client';
 import { createPageUrl } from "@/utils";
 
 export default function ReferralNotification({ user }) {
@@ -42,11 +42,15 @@ export default function ReferralNotification({ user }) {
 
       const process = async () => {
         try {
-          const response = await processReferral({
-            referrerId: referrerId,
-            newUserId: user.id, // Use the current user's ID as the referred user
-            newUserEmail: user.email, // Use the current user's email as the referred email
+          const { data: response, error } = await supabase.functions.invoke('processReferral', {
+            body: {
+              referrerId: referrerId,
+              newUserId: user.id,
+              newUserEmail: user.email
+            }
           });
+          
+          if (error) throw error;
 
           if (response.data.success) {
             toast.success("Credits Have Been Added!", {

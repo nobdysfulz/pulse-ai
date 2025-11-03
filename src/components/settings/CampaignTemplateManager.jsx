@@ -52,11 +52,17 @@ export default function CampaignTemplateManager() {
 
     setUploading(true);
     try {
-      const { data } = await base44.integrations.Core.UploadPrivateFile({ file });
+      // Upload to Supabase Storage (private bucket)
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('campaign-templates')
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
       
       await CampaignTemplate.create({
         fileName: file.name,
-        fileUri: data.file_uri,
+        fileUri: fileName,
         isActive: true
       });
 
@@ -105,13 +111,14 @@ export default function CampaignTemplateManager() {
 
   const handleDownload = async (template) => {
     try {
-      const { data } = await base44.integrations.Core.CreateFileSignedUrl({
-        file_uri: template.fileUri,
-        expires_in: 300
-      });
+      const { data, error } = await supabase.storage
+        .from('campaign-templates')
+        .createSignedUrl(template.fileUri, 300); // 5 minutes expiry
+      
+      if (error) throw error;
 
       const link = document.createElement('a');
-      link.href = data.signed_url;
+      link.href = data.signedUrl;
       link.download = template.fileName;
       document.body.appendChild(link);
       link.click();

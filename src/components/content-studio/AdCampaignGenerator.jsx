@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles, Copy, Target, TrendingUp } from 'lucide-react';
 import { toast } from "sonner";
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 
 // AI Response Cleaning Function
 const cleanAIResponse = (response) => {
@@ -79,14 +79,22 @@ For ${adPlatform === 'facebook' ? 'Facebook/Instagram' : 'Google Ads'}, provide:
 - Targeting recommendations`;
 
     try {
-      const response = await InvokeLLM({
-        prompt: systemPrompt + '\n\n' + prompt,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            variations: {
-              type: 'array',
+      const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: systemPrompt + '\n\n' + prompt
+          }],
+          model: 'google/gemini-2.5-flash',
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'ad_campaign',
+              schema: {
+                type: 'object',
+                properties: {
+                  variations: {
+                    type: 'array',
               items: {
                 type: 'object',
                 properties: {

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ContentPack } from '@/api/entities';
-import { UploadFile } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label'; // Keeping Label as it might be useful for new elements or future extensions
@@ -54,9 +54,20 @@ export default function ContentPackManager() {
     setUploadingId(pack.id);
     try {
       let fileUrl = pack.fileUrl;
-      if (pack.file) { // Only upload if a new file is selected
-        const res = await UploadFile({ file: pack.file });
-        fileUrl = res.file_url;
+      if (pack.file) {
+        // Upload file to Supabase Storage
+        const fileName = `${Date.now()}_${pack.file.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('content-packs')
+          .upload(fileName, pack.file);
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: urlData } = supabase.storage
+          .from('content-packs')
+          .getPublicUrl(fileName);
+        
+        fileUrl = urlData.publicUrl;
       }
       
       if (!pack.topicId) {

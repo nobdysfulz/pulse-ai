@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { toast } from "sonner";
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, eachDayOfInterval, endOfMonth } from 'date-fns';
 
 const cleanAIResponse = (response) => {
@@ -55,32 +55,45 @@ For each day of the month, provide specific content ideas with:
 - Consider holidays and seasonal events for next month`;
 
     try {
-      const response = await InvokeLLM({
-        prompt: systemPrompt + '\n\n' + prompt,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            calendar: {
-              type: 'array',
-              items: {
+      const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: systemPrompt + '\n\n' + prompt
+          }],
+          model: 'google/gemini-2.5-flash',
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'content_calendar',
+              schema: {
                 type: 'object',
                 properties: {
-                  day: { type: 'number' },
-                  topic: { type: 'string' },
-                  content_type: { type: 'string' },
-                  description: { type: 'string' }
+                  calendar: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        day: { type: 'number' },
+                        topic: { type: 'string' },
+                        content_type: { type: 'string' },
+                        description: { type: 'string' }
+                      },
+                      required: ['day', 'topic', 'content_type', 'description']
+                    }
+                  }
                 },
-                required: ['day', 'topic', 'content_type', 'description']
+                required: ['calendar']
               }
             }
-          },
-          required: ['calendar']
+          }
         }
       });
 
+      if (error) throw error;
+
       // Clean all text content
-      const cleanedCalendar = (response.calendar || []).map(day => ({
+      const cleanedCalendar = (response?.calendar || []).map(day => ({
         ...day,
         topic: cleanAIResponse(day.topic || ''),
         content_type: cleanAIResponse(day.content_type || ''),

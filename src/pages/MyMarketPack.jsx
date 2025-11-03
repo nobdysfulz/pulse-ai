@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserMarketConfig, UserPreferences, BrandColorPalette, GeneratedContent } from '@/api/entities';
-import { GenerateImage, InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -95,17 +95,17 @@ export default function MyMarketPackPage() {
 
       // 3. Make API calls concurrently
       const results = await Promise.allSettled([
-        GenerateImage({ prompt: imagePrompt, style: "vibrant", aspect_ratio: "1:1" }),
-        InvokeLLM({ prompt: videoScriptPrompt, add_context_from_internet: true, response_json_schema: videoScriptSchema }),
-        InvokeLLM({ prompt: blogPostPrompt, add_context_from_internet: true, max_tokens: 2000 })
+        supabase.functions.invoke('generateImage', { body: { prompt: imagePrompt, style: "vibrant", aspect_ratio: "1:1" }}),
+        supabase.functions.invoke('openaiChat', { body: { messages: [{ role: 'user', content: videoScriptPrompt }], model: 'google/gemini-2.5-flash', response_format: { type: 'json_schema', json_schema: { name: 'video_script', schema: videoScriptSchema } } } }),
+        supabase.functions.invoke('openaiChat', { body: { messages: [{ role: 'user', content: blogPostPrompt }], model: 'google/gemini-2.5-flash', max_tokens: 2000 } })
       ]);
 
       const [graphicResult, scriptResult, blogResult] = results;
 
       // 4. Process results and update state
       const finalContent = {};
-      if (graphicResult.status === 'fulfilled' && graphicResult.value?.url) {
-        finalContent.graphic = graphicResult.value.url;
+      if (graphicResult.status === 'fulfilled' && graphicResult.value?.data?.url) {
+        finalContent.graphic = graphicResult.value.data.url;
         setGenerationStatus(prev => ({...prev, graphic: false}));
       } else {
         setErrors(prev => ({...prev, graphic: graphicResult.reason?.message || "Failed to generate image"}));

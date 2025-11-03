@@ -56,8 +56,19 @@ export default function AgentVoiceManager() {
 
     setUploading(true);
     try {
-      const { data } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({ ...formData, previewAudioUrl: data.file_url });
+      // Upload to Supabase Storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('agent-voices')
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('agent-voices')
+        .getPublicUrl(fileName);
+      
+      setFormData({ ...formData, previewAudioUrl: urlData.publicUrl });
       toast.success('Audio file uploaded');
     } catch (error) {
       console.error('Error uploading audio:', error);

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { getPlatformMetrics } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const MetricCard = ({ title, value, subtitle, trend }) => (
@@ -49,8 +49,13 @@ export default function PlatformMetrics() {
             if (filters.searchUser) params.append('searchUser', filters.searchUser);
             if (filters.region) params.append('region', filters.region);
 
-            const response = await getPlatformMetrics(Object.fromEntries(params));
-            if (response.data) {
+            const { data: response, error } = await supabase.functions.invoke('getPlatformMetrics', {
+                body: Object.fromEntries(params)
+            });
+            
+            if (error) throw error;
+            
+            if (response?.data) {
                 setMetrics(response.data);
             }
         } catch (error) {

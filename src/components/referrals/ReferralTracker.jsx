@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { processReferral } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/api/entities';
 
 // This component handles referral tracking and processing
@@ -38,11 +38,15 @@ export default function ReferralTracker() {
               
               if (currentUser && referralData.referrerId !== currentUser.id) {
                 // Process the referral
-                await processReferral({
-                  referrerId: referralData.referrerId,
-                  newUserId: currentUser.id,
-                  newUserEmail: currentUser.email
+                const { error } = await supabase.functions.invoke('processReferral', {
+                  body: {
+                    referrerId: referralData.referrerId,
+                    newUserId: currentUser.id,
+                    newUserEmail: currentUser.email
+                  }
                 });
+                
+                if (error) throw error;
               }
             } catch (error) {
               // User might not be logged in yet, which is fine

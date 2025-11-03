@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles, Copy, Download } from 'lucide-react';
 import { toast } from "sonner";
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 
 const cleanAIResponse = (response) => {
   return response
@@ -62,14 +62,22 @@ Create a structured script with sections for "Opening Hook," "Main Content," and
 For each section, provide the narration and visual direction.`;
 
     try {
-      const response = await InvokeLLM({
-        prompt: systemPrompt + '\n\n' + prompt,
-        add_context_from_internet: scriptType !== 'property_tour',
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            sections: {
-              type: 'array',
+      const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: systemPrompt + '\n\n' + prompt
+          }],
+          model: 'google/gemini-2.5-flash',
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'video_script',
+              schema: {
+                type: 'object',
+                properties: {
+                  sections: {
+                    type: 'array',
               items: {
                 type: 'object',
                 properties: {
@@ -78,12 +86,15 @@ For each section, provide the narration and visual direction.`;
                   content: { type: 'string', description: "The narration/what to say." },
                   shot_suggestion: { type: 'string', description: "Visual shot idea." }
                 },
-                required: ['title', 'duration', 'content', 'shot_suggestion']
+                  required: ['title', 'duration', 'content', 'shot_suggestion']
+                }
               }
             }
           }
         }
       });
+
+      if (error) throw error;
 
       // Clean all text content
       const cleanedResponse = {

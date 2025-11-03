@@ -1,13 +1,14 @@
 
-import React, { useState, useContext } from 'react'; // Add useContext
+import React, { useState, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-// Badge, Download are no longer used for single post output, remove them
-import { Loader2, Sparkles, Copy } from 'lucide-react'; // Remove Download
+import { Loader2, Sparkles, Copy } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { GeneratedContent } from '@/api/entities';
 import { toast } from "sonner";
 // Remove InvokeLLM, replace with base44
 // Add new imports as per outline
@@ -50,13 +51,13 @@ export default function SocialPostGenerator() {
     // Remove setError(null) as we use toasts now
 
     try {
-      // Remove all old prompt construction (systemPrompt, contentPrompts, prompt)
-      // Replace InvokeLLM with base44.functions.invoke
-      const { data, error } = await base44.functions.invoke('generateSocialPostTool', {
-        topic,
-        platform,
-        tone,
-        includeHashtags // Pass new parameter
+      const { data, error } = await supabase.functions.invoke('generateSocialPostTool', {
+        body: {
+          topic,
+          platform,
+          tone,
+          includeHashtags
+        }
       });
 
       if (error) {
@@ -68,12 +69,12 @@ export default function SocialPostGenerator() {
       if (data?.success && data?.content) {
         setGeneratedPost(data.content); // Set the single generated post
         
-        // Save to GeneratedContent (new logic)
+        // Save to GeneratedContent
         try {
-          await base44.entities.GeneratedContent.create({
-            userId: user.id, // Use user from context
+          await GeneratedContent.create({
+            userId: user.id,
             contentType: 'social_post',
-            contentTitle: `${platform} - ${topic.substring(0, 50)}`, // Generate title dynamically
+            contentTitle: `${platform} - ${topic.substring(0, 50)}`,
             contentBody: data.content,
             creditsUsed: 1
           });

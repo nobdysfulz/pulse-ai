@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ContentTopic } from '@/api/entities'; // Changed import path for ContentTopic
-import { UploadFile } from '@/api/integrations';
+import { ContentTopic } from '@/api/entities';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,7 +108,19 @@ const TopicForm = ({ topic, onSave, onCancel, isOpen, onOpenChange }) => {
 
     setUploading(field);
     try {
-      const { file_url } = await UploadFile({ file: input.files[0] });
+      // Upload to Supabase Storage
+      const fileName = `${Date.now()}_${input.files[0].name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('content-topics')
+        .upload(fileName, input.files[0]);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('content-topics')
+        .getPublicUrl(fileName);
+      
+      const file_url = urlData.publicUrl;
       
       if (field === 'socialCarouselGraphicUrls') {
         setFormData(prev => ({

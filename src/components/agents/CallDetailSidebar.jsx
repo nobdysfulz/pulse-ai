@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Download, Trash2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { CallLog } from '@/api/entities';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -112,7 +113,7 @@ export default function CallDetailSidebar({ log, onBack, onDelete }) {
         if (log.contactPhone) {
             setHistoryLoading(true);
             try {
-                const historyLogs = await base44.entities.CallLog.filter({ contactPhone: log.contactPhone }, '-created_date');
+                const historyLogs = await CallLog.filter({ contactPhone: log.contactPhone }, '-created_date');
                 setHistory(historyLogs);
             } catch (e) {
                 console.error("Failed to fetch call history", e);

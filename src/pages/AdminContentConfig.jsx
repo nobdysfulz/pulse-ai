@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { UploadFile } from "@/api/integrations"; // Import UploadFile integration
+import { supabase } from '@/integrations/supabase/client';
 
 import { ContentTopic } from '@/api/entities';
 import { AiPromptConfig } from '@/api/entities';
@@ -30,15 +30,35 @@ const FileUploader = ({ label, onUpload, currentUrl, isMultiple = false }) => {
             if (isMultiple) {
                 const uploadedUrls = await Promise.all(
                     Array.from(files).map(async (file) => {
-                        const { file_url } = await UploadFile({ file });
-                        return file_url;
+                        const fileName = `${Date.now()}_${file.name}`;
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('admin-uploads')
+                            .upload(fileName, file);
+                        
+                        if (uploadError) throw uploadError;
+                        
+                        const { data: urlData } = supabase.storage
+                            .from('admin-uploads')
+                            .getPublicUrl(fileName);
+                        
+                        return urlData.publicUrl;
                     })
                 );
                 onUpload(uploadedUrls);
             } else {
                 const file = files[0];
-                const { file_url } = await UploadFile({ file });
-                onUpload(file_url);
+                const fileName = `${Date.now()}_${file.name}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('admin-uploads')
+                    .upload(fileName, file);
+                
+                if (uploadError) throw uploadError;
+                
+                const { data: urlData } = supabase.storage
+                    .from('admin-uploads')
+                    .getPublicUrl(fileName);
+                
+                onUpload(urlData.publicUrl);
             }
             toast.success(`${files.length} file(s) uploaded successfully!`);
         } catch (error) {

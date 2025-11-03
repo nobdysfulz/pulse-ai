@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Sparkles, Copy } from 'lucide-react';
 import { toast } from "sonner";
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 
 // AI Response Cleaning Function
 const cleanAIResponse = (response) => {
@@ -59,13 +59,21 @@ Provide a compelling topic title, 3-5 specific talking points with local relevan
 Create content that would work well for Facebook Live, Instagram Live, or YouTube Live streaming.`;
 
     try {
-      const response = await InvokeLLM({
-        prompt: systemPrompt + '\n\n' + prompt,
-        add_context_from_internet: true,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            topic: { 
+      const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: systemPrompt + '\n\n' + prompt
+          }],
+          model: 'google/gemini-2.5-flash',
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'live_prompt',
+              schema: {
+                type: 'object',
+                properties: {
+                  topic: {
               type: 'string',
               description: 'A compelling, specific topic title that grabs attention'
             },
@@ -90,7 +98,11 @@ Create content that would work well for Facebook Live, Instagram Live, or YouTub
           },
           required: ['topic', 'talking_points', 'cta']
         }
-      });
+      }
+    }
+  });
+
+  if (error) throw error;
 
       // Clean all text responses
       const cleanedResponse = {

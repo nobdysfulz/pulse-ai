@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Sparkles, Copy, Download } from 'lucide-react';
 import { toast } from "sonner";
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 
 const cleanAIResponse = (response) => {
@@ -64,10 +64,17 @@ Create a well-structured report with:
 Use markdown formatting for professional presentation. Include specific data points and actionable insights that would be valuable for real estate professionals and their clients.`;
 
     try {
-      const response = await InvokeLLM({
-        prompt: systemPrompt + '\n\n' + prompt,
-        add_context_from_internet: true,
+      const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: systemPrompt + '\n\n' + prompt
+          }],
+          model: 'google/gemini-2.5-flash'
+        }
       });
+      
+      if (error) throw error;
       
       const cleanedResponse = cleanAIResponse(response);
       setGeneratedReport(cleanedResponse);

@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { UploadFile } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import BulkImportModal from '../admin/BulkImportModal';
 
 const SCENARIO_CSV_SAMPLE = `name,description,category,difficulty_level,initial_context,client_persona,passing_threshold
@@ -148,8 +148,19 @@ export default function ScenarioManager() {
     toast.info('Uploading avatar image...');
 
     try {
-      const { file_url } = await UploadFile({ file });
-      setFormData(prev => ({ ...prev, avatarImageUrl: file_url }));
+      // Upload to Supabase Storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('scenario-avatars')
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('scenario-avatars')
+        .getPublicUrl(fileName);
+      
+      setFormData(prev => ({ ...prev, avatarImageUrl: urlData.publicUrl }));
       toast.success('Avatar image uploaded successfully');
     } catch (error) {
       console.error('Error uploading avatar:', error);

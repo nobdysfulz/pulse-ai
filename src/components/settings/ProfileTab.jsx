@@ -49,8 +49,19 @@ export default function ProfileTab() {
 
         setSaving(true);
         try {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file });
-            setFormData(prev => ({ ...prev, avatar: file_url }));
+            // Upload to Supabase Storage
+            const fileName = `${Date.now()}_${file.name}`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, file);
+            
+            if (uploadError) throw uploadError;
+            
+            const { data: urlData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+            
+            setFormData(prev => ({ ...prev, avatar: urlData.publicUrl }));
             toast.success("Avatar uploaded. Save changes to apply.");
         } catch (error) {
             console.error("Error uploading avatar:", error);
