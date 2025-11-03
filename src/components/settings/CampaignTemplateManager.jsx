@@ -3,15 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Upload, Download, Trash2, FileText } from 'lucide-react';
+import { Loader2, Upload, Download, Trash2, FileText, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { CampaignTemplate } from '@/api/entities';
 import { base44 } from '@/api/base44Client';
+import BulkImportModal from '../admin/BulkImportModal';
+
+const CAMPAIGN_CSV_SAMPLE = `file_name,file_uri
+"Campaign Q1 2025","campaigns/q1-2025.csv"
+"Spring Outreach","campaigns/spring-outreach.csv"`;
+
+const CAMPAIGN_COLUMN_MAPPING = {
+  file_name: 'file_name',
+  file_uri: 'file_uri'
+};
 
 export default function CampaignTemplateManager() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -127,22 +138,27 @@ export default function CampaignTemplateManager() {
             <h3 className="text-lg font-semibold text-[#1E293B]">Campaign Templates</h3>
             <p className="text-sm text-[#475569] mt-1">Manage CSV templates for contact uploads</p>
           </div>
-          <div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImportModal(true)}>
+              <FileUp className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
             <Label htmlFor="template-upload" className="cursor-pointer">
               <Button as="span" disabled={uploading}>
                 <Upload className="w-4 h-4 mr-2" />
                 {uploading ? 'Uploading...' : 'Upload Template'}
               </Button>
             </Label>
-            <Input
-              id="template-upload"
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
           </div>
         </div>
+
+        <Input
+          id="template-upload"
+          type="file"
+          accept=".csv"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
 
         <div className="space-y-3">
           {templates.map((template) => (
@@ -203,6 +219,18 @@ export default function CampaignTemplateManager() {
           </div>
         )}
       </CardContent>
+
+      <BulkImportModal
+        isOpen={showImportModal}
+        onClose={(shouldRefresh) => {
+          setShowImportModal(false);
+          if (shouldRefresh) loadTemplates();
+        }}
+        entityType="campaign_templates"
+        entityLabel="Campaign Templates"
+        sampleCsvData={CAMPAIGN_CSV_SAMPLE}
+        columnMapping={CAMPAIGN_COLUMN_MAPPING}
+      />
     </Card>
   );
 }

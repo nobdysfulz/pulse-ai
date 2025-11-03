@@ -1,17 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { TaskTemplate } from '@/api/entities';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TaskTemplateForm from '../admin/TaskTemplateForm';
 import { Badge } from '@/components/ui/badge';
+import BulkImportModal from '../admin/BulkImportModal';
+
+const TASK_TEMPLATE_CSV_SAMPLE = `title,description,category,action_type,priority,trigger_type,trigger_value,impact_area
+"Follow up with leads","Contact warm leads from last week","lead_generation","call","high","daily",1,"pipeline"
+"Market research","Review local market trends","market_intelligence","research","medium","weekly",1,"knowledge"
+"Client outreach","Reach out to past clients","relationship_building","email","medium","weekly",2,"network"`;
+
+const TASK_TEMPLATE_COLUMN_MAPPING = {
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  action_type: 'action_type',
+  priority: 'priority',
+  trigger_type: 'trigger_type',
+  trigger_value: 'trigger_value',
+  impact_area: 'impact_area'
+};
 
 export default function TaskTemplateManager() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadTemplates();
@@ -82,10 +100,16 @@ export default function TaskTemplateManager() {
           <h3 className="text-lg font-semibold text-[#1E293B]">Task Templates</h3>
           <p className="text-sm text-[#64748B]">Manage daily action templates and generation rules</p>
         </div>
-        <Button onClick={() => { setEditingTemplate(null); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Template
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button onClick={() => { setEditingTemplate(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Template
+          </Button>
+        </div>
       </div>
 
       {templates.length === 0 ? (
@@ -153,6 +177,18 @@ export default function TaskTemplateManager() {
         setTemplate={setEditingTemplate}
         onSave={handleSave}
         onCancel={() => { setShowForm(false); setEditingTemplate(null); }}
+      />
+
+      <BulkImportModal
+        isOpen={showImportModal}
+        onClose={(shouldRefresh) => {
+          setShowImportModal(false);
+          if (shouldRefresh) loadTemplates();
+        }}
+        entityType="task_templates"
+        entityLabel="Task Templates"
+        sampleCsvData={TASK_TEMPLATE_CSV_SAMPLE}
+        columnMapping={TASK_TEMPLATE_COLUMN_MAPPING}
       />
     </div>
   );

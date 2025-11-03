@@ -128,6 +128,75 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_templates: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_uri: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_uri: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_uri?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      client_personas: {
+        Row: {
+          communication_style: string | null
+          created_at: string | null
+          decision_making_style: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          objection_patterns: string[] | null
+          persona_key: string
+          persona_name: string
+          personality_traits: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          communication_style?: string | null
+          created_at?: string | null
+          decision_making_style?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          objection_patterns?: string[] | null
+          persona_key: string
+          persona_name: string
+          personality_traits?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          communication_style?: string | null
+          created_at?: string | null
+          decision_making_style?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          objection_patterns?: string[] | null
+          persona_key?: string
+          persona_name?: string
+          personality_traits?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       daily_actions: {
         Row: {
           category: string
@@ -347,6 +416,54 @@ export type Database = {
         }
         Relationships: []
       }
+      objection_scripts: {
+        Row: {
+          category: string
+          created_at: string | null
+          difficulty: string
+          id: string
+          is_active: boolean | null
+          is_free: boolean | null
+          is_popular: boolean | null
+          response: string
+          situation: string
+          sort_order: number | null
+          tips: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          difficulty: string
+          id?: string
+          is_active?: boolean | null
+          is_free?: boolean | null
+          is_popular?: boolean | null
+          response: string
+          situation: string
+          sort_order?: number | null
+          tips?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean | null
+          is_free?: boolean | null
+          is_popular?: boolean | null
+          response?: string
+          situation?: string
+          sort_order?: number | null
+          tips?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brokerage_name: string | null
@@ -452,6 +569,129 @@ export type Database = {
           production_score?: number | null
           systems_score?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      role_play_scenarios: {
+        Row: {
+          avatar_image_url: string | null
+          average_duration_minutes: number | null
+          category: string
+          client_persona: string
+          created_at: string | null
+          description: string | null
+          difficulty_level: string
+          eleven_labs_agent_id: string | null
+          eleven_labs_phone_number_id: string | null
+          eleven_labs_voice_id: string | null
+          first_message_override: string | null
+          id: string
+          initial_context: string
+          is_active: boolean | null
+          is_popular: boolean | null
+          is_premium: boolean | null
+          learning_objectives: string[] | null
+          name: string
+          passing_threshold: number | null
+          success_criteria: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_image_url?: string | null
+          average_duration_minutes?: number | null
+          category: string
+          client_persona: string
+          created_at?: string | null
+          description?: string | null
+          difficulty_level: string
+          eleven_labs_agent_id?: string | null
+          eleven_labs_phone_number_id?: string | null
+          eleven_labs_voice_id?: string | null
+          first_message_override?: string | null
+          id?: string
+          initial_context: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          is_premium?: boolean | null
+          learning_objectives?: string[] | null
+          name: string
+          passing_threshold?: number | null
+          success_criteria?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_image_url?: string | null
+          average_duration_minutes?: number | null
+          category?: string
+          client_persona?: string
+          created_at?: string | null
+          description?: string | null
+          difficulty_level?: string
+          eleven_labs_agent_id?: string | null
+          eleven_labs_phone_number_id?: string | null
+          eleven_labs_voice_id?: string | null
+          first_message_override?: string | null
+          id?: string
+          initial_context?: string
+          is_active?: boolean | null
+          is_popular?: boolean | null
+          is_premium?: boolean | null
+          learning_objectives?: string[] | null
+          name?: string
+          passing_threshold?: number | null
+          success_criteria?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      task_templates: {
+        Row: {
+          action_type: string
+          category: string
+          created_at: string | null
+          description: string | null
+          display_category: string | null
+          id: string
+          impact_area: string | null
+          is_active: boolean | null
+          priority: string | null
+          priority_weight: number | null
+          title: string
+          trigger_type: string
+          trigger_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          category: string
+          created_at?: string | null
+          description?: string | null
+          display_category?: string | null
+          id?: string
+          impact_area?: string | null
+          is_active?: boolean | null
+          priority?: string | null
+          priority_weight?: number | null
+          title: string
+          trigger_type: string
+          trigger_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          display_category?: string | null
+          id?: string
+          impact_area?: string | null
+          is_active?: boolean | null
+          priority?: string | null
+          priority_weight?: number | null
+          title?: string
+          trigger_type?: string
+          trigger_value?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }

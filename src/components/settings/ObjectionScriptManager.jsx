@@ -5,14 +5,30 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Plus, Edit, Trash2, Save, X, MessageSquare } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Save, X, MessageSquare, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { ObjectionScript } from '@/api/entities';
+import BulkImportModal from '../admin/BulkImportModal';
+
+const OBJECTION_CSV_SAMPLE = `title,category,difficulty,situation,response,tips,is_free
+"Price Too High","price_objections","beginner","Client says your commission is too high","Let me show you the value...","Focus on value|Show comparable rates|Explain services",true
+"Need to think about it","timing_objections","intermediate","Client needs more time to decide","I understand...","Create urgency|Address concerns|Set follow-up",true`;
+
+const OBJECTION_COLUMN_MAPPING = {
+  title: 'title',
+  category: 'category',
+  difficulty: 'difficulty',
+  situation: 'situation',
+  response: 'response',
+  tips: 'tips',
+  is_free: 'is_free'
+};
 
 export default function ObjectionScriptManager() {
   const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     category: 'price_objections',
@@ -116,12 +132,20 @@ export default function ObjectionScriptManager() {
             <h3 className="text-lg font-semibold text-[#1E293B]">Objection Scripts</h3>
             <p className="text-sm text-[#475569] mt-1">Manage objection handling scripts</p>
           </div>
-          {!editing && (
-            <Button onClick={() => setEditing({})}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Script
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {!editing && (
+              <>
+                <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
+                </Button>
+                <Button onClick={() => setEditing({})}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Script
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {editing && (
@@ -307,6 +331,18 @@ export default function ObjectionScriptManager() {
           </div>
         )}
       </CardContent>
+
+      <BulkImportModal
+        isOpen={showImportModal}
+        onClose={(shouldRefresh) => {
+          setShowImportModal(false);
+          if (shouldRefresh) loadScripts();
+        }}
+        entityType="objection_scripts"
+        entityLabel="Objection Scripts"
+        sampleCsvData={OBJECTION_CSV_SAMPLE}
+        columnMapping={OBJECTION_COLUMN_MAPPING}
+      />
     </Card>
   );
 }

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2, Upload, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Loader2, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -18,6 +18,21 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { UploadFile } from '@/api/integrations';
+import BulkImportModal from '../admin/BulkImportModal';
+
+const SCENARIO_CSV_SAMPLE = `name,description,category,difficulty_level,initial_context,client_persona,passing_threshold
+"Price Negotiation","Practice handling price objections","price_objections","beginner","Client wants 10% discount","skeptical_buyer",70
+"Timeline Pressure","Handle urgent timeline requests","urgency_objections","intermediate","Client needs to close in 2 weeks","impatient_buyer",75`;
+
+const SCENARIO_COLUMN_MAPPING = {
+  name: 'name',
+  description: 'description',
+  category: 'category',
+  difficulty_level: 'difficulty_level',
+  initial_context: 'initial_context',
+  client_persona: 'client_persona',
+  passing_threshold: 'passing_threshold'
+};
 
 export default function ScenarioManager() {
   const [scenarios, setScenarios] = useState([]);
@@ -26,6 +41,7 @@ export default function ScenarioManager() {
   const [editingScenario, setEditingScenario] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -202,17 +218,27 @@ export default function ScenarioManager() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Role-Play Scenarios</CardTitle>
-        <Button
-          onClick={() => {
-            setEditingScenario(null);
-            resetForm();
-            setShowDialog(true);
-          }}
-          size="sm"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Scenario
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowImportModal(true)}
+            size="sm"
+          >
+            <FileUp className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingScenario(null);
+              resetForm();
+              setShowDialog(true);
+            }}
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Scenario
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -555,6 +581,18 @@ export default function ScenarioManager() {
           </DialogContent>
         </Dialog>
       </CardContent>
+
+      <BulkImportModal
+        isOpen={showImportModal}
+        onClose={(shouldRefresh) => {
+          setShowImportModal(false);
+          if (shouldRefresh) loadScenarios();
+        }}
+        entityType="role_play_scenarios"
+        entityLabel="Role-Play Scenarios"
+        sampleCsvData={SCENARIO_CSV_SAMPLE}
+        columnMapping={SCENARIO_COLUMN_MAPPING}
+      />
     </Card>
   );
 }
