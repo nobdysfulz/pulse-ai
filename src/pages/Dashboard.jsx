@@ -162,7 +162,8 @@ export default function DashboardPage() {
     
     fetchIntelligence();
 
-    // Set up real-time subscription for intelligence updates
+    // Set up debounced real-time subscription for intelligence updates
+    let debounceTimer;
     const channel = supabase
       .channel('dashboard-intelligence-updates')
       .on(
@@ -173,13 +174,18 @@ export default function DashboardPage() {
           table: 'graph_context_cache'
         },
         () => {
-          console.log('Intelligence data updated, refreshing dashboard...');
-          fetchIntelligence();
+          console.log('Intelligence data updated, debouncing refresh...');
+          // Debounce to prevent rapid refreshes
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            fetchIntelligence();
+          }, 5000); // Wait 5 seconds before refreshing
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [user]);

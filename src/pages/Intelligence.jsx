@@ -66,33 +66,10 @@ export default function IntelligencePage() {
   useEffect(() => {
     fetchGraphContext();
 
-    // Set up realtime subscriptions for all snapshot tables
+    // Consolidate subscriptions - only listen to graph_context_cache
+    // This prevents overload from multiple table subscriptions
     const channel = supabase
       .channel('intelligence-updates')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'pulse_engine_snapshots' },
-        (payload) => {
-          console.log('Pulse score updated:', payload);
-          handleScoreUpdate('pulse', payload.new.score);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'gane_engine_snapshots' },
-        (payload) => {
-          console.log('GANE score updated:', payload);
-          handleScoreUpdate('gane', payload.new.score);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'moro_engine_snapshots' },
-        (payload) => {
-          console.log('MORO score updated:', payload);
-          handleScoreUpdate('moro', payload.new.score);
-        }
-      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'graph_context_cache' },
@@ -100,24 +77,37 @@ export default function IntelligencePage() {
           console.log('Graph context updated:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             setContext(payload.new.context);
+            setLastUpdated(new Date());
             toast.success('Intelligence data refreshed');
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Intelligence realtime subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Intelligence subscription error');
+          toast.error('Real-time updates disconnected');
+        }
+      });
 
     return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchGraphContext]);
 
   const handleScoreUpdate = useCallback((scoreType, newScore) => {
-    if (!previousScores.current) {
-      previousScores.current = context?.scores || {};
+    const currentScores = previousScores.current;
+    
+    if (!currentScores) {
+      previousScores.current = { [scoreType]: newScore };
       return;
     }
 
-    const oldScore = previousScores.current[scoreType];
+    const oldScore = currentScores[scoreType];
     if (oldScore !== undefined && oldScore !== newScore) {
       const diff = newScore - oldScore;
       const isImprovement = diff > 0;
@@ -134,7 +124,7 @@ export default function IntelligencePage() {
     }
 
     previousScores.current = {
-      ...previousScores.current,
+      ...currentScores,
       [scoreType]: newScore
     };
 
@@ -146,7 +136,7 @@ export default function IntelligencePage() {
     debounceTimer.current = setTimeout(() => {
       fetchGraphContext();
     }, 3000); // Wait 3 seconds before refreshing
-  }, [context, fetchGraphContext]);
+  }, [fetchGraphContext]);
 
   const handleRefresh = () => {
     setRefreshing(true);

@@ -21,6 +21,7 @@ const Onboarding = React.lazy(() => import('./pages/Onboarding'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './pages/Layout'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 
 function App() {
   return (
@@ -41,7 +42,11 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Layout><Dashboard /></Layout>
+                <Layout>
+                  <ErrorBoundary>
+                    <Dashboard />
+                  </ErrorBoundary>
+                </Layout>
               </ProtectedRoute>
             }
           />
