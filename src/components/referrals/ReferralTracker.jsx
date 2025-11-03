@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/api/entities';
 
 // This component handles referral tracking and processing
 export default function ReferralTracker() {
@@ -34,7 +33,9 @@ export default function ReferralTracker() {
           // Check if referral is within 60-day window
           if (referralAge <= sixtyDaysInMs) {
             try {
-              const currentUser = await User.me();
+              const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+              
+              if (authError) throw authError;
               
               if (currentUser && referralData.referrerId !== currentUser.id) {
                 // Process the referral

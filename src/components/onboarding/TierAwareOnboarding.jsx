@@ -90,14 +90,16 @@ class OnboardingErrorBoundary extends React.Component {
   }
 }
 
-const getUserOnboardingEntity = () => {
-  const entity = base44?.entities?.UserOnboarding ?? base44?.entities?.userOnboarding;
-
-  if (!entity) {
-    console.error('[TierAwareOnboarding] UserOnboarding entity is not available on the Base44 client');
-  }
-
-  return entity;
+// Helper to interact with user_onboarding table
+const getUserOnboarding = async (userId) => {
+  const { data, error } = await supabase
+    .from('user_onboarding')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
 };
 
 function TierAwareOnboarding({ initialPhase = 'core' }) {
@@ -154,16 +156,18 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         return;
       }
 
-      const onboardingEntity = getUserOnboardingEntity();
       let progress = onboardingContext;
 
-      if (onboardingEntity && typeof onboardingEntity.filter === 'function') {
-        const onboarding = await onboardingEntity.filter({ userId: user.id });
-        if (onboarding.length > 0) {
-          progress = onboarding[0];
+      try {
+        const onboardingData = await getUserOnboarding(user.id);
+        if (onboardingData) {
+          progress = onboardingData;
         }
-      } else if (!onboardingContext) {
-        throw new Error('Onboarding service is not available');
+      } catch (error) {
+        console.error('Error fetching onboarding:', error);
+        if (!onboardingContext) {
+          throw new Error('Onboarding service is not available');
+        }
       }
 
       if (progress?.completedSteps) {
@@ -235,25 +239,20 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       setCompletedSteps(newCompleted);
       
       try {
-        const onboardingEntity = getUserOnboardingEntity();
+        const existingOnboarding = await getUserOnboarding(user.id);
 
-        if (onboardingEntity && typeof onboardingEntity.filter === 'function') {
-          const onboarding = await onboardingEntity.filter({ userId: user.id });
-
-          if (onboarding.length > 0 && typeof onboardingEntity.update === 'function') {
-            await onboardingEntity.update(onboarding[0].id, {
-              completedSteps: Array.from(newCompleted)
-            });
-          } else if (typeof onboardingEntity.create === 'function') {
-            await onboardingEntity.create({
-              userId: user.id,
-              completedSteps: Array.from(newCompleted)
-            });
-          } else {
-            console.warn('[TierAwareOnboarding] Unable to persist progress - update/create methods unavailable');
-          }
+        if (existingOnboarding) {
+          await supabase
+            .from('user_onboarding')
+            .update({ completed_steps: Array.from(newCompleted) })
+            .eq('user_id', user.id);
         } else {
-          console.warn('[TierAwareOnboarding] Progress save skipped - onboarding entity unavailable');
+          await supabase
+            .from('user_onboarding')
+            .insert({
+              user_id: user.id,
+              completed_steps: Array.from(newCompleted)
+            });
         }
       } catch (saveError) {
         console.warn('Progress save failed (non-critical):', saveError);
@@ -315,60 +314,31 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
     try {
       console.log(`🎯 Completing module: ${moduleKey}`);
       
-      const onboardingEntity = getUserOnboardingEntity();
-
-      if (!onboardingEntity) {
-        throw new Error('Onboarding service is not available');
-      }
-
-      if (typeof onboardingEntity.filter !== 'function') {
-        throw new Error('Onboarding service filter method is unavailable');
-      }
-
-      const onboarding = await onboardingEntity.filter({ userId: user.id });
+      const existingOnboarding = await getUserOnboarding(user.id);
       const updates = {};
       
       if (moduleKey === 'core') {
-        updates.onboardingCompleted = true;
-        updates.profileCompleted = true;
-        updates.profileCompletionDate = new Date().toISOString();
-        
-        if (onboarding.length > 0 && typeof onboardingEntity.update === 'function') {
-          await onboardingEntity.update(onboarding[0].id, updates);
-        } else if (typeof onboardingEntity.create === 'function') {
-          await onboardingEntity.create({
-            userId: user.id,
-            ...updates
-          });
-        } else {
-          throw new Error('Onboarding service update/create methods are unavailable');
-        }
+        updates.onboarding_completed = true;
+        updates.profile_completed = true;
+        updates.profile_completion_date = new Date().toISOString();
       } else if (moduleKey === 'agents') {
-        updates.agentOnboardingCompleted = true;
-
-        if (onboarding.length > 0 && typeof onboardingEntity.update === 'function') {
-          await onboardingEntity.update(onboarding[0].id, updates);
-        } else if (typeof onboardingEntity.create === 'function') {
-          await onboardingEntity.create({
-            userId: user.id,
-            ...updates
-          });
-        } else {
-          throw new Error('Onboarding service update/create methods are unavailable');
-        }
+        updates.agent_onboarding_completed = true;
       } else if (moduleKey === 'callcenter') {
-        updates.callCenterOnboardingCompleted = true;
-
-        if (onboarding.length > 0 && typeof onboardingEntity.update === 'function') {
-          await onboardingEntity.update(onboarding[0].id, updates);
-        } else if (typeof onboardingEntity.create === 'function') {
-          await onboardingEntity.create({
-            userId: user.id,
+        updates.call_center_onboarding_completed = true;
+      }
+      
+      if (existingOnboarding) {
+        await supabase
+          .from('user_onboarding')
+          .update(updates)
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('user_onboarding')
+          .insert({
+            user_id: user.id,
             ...updates
           });
-        } else {
-          throw new Error('Onboarding service update/create methods are unavailable');
-        }
       }
       
       toast.success(`${MODULES[moduleKey].title} complete!`);

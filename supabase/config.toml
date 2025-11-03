@@ -23,3 +23,33 @@ verify_jwt = true
 
 [functions.adminEntityCRUD]
 verify_jwt = true
+
+[functions.adminOperations]
+verify_jwt = true
+
+[functions.bulkImportData]
+verify_jwt = true
+
+[functions.openaiChat]
+verify_jwt = false
+
+[functions.openaiRolePlay]
+verify_jwt = false
+
+[functions.generateSocialPostTool]
+verify_jwt = false
+
+[functions.copilotChat]
+verify_jwt = true
+
+[functions.processReferral]
+verify_jwt = false
+
+[functions.getPlatformMetrics]
+verify_jwt = false
+
+[functions.finalizeAgentOnboarding]
+verify_jwt = true
+
+[functions.getSignedAudioUrl]
+verify_jwt = true

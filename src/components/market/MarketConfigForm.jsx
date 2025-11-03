@@ -134,32 +134,37 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
     try {
       console.log('[MarketConfigForm] Loading market config for user:', user.id);
       // Get ALL configs for this user
-      const allConfigs = await base44.entities.UserMarketConfig.filter({ userId: user.id });
-      console.log('[MarketConfigForm] Found', allConfigs.length, 'total configs');
+      const { data: allConfigs, error } = await supabase
+        .from('market_config')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      console.log('[MarketConfigForm] Found', allConfigs?.length || 0, 'total configs');
 
       if (allConfigs && allConfigs.length > 0) {
-        // Sort by created_date descending to get the most recent
-        const sortedConfigs = allConfigs.sort((a, b) =>
-          new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+        // Sort by created_at descending to get the most recent
+        const sortedConfigs = (allConfigs || []).sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         const config = sortedConfigs[0];
 
         console.log('[MarketConfigForm] Using most recent config:', {
           id: config.id,
-          created: config.created_date,
-          territory: config.primaryTerritory
+          created: config.created_at,
+          territory: config.market_name
         });
 
         setExistingConfigId(config.id);
         setFormData({
-          primaryTerritory: config.primaryTerritory || '',
+          primaryTerritory: config.market_name || '',
           state: config.state || '',
           city: config.city || '',
-          zipCodes: config.zipCodes || [],
-          priceRangeMin: config.priceRangeMin ?? 0,
-          priceRangeMax: config.priceRangeMax ?? 999999999,
-          propertyTypes: config.propertyTypes || [],
-          clientTypes: config.clientTypes || []
+          zipCodes: [], // Note: market_config table doesn't have zipCodes
+          priceRangeMin: 0, // Note: market_config table doesn't have priceRange fields
+          priceRangeMax: 999999999,
+          propertyTypes: [],
+          clientTypes: []
         });
 
         // Clean up old duplicate configs (keep only the most recent one)
@@ -167,7 +172,10 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
           console.log('[MarketConfigForm] Cleaning up', sortedConfigs.length - 1, 'old configs');
           for (let i = 1; i < sortedConfigs.length; i++) {
             try {
-              await base44.entities.UserMarketConfig.delete(sortedConfigs[i].id);
+              await supabase
+                .from('market_config')
+                .delete()
+                .eq('id', sortedConfigs[i].id);
               console.log('[MarketConfigForm] Deleted old config:', sortedConfigs[i].id);
             } catch (deleteError) {
               console.error('[MarketConfigForm] Failed to delete old config:', deleteError);
@@ -241,15 +249,10 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
 
     try {
       const dataToSave = {
-        userId: user.id,
-        primaryTerritory: formData.primaryTerritory,
+        user_id: user.id,
+        market_name: formData.primaryTerritory,
         state: formData.state,
-        city: formData.city,
-        zipCodes: formData.zipCodes,
-        priceRangeMin: Number(formData.priceRangeMin),
-        priceRangeMax: Number(formData.priceRangeMax),
-        propertyTypes: formData.propertyTypes,
-        clientTypes: formData.clientTypes
+        city: formData.city
       };
 
       console.log('[MarketConfigForm] Data to save:', dataToSave);
@@ -257,21 +260,41 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
       let savedConfig;
       if (existingConfigId) {
         console.log('[MarketConfigForm] Updating existing config:', existingConfigId);
-        savedConfig = await base44.entities.UserMarketConfig.update(existingConfigId, dataToSave);
+        const { data, error } = await supabase
+          .from('market_config')
+          .update(dataToSave)
+          .eq('id', existingConfigId)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        savedConfig = data;
         console.log('[MarketConfigForm] Update response:', savedConfig);
       } else {
         console.log('[MarketConfigForm] Creating new config');
-        savedConfig = await base44.entities.UserMarketConfig.create(dataToSave);
+        const { data, error } = await supabase
+          .from('market_config')
+          .insert(dataToSave)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        savedConfig = data;
         console.log('[MarketConfigForm] Create response:', savedConfig);
         setExistingConfigId(savedConfig.id);
       }
 
       // Verify the save by reading it back
       console.log('[MarketConfigForm] Verifying save by reading back...');
-      const verifyConfigs = await base44.entities.UserMarketConfig.filter({ userId: user.id });
-      console.log('[MarketConfigForm] Verification found', verifyConfigs.length, 'configs');
+      const { data: verifyConfigs, error: verifyError } = await supabase
+        .from('market_config')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (verifyError) throw verifyError;
+      console.log('[MarketConfigForm] Verification found', verifyConfigs?.length || 0, 'configs');
 
-      if (verifyConfigs.length === 0) {
+      if (!verifyConfigs || verifyConfigs.length === 0) {
         throw new Error('Config was not saved - verification failed. This may be a permissions issue.');
       }
 

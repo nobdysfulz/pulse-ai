@@ -125,6 +125,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_conversations: {
+        Row: {
+          agent_type: string
+          context: Json | null
+          created_at: string | null
+          id: string
+          messages: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_type: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_type?: string
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          messages?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_prompt_configs: {
         Row: {
           category: string
@@ -628,6 +658,42 @@ export type Database = {
           template_name?: string
           updated_at?: string | null
           variables?: Json | null
+        }
+        Relationships: []
+      }
+      external_service_connections: {
+        Row: {
+          connection_status: string | null
+          created_at: string | null
+          credentials: Json | null
+          id: string
+          last_sync_at: string | null
+          service_name: string
+          settings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connection_status?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          service_name: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connection_status?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          service_name?: string
+          settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

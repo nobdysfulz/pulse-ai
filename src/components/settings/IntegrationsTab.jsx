@@ -52,25 +52,30 @@ export default function IntegrationsTab({ onUpdate, user }) {
     if (!user || !user.id) return;
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({ userId: user.id });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
 
-      const zoomConn = connections.find((c) => c.serviceName === 'zoom' && c.status === 'connected');
+      const zoomConn = (connections || []).find((c) => c.service_name === 'zoom' && c.connection_status === 'connected');
       setIsZoomConnected(!!zoomConn);
 
-      const microsoftConn = connections.find((c) => c.serviceName === 'microsoft_365' && c.status === 'connected');
+      const microsoftConn = (connections || []).find((c) => c.service_name === 'microsoft_365' && c.connection_status === 'connected');
       setIsMicrosoftConnected(!!microsoftConn);
 
-      const facebookConn = connections.find((c) => c.serviceName === 'facebook' && c.status === 'connected');
+      const facebookConn = (connections || []).find((c) => c.service_name === 'facebook' && c.connection_status === 'connected');
       setIsFacebookConnected(!!facebookConn);
 
-      const instagramConn = connections.find((c) => c.serviceName === 'instagram' && c.status === 'connected');
+      const instagramConn = (connections || []).find((c) => c.service_name === 'instagram' && c.connection_status === 'connected');
       setIsInstagramConnected(!!instagramConn);
 
-      const linkedinConn = connections.find((c) => c.serviceName === 'linkedin' && c.status === 'connected');
+      const linkedinConn = (connections || []).find((c) => c.service_name === 'linkedin' && c.connection_status === 'connected');
       setIsLinkedInConnected(!!linkedinConn);
 
       // NEW: Check for Google Workspace connection
-      const googleWorkspaceConn = connections.find((c) => c.serviceName === 'google_workspace' && c.status === 'connected');
+      const googleWorkspaceConn = (connections || []).find((c) => c.service_name === 'google_workspace' && c.connection_status === 'connected');
       setIsGoogleWorkspaceConnected(!!googleWorkspaceConn);
     } catch (error) {
       console.error("Failed to load integration connections:", error);
@@ -86,10 +91,16 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
       // Check Lofty connection status
       try {
-        const loftyConnections = await base44.entities.CrmConnection.filter({ crmType: 'lofty' });
-        if (loftyConnections.length > 0) {
+        const { data: loftyConnections, error } = await supabase
+          .from('crm_connections')
+          .select('*')
+          .eq('provider', 'lofty')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        if (loftyConnections && loftyConnections.length > 0) {
           setLoftyConnection(loftyConnections[0]);
-          setIsLoftyConnected(loftyConnections[0].connectionStatus === 'connected');
+          setIsLoftyConnected(loftyConnections[0].connection_status === 'connected');
         }
       } catch (error) {
         console.error("Failed to load Lofty connection status:", error);
@@ -97,10 +108,16 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
       // Check Follow Up Boss connection status
       try {
-        const fubConnections = await base44.entities.CrmConnection.filter({ crmType: 'follow_up_boss' });
-        if (fubConnections.length > 0) {
+        const { data: fubConnections, error } = await supabase
+          .from('crm_connections')
+          .select('*')
+          .eq('provider', 'follow_up_boss')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        if (fubConnections && fubConnections.length > 0) {
           setFubConnection(fubConnections[0]);
-          setIsFubConnected(fubConnections[0].connectionStatus === 'connected');
+          setIsFubConnected(fubConnections[0].connection_status === 'connected');
         }
       } catch (error) {
         console.error("Failed to load Follow Up Boss connection status:", error);
@@ -180,8 +197,13 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectGoogleWorkspace = async () => {
     setIsGoogleWorkspaceConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('initiateGoogleWorkspaceOAuth');
+      toast.info('OAuth integrations are not yet implemented');
+      setIsGoogleWorkspaceConnecting(false);
+      return;
+      /* OAuth implementation pending
+      const { data } = await supabase.functions.invoke('initiateGoogleWorkspaceOAuth');
       const popup = window.open(data.authUrl, 'googleWorkspaceAuth', 'width=600,height=700');
+      */
 
       if (!popup || popup.closed) {
         toast.error("Popup was blocked. Please allow popups for this site.");
@@ -203,13 +225,20 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsGoogleWorkspaceDisconnecting(true);
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'google_workspace'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'google_workspace');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsGoogleWorkspaceConnected(false);
         toast.success("Google Workspace has been disconnected.");
         if (onUpdate) await onUpdate();
