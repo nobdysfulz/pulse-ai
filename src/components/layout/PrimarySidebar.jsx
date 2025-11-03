@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare, Brain } from 'lucide-react';
 import { UserContext } from '../context/UserContext';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function PrimarySidebar({ onNavigate }) {
   const { user } = useContext(UserContext);
@@ -14,7 +14,7 @@ export default function PrimarySidebar({ onNavigate }) {
   const isSubscriberOrAdmin = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    await supabase.auth.signOut();
     onNavigate?.(); 
   };
 

@@ -22,7 +22,7 @@ export default function Login() {
           .from('user_onboarding')
           .select('agent_onboarding_completed')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (!onboardingData?.agent_onboarding_completed) {
           navigate('/onboarding');
@@ -51,7 +51,7 @@ export default function Login() {
         .from('user_onboarding')
         .select('agent_onboarding_completed')
         .eq('user_id', data.user.id)
-        .single();
+        .maybeSingle();
 
       toast({
         title: "Welcome back!",

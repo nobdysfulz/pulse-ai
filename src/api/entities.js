@@ -80,10 +80,10 @@ const createEntity = (tableName) => ({
       .from(tableName)
       .insert(snakePayload)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
-    return objectToCamelCase(data);
+    return data ? objectToCamelCase(data) : null;
   },
 
   update: async (id, payload) => {
@@ -93,10 +93,10 @@ const createEntity = (tableName) => ({
       .update(snakePayload)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
-    return objectToCamelCase(data);
+    return data ? objectToCamelCase(data) : null;
   },
 
   delete: async (id) => {

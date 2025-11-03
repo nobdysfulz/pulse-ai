@@ -16,6 +16,8 @@ const Settings = React.lazy(() => import('./pages/Settings'))
 const GoalPlanner = React.lazy(() => import('./pages/GoalPlanner'))
 const ContentStudio = React.lazy(() => import('./pages/ContentStudio'))
 const RolePlay = React.lazy(() => import('./pages/RolePlay'))
+const RolePlaySession = React.lazy(() => import('./pages/RolePlaySession'))
+const SessionResults = React.lazy(() => import('./pages/SessionResults'))
 const PersonalAdvisor = React.lazy(() => import('./pages/PersonalAdvisor'))
 const Onboarding = React.lazy(() => import('./pages/Onboarding'))
 
@@ -119,6 +121,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><RolePlay /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/role-play-session"
+            element={
+              <ProtectedRoute>
+                <Layout><RolePlaySession /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/session-results"
+            element={
+              <ProtectedRoute>
+                <Layout><SessionResults /></Layout>
               </ProtectedRoute>
             }
           />

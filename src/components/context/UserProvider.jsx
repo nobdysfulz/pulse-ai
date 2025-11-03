@@ -42,7 +42,7 @@ export default function UserProvider({ children }) {
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle();
 
             if (profileError) {
                 console.error('[UserProvider] Error fetching profile:', profileError);

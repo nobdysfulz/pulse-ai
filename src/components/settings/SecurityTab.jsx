@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function SecurityTab() {
@@ -10,7 +10,7 @@ export default function SecurityTab() {
 
     const handleSignOut = async () => {
         try {
-            await base44.auth.logout();
+            await supabase.auth.signOut();
             toast.success("You have been signed out.");
         } catch (error) {
             console.error("Sign out failed:", error);

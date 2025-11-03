@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
+import { UserOnboarding } from '@/api/entities';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -13,22 +14,24 @@ export default function CoreConfirmation({ data, onNext, allData }) {
   const handleComplete = async () => {
     setCompleting(true);
     try {
-      const user = await base44.auth.me();
-      const serviceClient = base44.asServiceRole;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
-      // Update User entity with full name
+      // Update User metadata with full name
       if (allData?.welcome?.firstName && allData?.welcome?.lastName) {
-        await base44.auth.updateMe({
-          firstName: allData.welcome.firstName,
-          lastName: allData.welcome.lastName,
-          full_name: `${allData.welcome.firstName} ${allData.welcome.lastName}`
+        await supabase.auth.updateUser({
+          data: {
+            firstName: allData.welcome.firstName,
+            lastName: allData.welcome.lastName,
+            full_name: `${allData.welcome.firstName} ${allData.welcome.lastName}`
+          }
         });
       }
 
       // Mark core onboarding as complete
-      const onboardingRecords = await serviceClient.entities.UserOnboarding.filter({ userId: user.id });
+      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
       if (onboardingRecords.length > 0) {
-        await serviceClient.entities.UserOnboarding.update(onboardingRecords[0].id, {
+        await UserOnboarding.update(onboardingRecords[0].id, {
           onboardingCompleted: true,
           profileCompleted: true,
           marketSetupCompleted: true,
@@ -98,25 +101,25 @@ export default function CoreConfirmation({ data, onNext, allData }) {
         </div>
       </div>
 
-      <div className="flex justify-end gap-3">
-        <Button
-          onClick={handleComplete}
-          disabled={completing}
-          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8 py-3 text-lg"
-        >
-          {completing ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              Completing...
-            </>
-          ) : (
-            <>
-              Go to Dashboard
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </>
-          )}
+      <div className="bg-gradient-to-r from-[#7C3AED] to-[#6366F1] rounded-xl p-8 text-white mb-6">
+        <h3 className="text-xl font-semibold mb-2">Optional: Upgrade to Pro</h3>
+        <p className="text-white/90 mb-4">
+          Unlock AI Agents, advanced analytics, and priority support for just $49/month
+        </p>
+        <Button variant="secondary" className="bg-white text-[#7C3AED] hover:bg-white/90">
+          View Plans
         </Button>
       </div>
+
+      <Button
+        onClick={handleComplete}
+        className="w-full"
+        disabled={completing}
+        size="lg"
+      >
+        {completing ? 'Completing...' : 'Go to Dashboard'}
+        <ArrowRight className="ml-2 w-5 h-5" />
+      </Button>
     </div>
   );
 }

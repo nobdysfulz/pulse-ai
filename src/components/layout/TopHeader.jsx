@@ -6,7 +6,7 @@ import { LifeBuoy, LogOut, ChevronDown, User, Settings, BookOpen, Bell, Sparkles
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function TopHeader() {
@@ -15,7 +15,7 @@ export default function TopHeader() {
 
   const handleLogout = async () => {
     try {
-      await base44.auth.signOut();
+      await supabase.auth.signOut();
       toast.success('Successfully logged out.');
       navigate(createPageUrl('Login'));
     } catch (error) {
