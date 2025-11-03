@@ -19,6 +19,7 @@ const Signup = React.lazy(() => import('./Signup'));
 const Plans = React.lazy(() => import('./Plans'));
 const ToDo = React.lazy(() => import('./ToDo'));
 const KnowledgeBase = React.lazy(() => import('./KnowledgeBase'));
+const Intelligence = React.lazy(() => import('./Intelligence'));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -138,6 +139,14 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <Layout><KnowledgeBase /></Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/intelligence"
+          element={
+            <ProtectedRoute>
+              <Layout><Intelligence /></Layout>
             </ProtectedRoute>
           }
         />

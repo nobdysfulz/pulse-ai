@@ -53,6 +53,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_actions_log: {
+        Row: {
+          action_data: Json
+          action_type: string
+          created_at: string
+          error_message: string | null
+          executed_at: string
+          id: string
+          resource_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_data?: Json
+          action_type: string
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          resource_url?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          action_data?: Json
+          action_type?: string
+          created_at?: string
+          error_message?: string | null
+          executed_at?: string
+          id?: string
+          resource_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_plans: {
         Row: {
           annual_gci_goal: number | null
@@ -140,6 +176,33 @@ export type Database = {
         }
         Relationships: []
       }
+      gane_engine_snapshots: {
+        Row: {
+          computed_at: string
+          created_at: string
+          id: string
+          metrics: Json
+          score: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           confidence_score: number | null
@@ -188,6 +251,33 @@ export type Database = {
         }
         Relationships: []
       }
+      graph_context_cache: {
+        Row: {
+          context: Json
+          created_at: string
+          expires_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context: Json
+          created_at?: string
+          expires_at: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       market_config: {
         Row: {
           average_price: number | null
@@ -230,6 +320,33 @@ export type Database = {
         }
         Relationships: []
       }
+      moro_engine_snapshots: {
+        Row: {
+          computed_at: string
+          created_at: string
+          id: string
+          metrics: Json
+          score: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           brokerage_name: string | null
@@ -266,6 +383,33 @@ export type Database = {
           specialization?: string | null
           updated_at?: string | null
           years_experience?: number | null
+        }
+        Relationships: []
+      }
+      pulse_engine_snapshots: {
+        Row: {
+          computed_at: string
+          created_at: string
+          id: string
+          metrics: Json
+          score: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          score?: number
+          user_id?: string
         }
         Relationships: []
       }

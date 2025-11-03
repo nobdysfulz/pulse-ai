@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare } from 'lucide-react';
+import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare, Brain } from 'lucide-react';
 import { UserContext } from '../context/UserContext';
 import { base44 } from '@/api/base44Client';
 
@@ -22,6 +22,7 @@ export default function PrimarySidebar({ onNavigate }) {
   const isDashboardActive = currentPath === '/dashboard' || currentPath === '/';
   const isToDoActive = currentPath === '/to-do';
   const isGoalsActive = currentPath === '/goals';
+  const isIntelligenceActive = currentPath === '/intelligence';
   const isContentActive = currentPath === '/content-studio';
   const isSkillsActive = currentPath === '/role-play';
   const isAdvisorActive = currentPath === '/personaladvisor';
@@ -75,6 +76,20 @@ export default function PrimarySidebar({ onNavigate }) {
         >
           <Target className="w-5 h-5 mr-3" />
           <span className="text-left">Goals</span>
+        </NavLink>
+
+        {/* Intelligence */}
+        <NavLink
+          key="intelligence"
+          to="/intelligence"
+          className={
+            `text-[#01070f] pt-2 pr-1 pb-2 pl-4 text-sm font-normal flex items-center transition-colors hover:bg-[#F8FAFC] 
+            ${isIntelligenceActive ? 'font-semibold bg-[#F8FAFC]' : ''}`
+          }
+          onClick={() => onNavigate?.()}
+        >
+          <Brain className="w-5 h-5 mr-3" />
+          <span className="text-left">Intelligence</span>
         </NavLink>
 
         {/* Content */}
