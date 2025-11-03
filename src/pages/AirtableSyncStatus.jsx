@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle, Database, Loader2, RefreshCw, ExternalLink, Table, AlertTriangle, Shield } from 'lucide-react'; // Added Shield import
 import { toast } from 'sonner';
-import { airtableIntegration } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@clerk/nextjs'; // Assuming Clerk for user authentication; adjust if using a different auth solution
 
 export default function AirtableSyncStatusPage() {
@@ -43,24 +43,27 @@ export default function AirtableSyncStatusPage() {
     setErrorDetails(null);
     
     try {
-      const response = await airtableIntegration({ action: 'test' });
+      const { data, error } = await supabase.functions.invoke('airtableIntegration', {
+        body: { action: 'test' }
+      });
+      if (error) throw error;
       
-      if (response.data && response.data.success) {
+      if (data && data.success) {
         setConnectionStatus('connected');
         // Only set tables if we actually received them
-        setAvailableTables(response.data.tables || []);
+        setAvailableTables(data.tables || []);
         setLastSyncTime(new Date().toLocaleString());
-        toast.success(`Connected successfully! Found ${response.data.tables?.length || 0} tables.`);
+        toast.success(`Connected successfully! Found ${data.tables?.length || 0} tables.`);
       } else {
         setConnectionStatus('error');
         setAvailableTables([]); // Ensure no stale data
         setErrorDetails({
-          error: response.data?.error || 'Unknown error',
-          details: response.data?.details || 'No additional details available',
-          troubleshooting: response.data?.troubleshooting || [],
-          statusCode: response.data?.statusCode || null
+          error: data?.error || 'Unknown error',
+          details: data?.details || 'No additional details available',
+          troubleshooting: data?.troubleshooting || [],
+          statusCode: data?.statusCode || null
         });
-        toast.error(response.data?.error || 'Connection failed');
+        toast.error(data?.error || 'Connection failed');
       }
     } catch (error) {
       setConnectionStatus('error');

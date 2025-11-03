@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle, Database, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { airtableIntegration } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AirtableSetup({ onSetupComplete }) {
   const [step, setStep] = useState('testing'); // testing, selecting, fetching, complete
@@ -24,11 +24,14 @@ export default function AirtableSetup({ onSetupComplete }) {
     setConnectionStatus(null);
     
     try {
-      const response = await airtableIntegration({ action: 'test' });
+      const { data, error } = await supabase.functions.invoke('airtableIntegration', {
+        body: { action: 'test' }
+      });
+      if (error) throw error;
       
-      if (response.data.success) {
+      if (data.success) {
         setConnectionStatus('success');
-        setAvailableTables(response.data.tables);
+        setAvailableTables(data.tables);
         setStep('selecting');
         toast.success('Successfully connected to Airtable!');
       } else {
@@ -51,21 +54,24 @@ export default function AirtableSetup({ onSetupComplete }) {
     setStep('fetching');
     
     try {
-      const response = await airtableIntegration({ 
-        action: 'fetch', 
-        tableName: selectedTable 
+      const { data, error } = await supabase.functions.invoke('airtableIntegration', {
+        body: { 
+          action: 'fetch', 
+          tableName: selectedTable 
+        }
       });
+      if (error) throw error;
       
-      if (response.data.records) {
-        setSampleData(response.data.records.slice(0, 5)); // Show first 5 records
+      if (data.records) {
+        setSampleData(data.records.slice(0, 5)); // Show first 5 records
         setStep('complete');
-        toast.success(`Fetched ${response.data.records.length} records from ${selectedTable}`);
+        toast.success(`Fetched ${data.records.length} records from ${selectedTable}`);
         
         if (onSetupComplete) {
           onSetupComplete({
             tableName: selectedTable,
-            recordCount: response.data.records.length,
-            sampleData: response.data.records.slice(0, 3)
+            recordCount: data.records.length,
+            sampleData: data.records.slice(0, 3)
           });
         }
       } else {

@@ -14,9 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Phone, User as UserIcon, Calendar, CheckCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { googleCalendarAuth } from '@/api/functions';
-import { twilioActions } from '@/api/functions';
-import { finalizeAgentOnboarding } from '@/api/functions'; // Added import
+import { supabase } from '@/integrations/supabase/client';
 
 const StepIndicator = ({ currentStep }) => {
     const steps = ["Agent Details", "Calendar", "Phone Number", "Disclosure"];
@@ -114,7 +112,10 @@ export default function AgentOnboardingPage() {
                     setStep(2);
                     setSaving(true);
                     toast.info("Connecting to Google Calendar...");
-                    await googleCalendarAuth({ action: 'handleCallback', payload: { code } });
+                    const { error } = await supabase.functions.invoke('googleCalendarAuth', {
+                        body: { action: 'handleCallback', payload: { code } }
+                    });
+                    if (error) throw error;
                     setCalendarConnected(true);
                     toast.success("Google Calendar connected successfully!");
                     navigate('/AgentOnboarding', { replace: true });
@@ -158,7 +159,10 @@ export default function AgentOnboardingPage() {
     const handleConnectCalendar = async () => {
         setSaving(true);
         try {
-            const { data } = await googleCalendarAuth({ action: 'getAuthUrl' });
+            const { data, error } = await supabase.functions.invoke('googleCalendarAuth', {
+                body: { action: 'getAuthUrl' }
+            });
+            if (error) throw error;
             window.location.href = data.authUrl;
         } catch (e) {
             console.error("Connect calendar error:", e);
@@ -176,7 +180,10 @@ export default function AgentOnboardingPage() {
         setAvailableNumbers([]);
         setSelectedNumber('');
         try {
-            const { data } = await twilioActions({ action: 'searchNumbers', payload: { areaCode } });
+            const { data, error } = await supabase.functions.invoke('twilioActions', {
+                body: { action: 'searchNumbers', payload: { areaCode } }
+            });
+            if (error) throw error;
             setAvailableNumbers(data.numbers || []);
             if(data.numbers?.length > 0) {
                 toast.success(`${data.numbers.length} local numbers found.`);
@@ -198,9 +205,12 @@ export default function AgentOnboardingPage() {
         }
         setSaving(true);
         try {
-            const response = await twilioActions({ action: 'purchaseNumber', payload: { numberToPurchase: selectedNumber } });
+            const { data, error } = await supabase.functions.invoke('twilioActions', {
+                body: { action: 'purchaseNumber', payload: { numberToPurchase: selectedNumber } }
+            });
+            if (error) throw error;
             
-            if (response.data?.success && response.data?.elevenLabsTwilioNumberId) {
+            if (data?.success && data?.elevenLabsTwilioNumberId) {
                 toast.success(`Successfully acquired number: ${selectedNumber}`);
                 setStep(4);
             } else {
@@ -217,10 +227,10 @@ export default function AgentOnboardingPage() {
     const handleCompleteOnboarding = async () => {
         setIsFinishing(true);
         try {
-            // Call the new centralized finalizeAgentOnboarding function
-            const { data, error } = await finalizeAgentOnboarding();
+            // Call the finalizeAgentOnboarding edge function
+            const { data, error } = await supabase.functions.invoke('finalizeAgentOnboarding');
 
-            if (error || !data.success) {
+            if (error || !data?.success) {
                 throw new Error(data.error || 'Failed to finalize onboarding.');
             }
 

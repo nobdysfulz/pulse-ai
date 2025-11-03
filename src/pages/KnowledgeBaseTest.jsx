@@ -7,8 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Search, Database, Brain, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { airtableIntegration } from '@/api/functions';
-import { InvokeLLM } from '@/api/integrations';
+import { supabase } from '@/integrations/supabase/client';
 import AirtableSetup from '../components/airtable/AirtableSetup';
 
 export default function KnowledgeBaseTestPage() {
@@ -34,15 +33,18 @@ export default function KnowledgeBaseTestPage() {
     setAiResponse('');
     
     try {
-      const response = await airtableIntegration({
-        action: 'search',
-        tableName: knowledgeBaseConfig.tableName,
-        query: query.trim()
+      const { data, error } = await supabase.functions.invoke('airtableIntegration', {
+        body: {
+          action: 'search',
+          tableName: knowledgeBaseConfig.tableName,
+          query: query.trim()
+        }
       });
+      if (error) throw error;
       
-      if (response.data.records) {
-        setSearchResults(response.data.records);
-        toast.success(`Found ${response.data.totalFound} matching records`);
+      if (data.records) {
+        setSearchResults(data.records);
+        toast.success(`Found ${data.totalFound} matching records`);
       } else {
         toast.info('No matching records found');
       }
@@ -84,8 +86,14 @@ Instructions:
 
 Answer:`;
 
-      const response = await InvokeLLM({ prompt });
-      setAiResponse(response);
+      const { data, error } = await supabase.functions.invoke('openaiChat', {
+        body: { 
+          messages: [{ role: 'user', content: prompt }],
+          model: 'google/gemini-2.5-flash'
+        }
+      });
+      if (error) throw error;
+      setAiResponse(data.response || data.content || JSON.stringify(data));
     } catch (error) {
       toast.error('Failed to generate AI response');
       console.error('AI response error:', error);

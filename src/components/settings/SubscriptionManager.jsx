@@ -9,7 +9,7 @@ import { User } from '@/api/entities'; // Assuming User entity is from this path
 import { UserCredit } from '@/api/entities'; // Assuming UserCredit entity is from this path
 import { Search, Edit, Save, X, UserCog, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getAdminUsers } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SubscriptionManager() {
     const [allUsers, setAllUsers] = useState([]);
@@ -23,9 +23,12 @@ export default function SubscriptionManager() {
         const fetchAllUsers = async () => {
             setLoading(true);
             try {
-                const response = await getAdminUsers();
-                if (response.data && Array.isArray(response.data.users)) {
-                    setAllUsers(response.data.users);
+                const { data, error } = await supabase.functions.invoke('adminOperations', {
+                    body: { operation: 'getAllUsers' }
+                });
+                if (error) throw error;
+                if (data && Array.isArray(data.users)) {
+                    setAllUsers(data.users);
                 } else {
                     toast.error("Failed to fetch user list. Response format incorrect.");
                     setAllUsers([]);

@@ -7,7 +7,7 @@ import { Loader2, Clock, CheckCircle, ChevronLeft, ChevronRight, FileText, Downl
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { getSignedAudioUrl } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { createPageUrl } from '@/utils';
 
 const KPICard = ({ title, value, subtitle, icon: Icon }) => (
@@ -104,8 +104,11 @@ export default function SessionResults() {
     setAudioLoading(true);
     setAudioUrl(null);
     try {
-      const { data } = await getSignedAudioUrl({ file_uri: fileUri });
-      if (data.signed_url) {
+      const { data, error } = await supabase.functions.invoke('getSignedAudioUrl', {
+        body: { file_uri: fileUri }
+      });
+      if (error) throw error;
+      if (data?.signed_url) {
         setAudioUrl(data.signed_url);
       }
     } catch (error) {

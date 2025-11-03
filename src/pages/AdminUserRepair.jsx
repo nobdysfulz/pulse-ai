@@ -8,8 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Search, CheckCircle, AlertCircle, Wrench } from 'lucide-react';
 import { AgentConfig, UserAgentSubscription } from '@/api/entities';
 import { toast } from 'sonner';
-import { repairAgentConfig } from '@/api/functions';
-import { getAdminUsers } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminUserRepair() {
     const [searchEmail, setSearchEmail] = useState('');
@@ -37,15 +36,18 @@ export default function AdminUserRepair() {
         setElevenLabsNumberId('');
 
         try {
-            // Use getAdminUsers function to fetch users
-            const response = await getAdminUsers({ limit: 1000 });
+            // Use adminOperations function to fetch users
+            const { data, error } = await supabase.functions.invoke('adminOperations', {
+                body: { operation: 'getAllUsers', limit: 1000 }
+            });
+            if (error) throw error;
             
-            if (!response.data || !response.data.users) {
+            if (!data || !data.users) {
                 toast.error("Failed to load users");
                 return;
             }
 
-            const users = response.data.users;
+            const users = data.users;
             const user = users.find(u => u.email.toLowerCase() === searchEmail.toLowerCase());
 
             if (!user) {
@@ -97,11 +99,15 @@ export default function AdminUserRepair() {
         setRepairResult(null);
 
         try {
-            const { data } = await repairAgentConfig({
-                userEmail: selectedUser.email,
-                twilioPhoneNumber: phoneNumber.trim(),
-                elevenLabsTwilioNumberId: elevenLabsNumberId.trim()
+            const { data, error } = await supabase.functions.invoke('adminOperations', {
+                body: {
+                    operation: 'repairAgentConfig',
+                    userEmail: selectedUser.email,
+                    twilioPhoneNumber: phoneNumber.trim(),
+                    elevenLabsTwilioNumberId: elevenLabsNumberId.trim()
+                }
             });
+            if (error) throw error;
 
             if (data.success) {
                 setRepairResult({

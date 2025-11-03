@@ -7,7 +7,7 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DailyAction } from '@/api/entities';
-import { loftySync } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const TaskItem = ({ task, onToggle }) =>
@@ -45,9 +45,11 @@ export default function TodaysFocus({ actions, onToggleAction, onRefresh }) {
       // If task is from Lofty and being marked complete, sync back to Lofty
       if (isCompleted && action.loftyTaskId) {
         try {
-          await loftySync({
-            action: 'markTaskComplete',
-            data: { loftyTaskId: action.loftyTaskId }
+          await supabase.functions.invoke('loftySync', {
+            body: {
+              action: 'markTaskComplete',
+              data: { loftyTaskId: action.loftyTaskId }
+            }
           });
         } catch (loftyError) {
           console.error("Failed to mark task complete in Lofty:", loftyError);

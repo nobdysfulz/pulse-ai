@@ -7,9 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Mic, MicOff, Square, Send, Loader2, Brain, ArrowLeft, Clock, MessageCircle, AlertTriangle } from 'lucide-react';
-import { openaiRolePlay } from '@/api/functions';
-import { elevenLabsTTS } from '@/api/functions';
-import { whisperSTT } from '@/api/functions';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AudioPermissionFlow from './AudioPermissionFlow';
@@ -185,25 +183,31 @@ export default function RolePlaySession() {
         const startSession = async () => {
             setSessionState('processing');
             try {
-                const initialResponse = await openaiRolePlay({ scenario: scenario.initialContext, clientPersona: scenario.clientPersona });
-                const initialText = initialResponse.data.clientResponse;
+                const { data: initialResponse, error: rolePlayError } = await supabase.functions.invoke('openaiRolePlay', {
+                    body: { scenario: scenario.initialContext, clientPersona: scenario.clientPersona }
+                });
+                if (rolePlayError) throw rolePlayError;
+                const initialText = initialResponse.clientResponse;
                 const newTranscript = [{ speaker: 'AI', text: initialText }];
                 setTranscript(newTranscript);
 
                 if (!isTextOnlyMode) {
                     try {
-                        const audioResponse = await elevenLabsTTS({ text: initialText, persona: scenario.clientPersona });
+                        const { data: audioResponse, error: ttsError } = await supabase.functions.invoke('elevenLabsTTS', {
+                            body: { text: initialText, persona: scenario.clientPersona }
+                        });
+                        if (ttsError) throw ttsError;
                         
-                        if (!audioResponse.data.success) {
-                            if (audioResponse.data.fallback === 'text_only') {
+                        if (!audioResponse.success) {
+                            if (audioResponse.fallback === 'text_only') {
                                 setIsTextOnlyMode(true);
                                 toast.info("Continuing in text-only mode. Audio voices are temporarily unavailable.", { duration: 4000 });
                             } else {
-                                throw new Error(audioResponse.data.error);
+                                throw new Error(audioResponse.error);
                             }
                         } else {
                             setSessionState('playing');
-                            await playAudioFromBase64(audioResponse.data.audioData);
+                            await playAudioFromBase64(audioResponse.audioData);
                         }
                     } catch (audioError) {
                         console.warn("Audio playback failed:", audioError);
@@ -273,10 +277,13 @@ export default function RolePlaySession() {
 
             if (audioBlob && !textInput) {
                 const audioBase64 = await blobToBase64(audioBlob);
-                const sttResponse = await whisperSTT({ audioBase64, mimeType: 'audio/webm' });
+                const { data: sttResponse, error: sttError } = await supabase.functions.invoke('whisperSTT', {
+                    body: { audioBase64, mimeType: 'audio/webm' }
+                });
+                if (sttError) throw sttError;
 
-                if (!sttResponse.data.success) throw new Error(sttResponse.data.error || 'Speech-to-text failed.');
-                agentText = sttResponse.data.transcript;
+                if (!sttResponse.success) throw new Error(sttResponse.error || 'Speech-to-text failed.');
+                agentText = sttResponse.transcript;
             }
 
             if (!agentText || agentText.trim() === '') {
@@ -288,15 +295,18 @@ export default function RolePlaySession() {
             const newTranscript = [...transcript, { speaker: 'Agent', text: agentText }];
             setTranscript(newTranscript);
 
-            const rolePlayResponse = await openaiRolePlay({
-                scenario: scenario.initialContext,
-                clientPersona: scenario.clientPersona,
-                history: newTranscript,
-                agentResponse: agentText,
-                analysisRequested: true
+            const { data: rolePlayResponse, error: rolePlayError } = await supabase.functions.invoke('openaiRolePlay', {
+                body: {
+                    scenario: scenario.initialContext,
+                    clientPersona: scenario.clientPersona,
+                    history: newTranscript,
+                    agentResponse: agentText,
+                    analysisRequested: true
+                }
             });
+            if (rolePlayError) throw rolePlayError;
             
-            const { clientResponse, analysis, conversation_ended } = rolePlayResponse.data;
+            const { clientResponse, analysis, conversation_ended } = rolePlayResponse;
 
             // Attach the analysis to the agent's turn it corresponds to.
             // This assumes the analysis is always for the last agent turn.
@@ -321,18 +331,21 @@ export default function RolePlaySession() {
 
             if (!isTextOnlyMode) {
                 try {
-                    const ttsResponse = await elevenLabsTTS({ text: clientResponse, persona: scenario.clientPersona });
+                    const { data: ttsResponse, error: ttsError } = await supabase.functions.invoke('elevenLabsTTS', {
+                        body: { text: clientResponse, persona: scenario.clientPersona }
+                    });
+                    if (ttsError) throw ttsError;
                     
-                    if (!ttsResponse.data.success) {
-                        if (ttsResponse.data.fallback === 'text_only') {
+                    if (!ttsResponse.success) {
+                        if (ttsResponse.fallback === 'text_only') {
                             setIsTextOnlyMode(true);
                             toast.info("Switching to text-only mode due to voice service unavailability.");
                         } else {
-                            throw new Error(ttsResponse.data.error);
+                            throw new Error(ttsResponse.error);
                         }
                     } else {
                         setSessionState('playing');
-                        await playAudioFromBase64(ttsResponse.data.audioData);
+                        await playAudioFromBase64(ttsResponse.audioData);
                     }
                 } catch (audioError) {
                     console.warn("AI audio playback failed:", audioError);
