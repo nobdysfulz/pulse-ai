@@ -84,19 +84,9 @@ export default function ToDoPage() {
   }, [contextLoading]);
 
   const checkGoogleCalendar = async () => {
-    try {
-      // Use the updated base44.functions.invoke method for checking Google Calendar connection
-      const { data: config } = await base44.functions.invoke('googleCalendarAuth', { action: 'check_token' });
-      setGoogleCalendarConnected(!!config?.hasToken);
-      if (config?.hasToken) {
-
-
-        // TODO: Fetch calendar events if connected in the future.
-        // For now, the ScheduleView is driven by allActions.
-      }
-    } catch (error) {
-      console.error("Error checking Google Calendar:", error);
-    }
+    // Temporarily disabled: Edge function not yet implemented
+    // Default to disconnected state
+    setGoogleCalendarConnected(false);
   };
   const todaysTasks = useMemo(() => {
     return (allActions || []).filter((a) => a.actionDate === todayFormatted);
@@ -419,20 +409,9 @@ export default function ToDoPage() {
 
       setTakeawaysLoading(true);
       try {
-        const pulseDataForAI = pulseData ? {
-          diagnostics: pulseData.diagnostics
-        } : null;
-
-        const { data } = await base44.functions.invoke('generateTodoAnalytics', {
-          analyticsData,
-          pulseData: pulseDataForAI // Pass the structured pulseDataForAI
-        });
-
-        if (data?.insight) {
-          setAiTakeaways(data.insight);
-        } else {
-          setAiTakeaways('Your activity patterns show steady progress. Focus on maintaining consistency and completing high-priority tasks during your most productive hours.');
-        }
+        // Temporarily disabled: Edge function not yet implemented
+        // Using default insight instead
+        setAiTakeaways('Your activity patterns show steady progress. Focus on maintaining consistency and completing high-priority tasks during your most productive hours.');
       } catch (error) {
         console.error('Error generating AI takeaways:', error);
         setAiTakeaways('Your activity patterns show steady progress. Focus on maintaining consistency and completing high-priority tasks during your most productive hours.');
