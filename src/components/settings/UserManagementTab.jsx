@@ -140,13 +140,10 @@ export default function UserManagementTab() {
                     payload
                 }
             });
-                id: userId,
-                payload: payload
-            });
 
             if (data.success) {
                 toast.success("User updated successfully!");
-                await loadUsers(); // Refresh the user list
+                await loadUsers();
             } else {
                 throw new Error(data.error || "Update failed");
             }
@@ -164,15 +161,13 @@ export default function UserManagementTab() {
                 body: {
                     entityName: 'User',
                     operation: 'delete',
-                    id: userId
+                    id: user.id
                 }
-            });
-                id: user.id
             });
 
             if (data.success) {
                 toast.success("User deleted successfully!");
-                await loadUsers(); // Refresh the user list
+                await loadUsers();
             } else {
                 throw new Error(data.error || "Deletion failed");
             }
