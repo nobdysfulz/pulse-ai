@@ -125,11 +125,17 @@ export default function DashboardPage() {
     return { completionRateDelta };
   }, [allActions]);
 
-  // Fetch intelligence data with real-time updates and error handling
+  // Fetch intelligence data ONLY after user context is fully loaded
   useEffect(() => {
+    // Wait for user context to be fully loaded before fetching intelligence
+    if (!user || contextLoading) {
+      console.log('[Dashboard] Waiting for user context to load...');
+      return;
+    }
+
+    console.log('[Dashboard] User context loaded, fetching intelligence...');
+
     const fetchIntelligence = async (retryAttempt = 0) => {
-      if (!user) return;
-      
       setIntelligenceLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke('buildGraphContext', {
@@ -139,15 +145,16 @@ export default function DashboardPage() {
         if (error) throw error;
         
         if (data) {
+          console.log('[Dashboard] Intelligence data loaded successfully');
           setIntelligenceData(data);
           setLastIntelligenceUpdate(new Date());
         }
       } catch (error) {
-        console.error('Error fetching intelligence:', error);
+        console.error('[Dashboard] Error fetching intelligence:', error);
         
         // Retry logic for transient failures
         if (retryAttempt < 1) {
-          console.log(`Retrying intelligence fetch (attempt ${retryAttempt + 1})...`);
+          console.log(`[Dashboard] Retrying intelligence fetch (attempt ${retryAttempt + 1})...`);
           setTimeout(() => {
             fetchIntelligence(retryAttempt + 1);
           }, 3000);
@@ -188,7 +195,7 @@ export default function DashboardPage() {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, contextLoading, intelligenceData]);
 
   // Generate dashboard insight
   useEffect(() => {

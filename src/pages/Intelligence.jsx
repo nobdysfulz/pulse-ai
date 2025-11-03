@@ -41,17 +41,18 @@ export default function IntelligencePage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching graph context:', error);
+      console.error('[Intelligence] Error fetching graph context:', error);
       
       // Retry logic for transient failures
       if (retryAttempt < 2 && !fresh) {
-        console.log(`Retrying fetch (attempt ${retryAttempt + 1})...`);
+        console.log(`[Intelligence] Retrying fetch (attempt ${retryAttempt + 1})...`);
         setTimeout(() => {
           fetchGraphContext(fresh, retryAttempt + 1);
         }, 2000 * (retryAttempt + 1)); // Exponential backoff
       } else {
         // Show cached data if available
-        if (context) {
+        const currentContext = context;
+        if (currentContext) {
           toast.error('Failed to refresh. Showing cached data.');
         } else {
           toast.error('Failed to load intelligence data. Please try again later.');
@@ -61,9 +62,10 @@ export default function IntelligencePage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [context]);
+  }, []);
 
   useEffect(() => {
+    console.log('[Intelligence] Initial mount, fetching graph context...');
     fetchGraphContext();
 
     // Consolidate subscriptions - only listen to graph_context_cache
@@ -74,7 +76,7 @@ export default function IntelligencePage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'graph_context_cache' },
         (payload) => {
-          console.log('Graph context updated:', payload);
+          console.log('[Intelligence] Graph context updated:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             setContext(payload.new.context);
             setLastUpdated(new Date());
@@ -84,9 +86,9 @@ export default function IntelligencePage() {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Intelligence realtime subscription active');
+          console.log('[Intelligence] Realtime subscription active');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Intelligence subscription error');
+          console.error('[Intelligence] Subscription error');
           toast.error('Real-time updates disconnected');
         }
       });
@@ -97,7 +99,7 @@ export default function IntelligencePage() {
       }
       supabase.removeChannel(channel);
     };
-  }, [fetchGraphContext]);
+  }, []);
 
   const handleScoreUpdate = useCallback((scoreType, newScore) => {
     const currentScores = previousScores.current;

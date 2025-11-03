@@ -72,28 +72,54 @@ export default function UserProvider({ children }) {
             console.log('[UserProvider] User loaded:', userData.email);
             setUser(userData);
 
-            // Fetch additional context from database
-            console.log('[UserProvider] Fetching user context...');
+            // Fetch all user context data in parallel
+            console.log('[UserProvider] Fetching user context in parallel...');
             
-            // Fetch onboarding status
-            const { data: onboardingData } = await supabase
-                .from('user_onboarding')
-                .select('*')
-                .eq('user_id', userData.id)
-                .maybeSingle();
+            const [
+                onboardingResult,
+                marketConfigResult,
+                preferencesResult,
+                actionsResult,
+                agentConfigResult,
+                goalsResult,
+                businessPlanResult,
+                pulseHistoryResult,
+                pulseConfigResult
+            ] = await Promise.all([
+                supabase.from('user_onboarding').select('*').eq('user_id', userData.id).maybeSingle(),
+                supabase.from('market_config').select('*').eq('user_id', userData.id).maybeSingle(),
+                supabase.from('user_preferences').select('*').eq('user_id', userData.id).maybeSingle(),
+                supabase.from('daily_actions').select('*').eq('user_id', userData.id).order('due_date', { ascending: true }),
+                supabase.from('agent_config').select('*').eq('user_id', userData.id).maybeSingle(),
+                supabase.from('goals').select('*').eq('user_id', userData.id).order('created_at', { ascending: false }),
+                supabase.from('business_plans').select('*').eq('user_id', userData.id).maybeSingle(),
+                supabase.from('pulse_scores').select('*').eq('user_id', userData.id).order('date', { ascending: false }).limit(30),
+                supabase.from('pulse_scores').select('*').eq('user_id', userData.id).order('date', { ascending: false }).limit(1)
+            ]);
 
-            // Create minimal viable context
+            // Log any fetch errors but continue with available data
+            if (onboardingResult.error) console.warn('[UserProvider] Onboarding fetch error:', onboardingResult.error);
+            if (marketConfigResult.error) console.warn('[UserProvider] Market config fetch error:', marketConfigResult.error);
+            if (preferencesResult.error) console.warn('[UserProvider] Preferences fetch error:', preferencesResult.error);
+            if (actionsResult.error) console.warn('[UserProvider] Actions fetch error:', actionsResult.error);
+            if (agentConfigResult.error) console.warn('[UserProvider] Agent config fetch error:', agentConfigResult.error);
+            if (goalsResult.error) console.warn('[UserProvider] Goals fetch error:', goalsResult.error);
+            if (businessPlanResult.error) console.warn('[UserProvider] Business plan fetch error:', businessPlanResult.error);
+            if (pulseHistoryResult.error) console.warn('[UserProvider] Pulse history fetch error:', pulseHistoryResult.error);
+            if (pulseConfigResult.error) console.warn('[UserProvider] Pulse config fetch error:', pulseConfigResult.error);
+
+            // Build context with fetched data
             const agentContext = {
                 user: userData,
-                onboarding: onboardingData || {
+                onboarding: onboardingResult.data || {
                     userId: userData.id,
                     onboardingCompleted: false,
                     agentOnboardingCompleted: false,
                     completedSteps: []
                 },
-                marketConfig: null,
-                agentProfile: null,
-                preferences: {
+                marketConfig: marketConfigResult.data || null,
+                agentProfile: null, // This is not a table, keeping as null
+                preferences: preferencesResult.data || {
                     userId: userData.id,
                     coachingStyle: 'balanced',
                     activityMode: 'get_moving',
@@ -103,40 +129,38 @@ export default function UserProvider({ children }) {
                     emailNotifications: true,
                     timezone: 'America/New_York'
                 },
-                actions: [],
-                agentConfig: null,
-                userAgentSubscription: null,
-                goals: [],
-                businessPlan: null,
-                pulseHistory: [],
-                pulseConfig: null
+                actions: actionsResult.data || [],
+                agentConfig: agentConfigResult.data || null,
+                userAgentSubscription: null, // This is not a table, keeping as null
+                goals: goalsResult.data || [],
+                businessPlan: businessPlanResult.data || null,
+                pulseHistory: pulseHistoryResult.data || [],
+                pulseConfig: pulseConfigResult.data?.[0] || null
             };
 
-            console.log('[UserProvider] Context loaded successfully');
-
-            // Set all context data with safety checks
-            setOnboarding(agentContext.onboarding || null);
-            setMarketConfig(agentContext.marketConfig || null);
-            setAgentProfile(agentContext.agentProfile || null);
-            setPreferences(agentContext.preferences || {
-                userId: userData.id,
-                coachingStyle: 'balanced',
-                activityMode: 'get_moving',
-                dailyReminders: true,
-                weeklyReports: true,
-                marketUpdates: true,
-                emailNotifications: true,
-                timezone: 'America/New_York'
+            console.log('[UserProvider] Context loaded successfully:', {
+                hasMarketConfig: !!agentContext.marketConfig,
+                hasPreferences: !!agentContext.preferences,
+                actionsCount: agentContext.actions.length,
+                goalsCount: agentContext.goals.length,
+                hasBusinessPlan: !!agentContext.businessPlan,
+                pulseHistoryCount: agentContext.pulseHistory.length
             });
-            setActions(Array.isArray(agentContext.actions) ? agentContext.actions : []);
-            setAgentConfig(agentContext.agentConfig || null);
-            setUserAgentSubscription(agentContext.userAgentSubscription || null);
-            setGoals(Array.isArray(agentContext.goals) ? agentContext.goals : []);
-            setBusinessPlan(agentContext.businessPlan || null);
-            setPulseHistory(Array.isArray(agentContext.pulseHistory) ? agentContext.pulseHistory : []);
-            setPulseConfig(agentContext.pulseConfig || null);
 
-            console.log('[UserProvider] All context data loaded successfully');
+            // Set all context data
+            setOnboarding(agentContext.onboarding);
+            setMarketConfig(agentContext.marketConfig);
+            setAgentProfile(agentContext.agentProfile);
+            setPreferences(agentContext.preferences);
+            setActions(agentContext.actions);
+            setAgentConfig(agentContext.agentConfig);
+            setUserAgentSubscription(agentContext.userAgentSubscription);
+            setGoals(agentContext.goals);
+            setBusinessPlan(agentContext.businessPlan);
+            setPulseHistory(agentContext.pulseHistory);
+            setPulseConfig(agentContext.pulseConfig);
+
+            console.log('[UserProvider] All context data set successfully');
 
         } catch (err) {
             console.error("[UserProvider] Critical error in fetchUserData:", err);
