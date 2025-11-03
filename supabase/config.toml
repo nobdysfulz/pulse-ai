@@ -1,1 +1,25 @@
 project_id = "gzdzmqpkbgvkuulykjml"
+
+[functions.buildGraphContext]
+verify_jwt = true
+
+[functions.computePulse]
+verify_jwt = true
+
+[functions.computeGane]
+verify_jwt = true
+
+[functions.computeMoro]
+verify_jwt = true
+
+[functions.googleCalendarAuth]
+verify_jwt = true
+
+[functions.generateTodoAnalytics]
+verify_jwt = true
+
+[functions.getAdminUsers]
+verify_jwt = true
+
+[functions.adminEntityCRUD]
+verify_jwt = true

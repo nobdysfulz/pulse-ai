@@ -32,6 +32,8 @@ export default function DashboardPage() {
   const [advisorQuery, setAdvisorQuery] = useState("");
   const [dashboardInsight, setDashboardInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [intelligenceData, setIntelligenceData] = useState(null);
+  const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const navigate = useNavigate();
 
   const agentAvatars = [
@@ -121,6 +123,29 @@ export default function DashboardPage() {
 
     return { completionRateDelta };
   }, [allActions]);
+
+  // Fetch intelligence data
+  useEffect(() => {
+    const fetchIntelligence = async () => {
+      if (!user) return;
+      
+      setIntelligenceLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('buildGraphContext', {
+          body: { userId: user.id, fresh: false }
+        });
+        
+        if (error) throw error;
+        setIntelligenceData(data);
+      } catch (error) {
+        console.error('Error fetching intelligence:', error);
+      } finally {
+        setIntelligenceLoading(false);
+      }
+    };
+    
+    fetchIntelligence();
+  }, [user]);
 
   // Generate dashboard insight
   useEffect(() => {
@@ -338,7 +363,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Grid (Top row with Pulse, Today's Focus, AI Insights) */}
+        {/* Main Grid (Top row with Pulse, Today's Focus, Intelligence) */}
         <div className="grid grid-cols-3 gap-6">
           {/* Today's Pulse */}
           <div className="bg-violet-800 p-6 rounded-lg border border-[#E2E8F0] flex flex-col h-full">
@@ -452,37 +477,73 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          {/* AI Insights */}
+          {/* Intelligence Score */}
           <div className="bg-white border border-[#E2E8F0] rounded-lg p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-[#1E293B] flex items-center gap-2">
-                <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
-                  alt="AI Insights"
-                  className="w-5 h-5 object-contain"
-                />
-                AI Insights
-              </h3>
-              <button onClick={() => navigate(createPageUrl('Goals?tab=insights'))}>
+              <h3 className="text-base font-semibold text-[#1E293B]">Intelligence Score</h3>
+              <button onClick={() => navigate(createPageUrl('Intelligence'))}>
                 <ArrowRight className="w-5 h-5 text-[#475569] hover:text-[#6D28D9]" />
               </button>
             </div>
+            
             <div className="flex-1">
-              {insightLoading ? (
+              {intelligenceLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <LoadingIndicator text="Analyzing your performance..." size="sm" />
+                  <div className="w-8 h-8 border-2 border-[#6D28D9] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : intelligenceData ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-[#6D28D9] mb-1">
+                        {intelligenceData.overallScore || 0}
+                      </div>
+                      <div className="text-xs text-[#64748B] font-medium">Overall Score</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-lg font-semibold text-[#1E293B]">
+                        {intelligenceData.pulseScore || 0}
+                      </div>
+                      <div className="text-xs text-[#64748B]">Pulse</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-[#1E293B]">
+                        {intelligenceData.ganeScore || 0}
+                      </div>
+                      <div className="text-xs text-[#64748B]">GANE</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-[#1E293B]">
+                        {intelligenceData.moroScore || 0}
+                      </div>
+                      <div className="text-xs text-[#64748B]">MORO</div>
+                    </div>
+                  </div>
+
+                  {intelligenceData.insights?.message && (
+                    <div className="bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
+                      <p className="text-xs text-[#475569] leading-relaxed line-clamp-3">
+                        {intelligenceData.insights.message}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-[#475569] leading-relaxed whitespace-pre-wrap">
-                  {dashboardInsight || 'Keep up the great work! Focus on maintaining your momentum and completing high-priority tasks.'}
+                <p className="text-sm text-[#94A3B8] text-center py-8">
+                  Intelligence data will appear here once computed
                 </p>
               )}
             </div>
+
             <Button
-              onClick={() => navigate(createPageUrl('Goals?tab=insights'))}
-              className="w-full h-10 bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-md text-sm font-semibold mt-4"
+              onClick={() => navigate(createPageUrl('Intelligence'))}
+              variant="outline"
+              className="w-full mt-4"
             >
-              VIEW ALL
+              View Full Intelligence
             </Button>
           </div>
         </div>
