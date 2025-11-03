@@ -53,3 +53,24 @@ verify_jwt = true
 
 [functions.getSignedAudioUrl]
 verify_jwt = true
+
+[functions.initiateGoogleWorkspaceOAuth]
+verify_jwt = true
+
+[functions.handleGoogleWorkspaceCallback]
+verify_jwt = false
+
+[functions.initiateZoomOAuth]
+verify_jwt = true
+
+[functions.zoomOAuthCallback]
+verify_jwt = false
+
+[functions.metaOAuthCallback]
+verify_jwt = false
+
+[functions.linkedinOAuthCallback]
+verify_jwt = false
+
+[functions.microsoftOAuthCallback]
+verify_jwt = false

@@ -32,14 +32,6 @@ export default function SsoLoginPage() {
                     setStatus('success');
                     setMessage('Authentication successful! Redirecting...');
                     
-                    // The backend has validated the user, now we need to trigger Base44's auth
-                    // We'll use the email to login
-                    const { email } = response.data;
-                    
-                    // Since Base44 handles auth, we need to programmatically log them in
-                    // This will depend on how Base44 auth works - may need to call base44.auth method
-                    // For now, redirect to dashboard and let Base44's auth handle it
-                    
                     toast.success('Welcome! Redirecting to your dashboard...');
                     
                     setTimeout(() => {

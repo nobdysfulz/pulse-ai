@@ -10,11 +10,8 @@ import { Loader2, Sparkles, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { GeneratedContent } from '@/api/entities';
 import { toast } from "sonner";
-// Remove InvokeLLM, replace with base44
-// Add new imports as per outline
-import { UserContext } from '@/context/UserContext'; // Assuming this path
-import { useCredits } from '@/hooks/useCredits';   // Assuming this path
-import base44 from '@/api/integrations/base44'; // Assuming this path
+import { UserContext } from '@/context/UserContext';
+import { useCredits } from '@/hooks/useCredits';
 
 // No longer accepts props, uses useContext and useCredits
 export default function SocialPostGenerator() {
