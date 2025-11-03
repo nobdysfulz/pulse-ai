@@ -66,11 +66,20 @@ verify_jwt = true
 [functions.zoomOAuthCallback]
 verify_jwt = false
 
+[functions.initiateMetaOAuth]
+verify_jwt = true
+
 [functions.metaOAuthCallback]
 verify_jwt = false
 
+[functions.initiateLinkedInOAuth]
+verify_jwt = true
+
 [functions.linkedinOAuthCallback]
 verify_jwt = false
+
+[functions.initiateMicrosoftOAuth]
+verify_jwt = true
 
 [functions.microsoftOAuthCallback]
 verify_jwt = false

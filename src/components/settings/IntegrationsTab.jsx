@@ -255,7 +255,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectMicrosoft = async () => {
     setIsMicrosoftConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('microsoftOAuthInit');
+      const { data } = await supabase.functions.invoke('initiateMicrosoftOAuth');
       const popup = window.open(data.authUrl, 'microsoftAuth', 'width=600,height=700');
 
       if (!popup || popup.closed) {
@@ -277,17 +277,24 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'microsoft_365'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'microsoft_365');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsMicrosoftConnected(false);
         toast.success("Microsoft 365 has been disconnected.");
         if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
+        await checkExternalServiceConnections();
       }
     } catch (e) {
       console.error("Disconnect Microsoft error:", e);
@@ -298,7 +305,9 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectFacebook = async () => {
     setIsFacebookConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('facebookOAuthInit');
+      const { data } = await supabase.functions.invoke('initiateMetaOAuth', {
+        body: { service: 'facebook' }
+      });
       const popup = window.open(data.authUrl, 'facebookAuth', 'width=600,height=700');
 
       if (!popup || popup.closed) {
@@ -320,17 +329,24 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'facebook'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'facebook');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsFacebookConnected(false);
         toast.success("Facebook has been disconnected.");
         if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
+        await checkExternalServiceConnections();
       }
     } catch (e) {
       console.error("Disconnect Facebook error:", e);
@@ -341,7 +357,9 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectInstagram = async () => {
     setIsInstagramConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('instagramOAuthInit');
+      const { data } = await supabase.functions.invoke('initiateMetaOAuth', {
+        body: { service: 'instagram' }
+      });
       const popup = window.open(data.authUrl, 'instagramAuth', 'width=600,height=700');
 
       if (!popup || popup.closed) {
@@ -363,17 +381,24 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'instagram'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'instagram');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsInstagramConnected(false);
         toast.success("Instagram has been disconnected.");
         if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
+        await checkExternalServiceConnections();
       }
     } catch (e) {
       console.error("Disconnect Instagram error:", e);
@@ -384,7 +409,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectLinkedIn = async () => {
     setIsLinkedInConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('linkedinOAuthInit');
+      const { data } = await supabase.functions.invoke('initiateLinkedInOAuth');
       const popup = window.open(data.authUrl, 'linkedinAuth', 'width=600,height=700');
 
       if (!popup || popup.closed) {
@@ -406,17 +431,24 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'linkedin'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'linkedin');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsLinkedInConnected(false);
         toast.success("LinkedIn has been disconnected.");
         if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
+        await checkExternalServiceConnections();
       }
     } catch (e) {
       console.error("Disconnect LinkedIn error:", e);
@@ -427,7 +459,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleConnectZoom = async () => {
     setIsZoomConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('zoomOAuthInit');
+      const { data } = await supabase.functions.invoke('initiateZoomOAuth');
       const popup = window.open(data.authUrl, 'zoomAuth', 'width=600,height=700');
 
       if (!popup || popup.closed) {
@@ -449,17 +481,24 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
-        userId: user.id,
-        serviceName: 'zoom'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('service_name', 'zoom');
+      
+      if (error) throw error;
 
-      if (connections.length > 0) {
-        await base44.entities.ExternalServiceConnection.update(connections[0].id, { status: 'disconnected' });
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('external_service_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
         setIsZoomConnected(false);
         toast.success("Zoom has been disconnected.");
         if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
+        await checkExternalServiceConnections();
       }
     } catch (e) {
       console.error("Disconnect Zoom error:", e);
@@ -475,9 +514,17 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsLoftyConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('loftyAuth', {
-        action: 'connect',
-        apiKey: loftyApiKey
+      // TODO: Implement loftyAuth edge function
+      toast.info("Lofty CRM integration coming soon");
+      setIsLoftyConnecting(false);
+      return;
+      
+      /* Future implementation:
+      const { data } = await supabase.functions.invoke('loftyAuth', {
+        body: {
+          action: 'connect',
+          apiKey: loftyApiKey
+        }
       });
 
       if (data.success) {
@@ -486,13 +533,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
         setLoftyApiKey('');
         toast.success("Lofty CRM connected successfully!");
 
-        const connections = await base44.entities.CrmConnection.filter({ crmType: 'lofty' });
-        if (connections.length > 0) {
+        const { data: connections } = await supabase
+          .from('crm_connections')
+          .select('*')
+          .eq('provider', 'lofty')
+          .eq('user_id', user.id);
+        
+        if (connections && connections.length > 0) {
           setLoftyConnection(connections[0]);
         }
       } else {
         toast.error(data.error || "Failed to connect to Lofty CRM");
       }
+      */
     } catch (e) {
       console.error("Lofty connection error:", e);
       toast.error("Could not connect to Lofty CRM. Please check your API key.");
@@ -504,10 +557,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleDisconnectLofty = async () => {
     setIsLoftyDisconnecting(true);
     try {
-      await base44.functions.invoke('loftyAuth', { action: 'disconnect' });
+      // TODO: Implement loftyAuth edge function
+      toast.info("Lofty CRM integration coming soon");
+      setIsLoftyDisconnecting(false);
+      return;
+      
+      /* Future implementation:
+      await supabase.functions.invoke('loftyAuth', { 
+        body: { action: 'disconnect' } 
+      });
       setIsLoftyConnected(false);
       setLoftyConnection(null);
       toast.success("Lofty CRM has been disconnected.");
+      */
     } catch (e) {
       toast.error("Failed to disconnect Lofty CRM.");
     } finally {
@@ -523,9 +585,17 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsFubConnecting(true);
     try {
-      const { data } = await base44.functions.invoke('followUpBossAuth', {
-        action: 'connect',
-        apiKey: fubApiKey
+      // TODO: Implement followUpBossAuth edge function
+      toast.info("Follow Up Boss integration coming soon");
+      setIsFubConnecting(false);
+      return;
+      
+      /* Future implementation:
+      const { data } = await supabase.functions.invoke('followUpBossAuth', {
+        body: {
+          action: 'connect',
+          apiKey: fubApiKey
+        }
       });
 
       if (data.success) {
@@ -534,13 +604,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
         setFubApiKey('');
         toast.success("Follow Up Boss connected successfully!");
 
-        const connections = await base44.entities.CrmConnection.filter({ crmType: 'follow_up_boss' });
-        if (connections.length > 0) {
+        const { data: connections } = await supabase
+          .from('crm_connections')
+          .select('*')
+          .eq('provider', 'follow_up_boss')
+          .eq('user_id', user.id);
+        
+        if (connections && connections.length > 0) {
           setFubConnection(connections[0]);
         }
       } else {
         toast.error(data.error || "Failed to connect to Follow Up Boss");
       }
+      */
     } catch (e) {
       console.error("Follow Up Boss connection error:", e);
       toast.error("Could not connect to Follow Up Boss. Please check your API key.");
@@ -552,10 +628,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleDisconnectFub = async () => {
     setIsFubDisconnecting(true);
     try {
-      await base44.functions.invoke('followUpBossAuth', { action: 'disconnect' });
+      // TODO: Implement followUpBossAuth edge function
+      toast.info("Follow Up Boss integration coming soon");
+      setIsFubDisconnecting(false);
+      return;
+      
+      /* Future implementation:
+      await supabase.functions.invoke('followUpBossAuth', { 
+        body: { action: 'disconnect' } 
+      });
       setIsFubConnected(false);
       setFubConnection(null);
       toast.success("Follow Up Boss has been disconnected.");
+      */
     } catch (e) {
       toast.error("Failed to disconnect Follow Up Boss.");
     } finally {

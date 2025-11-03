@@ -20,6 +20,12 @@ const RolePlaySession = React.lazy(() => import('./pages/RolePlaySession'))
 const SessionResults = React.lazy(() => import('./pages/SessionResults'))
 const PersonalAdvisor = React.lazy(() => import('./pages/PersonalAdvisor'))
 const Onboarding = React.lazy(() => import('./pages/Onboarding'))
+const FacebookAuthConfirmation = React.lazy(() => import('./pages/FacebookAuthConfirmation'))
+const InstagramAuthConfirmation = React.lazy(() => import('./pages/InstagramAuthConfirmation'))
+const LinkedInAuthConfirmation = React.lazy(() => import('./pages/LinkedInAuthConfirmation'))
+const MicrosoftAuthConfirmation = React.lazy(() => import('./pages/MicrosoftAuthConfirmation'))
+const GoogleWorkspaceAuthConfirmation = React.lazy(() => import('./pages/GoogleWorkspaceAuthConfirmation'))
+const ZoomAuthConfirmation = React.lazy(() => import('./pages/ZoomAuthConfirmation'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './pages/Layout'
@@ -37,6 +43,14 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          
+          {/* OAuth callback routes */}
+          <Route path="/auth/callback/facebook" element={<FacebookAuthConfirmation />} />
+          <Route path="/auth/callback/instagram" element={<InstagramAuthConfirmation />} />
+          <Route path="/auth/callback/linkedin" element={<LinkedInAuthConfirmation />} />
+          <Route path="/auth/callback/microsoft" element={<MicrosoftAuthConfirmation />} />
+          <Route path="/auth/callback/google-workspace" element={<GoogleWorkspaceAuthConfirmation />} />
+          <Route path="/auth/callback/zoom" element={<ZoomAuthConfirmation />} />
 
           {/* Protected routes */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ExternalServiceConnection } from '@/api/entities';
 
 export default function IntegrationsSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
@@ -29,17 +28,20 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
     
     setLoading(true);
     try {
-      const connections = await ExternalServiceConnection.filter({
-        userId: user.id,
-        status: 'connected'
-      });
+      const { data: connections, error } = await supabase
+        .from('external_service_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('connection_status', 'connected');
+      
+      if (error) throw error;
 
       const status = {
-        google: connections.some(c => c.serviceName === 'google_workspace'),
-        microsoft: connections.some(c => c.serviceName === 'microsoft_365'),
-        crm: connections.some(c => c.serviceName === 'lofty' || c.serviceName === 'follow_up_boss'),
-        zoom: connections.some(c => c.serviceName === 'zoom'),
-        meta: connections.some(c => c.serviceName === 'facebook' || c.serviceName === 'instagram')
+        google: connections?.some(c => c.service_name === 'google_workspace') || false,
+        microsoft: connections?.some(c => c.service_name === 'microsoft_365') || false,
+        crm: connections?.some(c => c.service_name === 'lofty' || c.service_name === 'follow_up_boss') || false,
+        zoom: connections?.some(c => c.service_name === 'zoom') || false,
+        meta: connections?.some(c => c.service_name === 'facebook' || c.service_name === 'instagram') || false
       };
 
       setConnected(status);
@@ -70,7 +72,7 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'microsoft':
-          response = await supabase.functions.invoke('microsoftOAuthInit', {
+          response = await supabase.functions.invoke('initiateMicrosoftOAuth', {
             body: {
               redirectPath: '/onboarding'
             }
@@ -81,7 +83,7 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'zoom':
-          response = await supabase.functions.invoke('zoomOAuthInit', {
+          response = await supabase.functions.invoke('initiateZoomOAuth', {
             body: {
               redirectPath: '/onboarding'
             }
@@ -92,9 +94,10 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'meta':
-          response = await supabase.functions.invoke('metaOAuthInit', {
+          response = await supabase.functions.invoke('initiateMetaOAuth', {
             body: {
-              redirectPath: '/onboarding'
+              redirectPath: '/onboarding',
+              service: 'facebook' // Default to Facebook, can be changed to Instagram
             }
           });
           if (response.data.authUrl) {
