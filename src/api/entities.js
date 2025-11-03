@@ -171,6 +171,7 @@ export const LegalDocument = createEntity('legal_documents');
 export const EmailTemplate = createEntity('email_templates');
 export const EmailCampaign = createEntity('email_campaigns');
 export const FeatureFlag = createEntity('feature_flags');
+export const AiAgentConversation = createEntity('ai_agent_conversations');
 
 // User entity remains stub as it references auth.users which is not directly accessible
 export const User = createStubEntity('User');
