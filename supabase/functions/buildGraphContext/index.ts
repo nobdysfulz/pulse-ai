@@ -8,6 +8,17 @@ const corsHeaders = {
 };
 
 const CACHE_TTL_MINUTES = 15;
+const FUNCTION_TIMEOUT_MS = 25000; // 25 second timeout for safety (Deno limit is 30s)
+
+// Helper to wrap promises with timeout
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -109,43 +120,53 @@ serve(async (req) => {
       (pulseScore * 0.4) + (ganeScore * 0.3) + (moroScore * 0.3)
     );
 
-    // Generate insight using LLM
+    // Generate insight using LLM with timeout protection
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    const prompt = `Based on these scores for a real estate agent:
-- PULSE Score (Execution): ${pulseScore}/100
-- GANE Score (Intelligence): ${ganeScore}/100
-- MORO Score (Market Opportunity): ${moroScore}/100
-
-Provide a concise 2-sentence coaching insight and suggest 2-3 actionable next steps. Format as JSON: {"message": "...", "actions": [{"title": "...", "type": "create_task|send_email|schedule_call", "priority": "high|medium|low"}]}`;
-
-    const llmResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are a real estate business coach. Provide actionable, specific guidance.' },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    const llmData = await llmResponse.json();
     let aiGuidance = { 
       message: 'Keep executing consistently and focusing on your systems.', 
       actions: [] 
     };
-    
-    if (llmData.choices?.[0]?.message?.content) {
-      try {
-        aiGuidance = JSON.parse(llmData.choices[0].message.content);
-      } catch {
-        aiGuidance.message = llmData.choices[0].message.content;
+
+    try {
+      const prompt = `Based on these scores for a real estate agent:
+- PULSE Score (Execution): ${pulseScore}/100
+- GANE Score (Intelligence): ${ganeScore}/100
+- MORO Score (Market Opportunity): ${moroScore}/100
+
+Provide a concise 2-sentence coaching insight and suggest 2-3 actionable next steps. Format as JSON: {"message": "...", "actions": [{"title": "...", "type": "database|agent_config|market_analysis|goal_setting|system_usage", "priority": "high|medium|low"}]}`;
+
+      const llmResponse = await withTimeout(
+        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: 'You are a real estate business coach. Provide actionable, specific guidance.' },
+              { role: 'user', content: prompt }
+            ],
+          }),
+        }),
+        10000 // 10 second timeout for AI call
+      );
+
+      if (llmResponse.ok) {
+        const llmData = await llmResponse.json();
+        if (llmData.choices?.[0]?.message?.content) {
+          try {
+            aiGuidance = JSON.parse(llmData.choices[0].message.content);
+          } catch {
+            aiGuidance.message = llmData.choices[0].message.content;
+          }
+        }
       }
+    } catch (aiError) {
+      console.error('AI generation failed, using fallback:', aiError);
+      // Use fallback message - function continues with default guidance
     }
 
     // Build complete context
@@ -196,9 +217,21 @@ Provide a concise 2-sentence coaching insight and suggest 2-3 actionable next st
     );
   } catch (error) {
     console.error('Error building graph context:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('timed out');
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: errorMessage,
+        type: isTimeout ? 'timeout' : 'server_error',
+        message: isTimeout 
+          ? 'Request took too long. Please try again in a moment.'
+          : 'Failed to compute intelligence scores. Please try again.'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: isTimeout ? 504 : 500 
+      }
     );
   }
 });

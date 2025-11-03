@@ -94,8 +94,18 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error computing MORO:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        message: 'Failed to compute MORO score',
+        // Return partial result if possible
+        score: 50, // Default baseline
+        metrics: {
+          hasMarketConfig: false
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

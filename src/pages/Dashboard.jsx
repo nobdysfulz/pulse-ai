@@ -125,9 +125,9 @@ export default function DashboardPage() {
     return { completionRateDelta };
   }, [allActions]);
 
-  // Fetch intelligence data with real-time updates
+  // Fetch intelligence data with real-time updates and error handling
   useEffect(() => {
-    const fetchIntelligence = async () => {
+    const fetchIntelligence = async (retryAttempt = 0) => {
       if (!user) return;
       
       setIntelligenceLoading(true);
@@ -137,11 +137,24 @@ export default function DashboardPage() {
         });
         
         if (error) throw error;
-        setIntelligenceData(data);
-        setLastIntelligenceUpdate(new Date());
+        
+        if (data) {
+          setIntelligenceData(data);
+          setLastIntelligenceUpdate(new Date());
+        }
       } catch (error) {
         console.error('Error fetching intelligence:', error);
-        toast.error('Failed to load intelligence scores');
+        
+        // Retry logic for transient failures
+        if (retryAttempt < 1) {
+          console.log(`Retrying intelligence fetch (attempt ${retryAttempt + 1})...`);
+          setTimeout(() => {
+            fetchIntelligence(retryAttempt + 1);
+          }, 3000);
+        } else if (!intelligenceData) {
+          // Only show error if we don't have cached data
+          toast.error('Intelligence scores temporarily unavailable');
+        }
       } finally {
         setIntelligenceLoading(false);
       }

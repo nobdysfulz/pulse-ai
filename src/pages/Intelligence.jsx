@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,11 @@ export default function IntelligencePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [processingActions, setProcessingActions] = useState(new Set());
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const previousScores = useRef(null);
+  const debounceTimer = useRef(null);
 
-  const fetchGraphContext = async (fresh = false) => {
+  const fetchGraphContext = useCallback(async (fresh = false, retryAttempt = 0) => {
     try {
       if (fresh) {
         setRefreshing(true);
@@ -28,20 +30,38 @@ export default function IntelligencePage() {
       });
 
       if (error) throw error;
-      setContext(data);
-      setLastUpdated(new Date());
       
-      if (fresh) {
-        toast.success('Intelligence scores updated successfully!');
+      if (data) {
+        setContext(data);
+        setLastUpdated(new Date());
+        setRetryCount(0); // Reset retry count on success
+        
+        if (fresh) {
+          toast.success('Intelligence scores updated successfully!');
+        }
       }
     } catch (error) {
       console.error('Error fetching graph context:', error);
-      toast.error('Failed to load intelligence data. Please try again.');
+      
+      // Retry logic for transient failures
+      if (retryAttempt < 2 && !fresh) {
+        console.log(`Retrying fetch (attempt ${retryAttempt + 1})...`);
+        setTimeout(() => {
+          fetchGraphContext(fresh, retryAttempt + 1);
+        }, 2000 * (retryAttempt + 1)); // Exponential backoff
+      } else {
+        // Show cached data if available
+        if (context) {
+          toast.error('Failed to refresh. Showing cached data.');
+        } else {
+          toast.error('Failed to load intelligence data. Please try again later.');
+        }
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [context]);
 
   useEffect(() => {
     fetchGraphContext();
@@ -91,7 +111,7 @@ export default function IntelligencePage() {
     };
   }, []);
 
-  const handleScoreUpdate = (scoreType, newScore) => {
+  const handleScoreUpdate = useCallback((scoreType, newScore) => {
     if (!previousScores.current) {
       previousScores.current = context?.scores || {};
       return;
@@ -118,9 +138,15 @@ export default function IntelligencePage() {
       [scoreType]: newScore
     };
 
-    // Refresh full context to get updated insights
-    fetchGraphContext();
-  };
+    // Debounce refresh to prevent rapid successive calls
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      fetchGraphContext();
+    }, 3000); // Wait 3 seconds before refreshing
+  }, [context, fetchGraphContext]);
 
   const handleRefresh = () => {
     setRefreshing(true);

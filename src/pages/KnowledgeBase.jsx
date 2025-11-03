@@ -8,7 +8,8 @@ export default function KnowledgeBasePage() {
         title="Knowledge Base"
         className="w-full h-full border-0"
         // The sandbox attribute enhances security by restricting iframe capabilities.
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        // Note: allow-same-origin removed for security - external site should not need same-origin access
+        sandbox="allow-scripts allow-popups allow-forms"
       />
     </div>
   );

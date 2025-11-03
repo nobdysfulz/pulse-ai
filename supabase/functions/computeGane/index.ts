@@ -116,8 +116,21 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error computing GANE:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        message: 'Failed to compute GANE score',
+        // Return partial result if possible
+        score: 0,
+        metrics: {
+          systemsEnabled: 0,
+          totalSystems: 0,
+          systemsUtilization: 0,
+          guidelinesCount: 0
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

@@ -91,8 +91,21 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error computing Pulse:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: errorMessage,
+        message: 'Failed to compute PULSE score',
+        // Return partial result if possible
+        score: 0,
+        metrics: {
+          totalActions: 0,
+          completedActions: 0,
+          completionRate: 0,
+          last7DaysActions: 0
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
