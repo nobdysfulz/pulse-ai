@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { UserAgentSubscription } from '@/api/entities';
 
 export default function ManualSubscriptionManager() {
@@ -30,8 +30,11 @@ export default function ManualSubscriptionManager() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const allUsers = await base44.asServiceRole.entities.User.list();
-      const subscriptions = await base44.asServiceRole.entities.UserAgentSubscription.list();
+      const { data } = await supabase.functions.invoke('adminOperations', {
+        body: { operation: 'getUserSubscriptions' }
+      });
+      const allUsers = data?.users || [];
+      const subscriptions = data?.subscriptions || [];
       
       const usersWithSubs = allUsers.map(user => {
         const sub = subscriptions.find(s => s.userId === user.id);

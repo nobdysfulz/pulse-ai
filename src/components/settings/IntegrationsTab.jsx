@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserContext } from '@/components/context/UserContext';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator, { InlineLoadingIndicator } from '../ui/LoadingIndicator';
 
 export default function IntegrationsTab({ onUpdate, user }) {

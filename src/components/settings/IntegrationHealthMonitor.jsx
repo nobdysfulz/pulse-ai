@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle, AlertCircle, Clock, RefreshCw, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingIndicator from '../ui/LoadingIndicator';
@@ -73,7 +73,7 @@ export default function IntegrationHealthMonitor() {
     else setRefreshing(true);
 
     try {
-      const response = await base44.functions.invoke('checkIntegrationStatus');
+      const response = await supabase.functions.invoke('checkIntegrationStatus', { body: {} });
       if (response.data) {
         setHealthStatus(response.data);
       }

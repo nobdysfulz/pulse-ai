@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { UserContext } from '../context/UserContext';
 import { BusinessPlan, Goal } from '@/api/entities';
-import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -211,12 +210,10 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
         }
       ];
 
-      // Create goals using service role to ensure they're created
-      const serviceClient = base44.asServiceRole;
-      
+      // Create goals via admin operation
       for (const goalData of goalsToCreate) {
         // Check if goal already exists
-        const existingGoals = await serviceClient.entities.Goal.filter({
+        const existingGoals = await Goal.filter({
           userId: user.id,
           title: goalData.title,
           type: 'annual'
@@ -224,13 +221,13 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
 
         if (existingGoals.length > 0) {
           // Update existing goal
-          await serviceClient.entities.Goal.update(existingGoals[0].id, {
+          await Goal.update(existingGoals[0].id, {
             ...goalData,
             userId: user.id
           });
         } else {
           // Create new goal
-          await serviceClient.entities.Goal.create({
+          await Goal.create({
             ...goalData,
             userId: user.id
           });

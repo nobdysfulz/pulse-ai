@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator from '../components/ui/LoadingIndicator'; // Ensure this path is correct
 
 export default function GoogleAuthConfirmation() {
@@ -15,9 +15,11 @@ export default function GoogleAuthConfirmation() {
       if (code && state) {
         try {
           // Invoke the backend function to handle the OAuth callback
-          const { data } = await base44.functions.invoke('googleCalendarAuth', {
-            action: 'handleCallback',
-            payload: { code, state }
+          const { data } = await supabase.functions.invoke('googleCalendarAuth', {
+            body: {
+              action: 'handleCallback',
+              payload: { code, state }
+            }
           });
 
           if (data.success) {

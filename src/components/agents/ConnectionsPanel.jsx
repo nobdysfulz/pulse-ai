@@ -4,7 +4,7 @@ import { UserContext } from '../context/UserContext';
 import { Loader2, CheckCircle2, Circle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,8 +23,10 @@ export default function ConnectionsPanel({ agentType }) {
   const loadIntegrationStatus = async () => {
     setLoading(true);
     try {
-      const { data } = await base44.functions.invoke('getIntegrationContext', {
-        userId: user.id
+      const { data } = await supabase.functions.invoke('getIntegrationContext', {
+        body: {
+          userId: user.id
+        }
       });
       setIntegrationStatus(data);
     } catch (error) {

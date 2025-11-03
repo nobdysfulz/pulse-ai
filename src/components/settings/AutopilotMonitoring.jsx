@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { Activity, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingIndicator from '../ui/LoadingIndicator';
@@ -20,9 +20,11 @@ export default function AutopilotMonitoring() {
   const loadAutopilotActivities = async () => {
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('getUserAutopilotActivity', {
-        timeRange: '7d',
-        limit: 100
+      const response = await supabase.functions.invoke('getUserAutopilotActivity', {
+        body: {
+          timeRange: '7d',
+          limit: 100
+        }
       });
 
       if (response.data && response.data.activities) {

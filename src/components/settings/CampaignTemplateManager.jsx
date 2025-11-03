@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Upload, Download, Trash2, FileText, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { CampaignTemplate } from '@/api/entities';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import BulkImportModal from '../admin/BulkImportModal';
 
 const CAMPAIGN_CSV_SAMPLE = `file_name,file_uri

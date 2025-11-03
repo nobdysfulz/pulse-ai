@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Phone } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function PhoneNumberSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
@@ -22,8 +22,8 @@ export default function PhoneNumberSetup({ data, onNext, onBack }) {
 
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('getTwilioAvailableNumbers', {
-        areaCode: areaCode
+      const response = await supabase.functions.invoke('getTwilioAvailableNumbers', {
+        body: { areaCode: areaCode }
       });
 
       if (response.data && response.data.numbers) {
@@ -51,8 +51,8 @@ export default function PhoneNumberSetup({ data, onNext, onBack }) {
 
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('purchaseTwilioNumber', {
-        phoneNumber: selectedNumber
+      const response = await supabase.functions.invoke('purchaseTwilioNumber', {
+        body: { phoneNumber: selectedNumber }
       });
 
       if (response.data && response.data.success) {

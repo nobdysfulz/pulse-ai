@@ -16,7 +16,7 @@ import { generateDailyTasks } from "../components/actions/taskGeneration";
 import ContextualTopNav from '../components/layout/ContextualTopNav';
 import ContextualSidebar from '../components/layout/ContextualSidebar';
 import AddActionModal from '../components/actions/AddActionModal';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Bar, BarChart } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import LoadingIndicator, { InlineLoadingIndicator } from '../components/ui/LoadingIndicator';

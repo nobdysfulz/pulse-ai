@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Play, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { AgentVoice } from '@/api/entities';
 
 export default function VoiceSelection({ data, onNext, onBack }) {
   const [voices, setVoices] = useState([]);
@@ -18,7 +18,7 @@ export default function VoiceSelection({ data, onNext, onBack }) {
   const loadVoices = async () => {
     setLoading(true);
     try {
-      const voiceList = await base44.entities.AgentVoice.filter({ isActive: true });
+      const voiceList = await AgentVoice.filter({ isActive: true });
       setVoices(voiceList || []);
     } catch (error) {
       console.error('Error loading voices:', error);

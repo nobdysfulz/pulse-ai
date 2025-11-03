@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator, { InlineLoadingIndicator } from '../ui/LoadingIndicator';
 
 export default function ProfileTab() {

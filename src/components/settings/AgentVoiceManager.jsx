@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, Edit, Trash2, Upload, Play, Pause, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AgentVoice } from '@/api/entities';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AgentVoiceManager() {
   const [voices, setVoices] = useState([]);

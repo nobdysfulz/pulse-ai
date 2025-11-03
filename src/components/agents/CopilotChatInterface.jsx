@@ -3,7 +3,7 @@ import { UserContext } from '../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Loader2, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import { useQueryClient } from '@tanstack/react-query';
 import AITypingIndicator from '../ui/AITypingIndicator';
@@ -102,12 +102,14 @@ export default function CopilotChatInterface({
         }
       };
 
-      const { data, error } = await base44.functions.invoke('copilotChat', {
-        userPrompt: messageText,
-        conversationId: internalConversationId,
-        agentContext: agentContext,
-        conversationHistory: messages.filter(m => !m.isGreeting),
-        currentTab: currentTab
+      const { data, error } = await supabase.functions.invoke('copilotChat', {
+        body: {
+          userPrompt: messageText,
+          conversationId: internalConversationId,
+          agentContext: agentContext,
+          conversationHistory: messages.filter(m => !m.isGreeting),
+          currentTab: currentTab
+        }
       });
 
       if (error) {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,8 +41,9 @@ export default function UserManagementTab() {
     const loadUsers = useCallback(async () => {
         setLoading(true);
         try {
-            // Use the backend function to fetch users with service role
-            const response = await base44.functions.invoke('getAdminUsers');
+            const response = await supabase.functions.invoke('adminOperations', {
+                body: { operation: 'getAllUsers' }
+            });
             
             if (response.status !== 200) {
                 throw new Error('Failed to fetch users');
@@ -131,9 +132,14 @@ export default function UserManagementTab() {
     
     const handleUpdateUser = async (userId, payload) => {
         try {
-            const { data } = await base44.functions.invoke('adminEntityCRUD', {
-                entityName: 'User',
-                operation: 'update',
+            const { data } = await supabase.functions.invoke('adminEntityCRUD', {
+                body: {
+                    entityName: 'User',
+                    operation: 'update',
+                    id: userId,
+                    payload
+                }
+            });
                 id: userId,
                 payload: payload
             });
@@ -154,9 +160,13 @@ export default function UserManagementTab() {
         if (!confirm(`Are you sure you want to delete user ${user.email}? This action cannot be undone.`)) return;
 
         try {
-            const { data } = await base44.functions.invoke('adminEntityCRUD', {
-                entityName: 'User',
-                operation: 'delete',
+            const { data } = await supabase.functions.invoke('adminEntityCRUD', {
+                body: {
+                    entityName: 'User',
+                    operation: 'delete',
+                    id: userId
+                }
+            });
                 id: user.id
             });
 

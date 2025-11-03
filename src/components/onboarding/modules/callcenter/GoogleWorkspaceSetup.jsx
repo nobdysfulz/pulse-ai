@@ -3,7 +3,8 @@ import { UserContext } from '../../../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Check, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
+import { ExternalServiceConnection } from '@/api/entities';
 
 export default function GoogleWorkspaceSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
@@ -18,7 +19,7 @@ export default function GoogleWorkspaceSetup({ data, onNext, onBack }) {
   const checkConnection = async () => {
     setLoading(true);
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
+      const connections = await ExternalServiceConnection.filter({
         userId: user.id,
         serviceName: 'google_workspace',
         status: 'connected'
@@ -34,8 +35,10 @@ export default function GoogleWorkspaceSetup({ data, onNext, onBack }) {
   const handleConnect = async () => {
     setConnecting(true);
     try {
-      const response = await base44.functions.invoke('initiateGoogleWorkspaceOAuth', {
-        redirectPath: '/onboarding'
+      const response = await supabase.functions.invoke('initiateGoogleWorkspaceOAuth', {
+        body: {
+          redirectPath: '/onboarding'
+        }
       });
 
       if (response.data && response.data.authUrl) {

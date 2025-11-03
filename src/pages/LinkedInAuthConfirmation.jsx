@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator from '../components/ui/LoadingIndicator'; // Ensure this path is correct
 
 export default function LinkedInAuthConfirmation() {
@@ -14,7 +14,7 @@ export default function LinkedInAuthConfirmation() {
 
       if (code && state) {
         try {
-          const { data } = await base44.functions.invoke('linkedinOAuthCallback', { code, state });
+          const { data } = await supabase.functions.invoke('linkedinOAuthCallback', { body: { code, state } });
 
           if (data.success) {
             window.opener.postMessage('linkedin-auth-success', window.location.origin);

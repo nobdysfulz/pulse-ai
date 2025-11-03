@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Download, Trash2, MessageSquare } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -89,7 +89,7 @@ export default function CallDetailSidebar({ log, onBack, onDelete }) {
         if (log.recordingUrl) {
           setAudioLoading(true);
           try {
-            const { data } = await base44.functions.invoke('getSignedAudioUrl', { file_uri: log.recordingUrl });
+            const { data } = await supabase.functions.invoke('getSignedAudioUrl', { body: { file_uri: log.recordingUrl } });
             if (data.signed_url) {
               setAudioUrl(data.signed_url);
             }

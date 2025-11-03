@@ -3,7 +3,8 @@ import { UserContext } from '../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
+import { AiAgentConversation } from '@/api/entities';
 import ReactMarkdown from 'react-markdown';
 import AITypingIndicator from '../ui/AITypingIndicator';
 
@@ -81,7 +82,7 @@ export default function AgentChatInterface({ agentType }) {
     setLoadingConversation(true);
     try {
       // Find today's active conversation for this agent
-      const conversations = await base44.entities.AiAgentConversation.filter({
+      const conversations = await AiAgentConversation.filter({
         userId: user.id,
         agentType: agentType,
         status: 'active'
@@ -140,9 +141,9 @@ export default function AgentChatInterface({ agentType }) {
       };
 
       if (conversationId) {
-        await base44.entities.AiAgentConversation.update(conversationId, conversationData);
+        await AiAgentConversation.update(conversationId, conversationData);
       } else {
-        const newConversation = await base44.entities.AiAgentConversation.create(conversationData);
+        const newConversation = await AiAgentConversation.create(conversationData);
         setConversationId(newConversation.id);
       }
     } catch (error) {
@@ -167,10 +168,12 @@ export default function AgentChatInterface({ agentType }) {
       // Only send user/assistant messages to backend, not system messages
       const conversationHistory = messages.filter(m => m.role !== 'system');
       
-      const { data, error } = await base44.functions.invoke(functionName, {
-        message: messageText,
-        conversationId: conversationId,
-        conversationHistory: conversationHistory
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: {
+          message: messageText,
+          conversationId: conversationId,
+          conversationHistory: conversationHistory
+        }
       });
 
       if (error) {

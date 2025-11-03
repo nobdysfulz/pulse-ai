@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Settings } from 'lucide-react';
 
@@ -57,9 +57,11 @@ export default function UserAutopilotManager({ user }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await base44.functions.invoke('updateUserPermissions', {
-        userId: user.id,
-        permissions: permissions
+      await supabase.functions.invoke('updateUserPermissions', {
+        body: {
+          userId: user.id,
+          permissions: permissions
+        }
       });
       
       toast.success('Permissions updated successfully');

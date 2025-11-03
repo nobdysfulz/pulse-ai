@@ -3,7 +3,8 @@ import { UserContext } from '../../../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
+import { ExternalServiceConnection } from '@/api/entities';
 
 export default function IntegrationsSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
@@ -28,7 +29,7 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
     
     setLoading(true);
     try {
-      const connections = await base44.entities.ExternalServiceConnection.filter({
+      const connections = await ExternalServiceConnection.filter({
         userId: user.id,
         status: 'connected'
       });
@@ -58,8 +59,10 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
       
       switch (service) {
         case 'google':
-          response = await base44.functions.invoke('initiateGoogleWorkspaceOAuth', {
-            redirectPath: '/onboarding'
+          response = await supabase.functions.invoke('initiateGoogleWorkspaceOAuth', {
+            body: {
+              redirectPath: '/onboarding'
+            }
           });
           if (response.data.authUrl) {
             window.location.href = response.data.authUrl;
@@ -67,8 +70,10 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'microsoft':
-          response = await base44.functions.invoke('microsoftOAuthInit', {
-            redirectPath: '/onboarding'
+          response = await supabase.functions.invoke('microsoftOAuthInit', {
+            body: {
+              redirectPath: '/onboarding'
+            }
           });
           if (response.data.authUrl) {
             window.location.href = response.data.authUrl;
@@ -76,8 +81,10 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'zoom':
-          response = await base44.functions.invoke('zoomOAuthInit', {
-            redirectPath: '/onboarding'
+          response = await supabase.functions.invoke('zoomOAuthInit', {
+            body: {
+              redirectPath: '/onboarding'
+            }
           });
           if (response.data.authUrl) {
             window.location.href = response.data.authUrl;
@@ -85,8 +92,10 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
           break;
           
         case 'meta':
-          response = await base44.functions.invoke('metaOAuthInit', {
-            redirectPath: '/onboarding'
+          response = await supabase.functions.invoke('metaOAuthInit', {
+            body: {
+              redirectPath: '/onboarding'
+            }
           });
           if (response.data.authUrl) {
             window.location.href = response.data.authUrl;

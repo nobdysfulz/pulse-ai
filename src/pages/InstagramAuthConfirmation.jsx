@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator from '../components/ui/LoadingIndicator'; // Ensure this path is correct
 
 export default function InstagramAuthConfirmation() {
@@ -14,7 +14,7 @@ export default function InstagramAuthConfirmation() {
 
       if (code && state) {
         try {
-          const { data } = await base44.functions.invoke('instagramOAuthCallback', { code, state });
+          const { data } = await supabase.functions.invoke('instagramOAuthCallback', { body: { code, state } });
 
           if (data.success) {
             window.opener.postMessage('instagram-auth-success', window.location.origin);

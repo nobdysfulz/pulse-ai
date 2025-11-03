@@ -4,7 +4,7 @@ import { UserContext } from '../components/context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Loader2, Send, Settings, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useQueryClient } from '@tanstack/react-query';
@@ -97,18 +97,20 @@ export default function PersonalAdvisorPage() {
     setLoading(true);
 
     try {
-        const { data: agentContext, error: contextError } = await base44.functions.invoke('getAgentContext');
+        const { data: agentContext, error: contextError } = await supabase.functions.invoke('getAgentContext', { body: {} });
         if (contextError || !agentContext) {
             throw new Error(contextError?.message || "Could not retrieve agent context.");
         }
 
         // Call Copilot with tool use capability
-        const { data, error } = await base44.functions.invoke('copilotChat', {
-            userPrompt: messageText,
-            conversationId: conversationId,
-            agentContext: agentContext,
-            conversationHistory: messages,
-            currentTab: 'advisor' // Indicate we're in the standalone advisor
+        const { data, error } = await supabase.functions.invoke('copilotChat', {
+            body: {
+                userPrompt: messageText,
+                conversationId: conversationId,
+                agentContext: agentContext,
+                conversationHistory: messages,
+                currentTab: 'advisor'
+            }
         });
 
         if (error) {

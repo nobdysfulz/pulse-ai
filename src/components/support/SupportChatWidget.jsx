@@ -4,7 +4,7 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SupportChatWidget() {
   const { isSupportChatOpen, setSupportChatOpen } = useContext(UserContext);
@@ -16,10 +16,12 @@ export default function SupportChatWidget() {
 
     setSending(true);
     try {
-      await base44.functions.invoke('sendEmail', {
-        to: 'support@pulseai.com',
-        subject: 'Support Request from Widget',
-        body: message
+      await supabase.functions.invoke('sendEmail', {
+        body: {
+          to: 'support@pulseai.com',
+          subject: 'Support Request from Widget',
+          body: message
+        }
       });
       
       toast.success('Support request sent successfully!');

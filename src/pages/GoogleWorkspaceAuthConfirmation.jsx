@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 
 export default function GoogleWorkspaceAuthConfirmation() {
@@ -35,9 +35,11 @@ export default function GoogleWorkspaceAuthConfirmation() {
                 }
 
                 // Call the backend to complete the OAuth flow
-                const { data } = await base44.functions.invoke('handleGoogleWorkspaceCallback', {
-                    code,
-                    state
+                const { data } = await supabase.functions.invoke('handleGoogleWorkspaceCallback', {
+                    body: {
+                        code,
+                        state
+                    }
                 });
 
                 if (data.success) {

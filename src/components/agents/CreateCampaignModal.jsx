@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectValue, SelectTrigger } from '@/components/ui/select';
 import { Loader2, Upload, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { UserContext } from '../context/UserContext';
 
 const callTypes = [
@@ -36,7 +36,7 @@ export default function CreateCampaignModal({ isOpen, onClose, onCampaignStarted
     
     const handleDownloadTemplate = async () => {
         try {
-            const { data } = await base44.functions.invoke('downloadCampaignTemplate');
+            const { data } = await supabase.functions.invoke('downloadCampaignTemplate', { body: {} });
 
             if (data.downloadUrl) {
                 // If a signed URL is provided, open it to trigger download
@@ -113,7 +113,7 @@ export default function CreateCampaignModal({ isOpen, onClose, onCampaignStarted
                 agent_phone: user?.phone
             };
 
-            const { data } = await base44.functions.invoke('sendContactsToElevenLabs', { contacts, callType, agentData, campaignName });
+            const { data } = await supabase.functions.invoke('sendContactsToElevenLabs', { body: { contacts, callType, agentData, campaignName } });
 
             if (data.requiresOnboarding) {
                  toast.error("AI Agent Setup Incomplete", { description: data.error });

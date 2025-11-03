@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
@@ -26,7 +26,7 @@ export default function SsoLoginPage() {
                 setMessage('Validating your credentials...');
 
                 // Validate token with backend
-                const response = await base44.functions.invoke('consumeSSOToken', { token });
+                const response = await supabase.functions.invoke('consumeSSOToken', { body: { token } });
 
                 if (response.data.success) {
                     setStatus('success');

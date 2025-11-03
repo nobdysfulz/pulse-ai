@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, Minus, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function CreditManager() {
   const [users, setUsers] = useState([]);
@@ -22,8 +22,15 @@ export default function CreditManager() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const allUsers = await base44.asServiceRole.entities.User.list();
-      const userCredits = await base44.asServiceRole.entities.UserCredit.list();
+      const { data } = await supabase.functions.invoke('adminOperations', {
+        body: { operation: 'getAllUsers' }
+      });
+      const allUsers = data?.users || [];
+      
+      const { data: creditData } = await supabase.functions.invoke('adminOperations', {
+        body: { operation: 'getUserCredits' }
+      });
+      const userCredits = creditData?.credits || [];
       
       const usersWithCredits = allUsers.map(user => {
         const credit = userCredits.find(c => c.userId === user.id);
@@ -45,10 +52,12 @@ export default function CreditManager() {
   const handleAdjustCredits = async (userId, adjustment) => {
     setAdjusting(true);
     try {
-      await base44.asServiceRole.functions.invoke('adminEntityCRUD', {
-        action: 'adjustCredits',
-        userId,
-        adjustment
+      await supabase.functions.invoke('adminOperations', {
+        body: {
+          operation: 'adjustCredits',
+          userId,
+          adjustment
+        }
       });
       toast.success(`Credits ${adjustment > 0 ? 'added' : 'removed'} successfully`);
       await loadUsers();

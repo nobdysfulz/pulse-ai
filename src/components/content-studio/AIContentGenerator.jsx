@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react'; // Sparkles import removed
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/integrations/supabase/client';
 import { AiPromptConfig } from '@/api/entities';
 import ContentGeneratingIndicator from '../ui/ContentGeneratingIndicator';
 import { InlineLoadingIndicator } from '../ui/LoadingIndicator';
@@ -117,10 +117,12 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
     const aiParams = getAIParams(contentType);
 
     try {
-      const { data } = await base44.functions.invoke('openaiChat', {
-        messages: [{ role: 'user', content: finalUserPrompt }],
-        systemPrompt: finalSystemPrompt,
-        ...aiParams
+      const { data } = await supabase.functions.invoke('openaiChat', {
+        body: {
+          messages: [{ role: 'user', content: finalUserPrompt }],
+          systemPrompt: finalSystemPrompt,
+          ...aiParams
+        }
       });
 
       if (data?.message) {
