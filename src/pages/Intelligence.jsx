@@ -10,10 +10,16 @@ export default function IntelligencePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingActions, setProcessingActions] = useState(new Set());
+  const [lastUpdated, setLastUpdated] = useState(null);
   const previousScores = useRef(null);
 
   const fetchGraphContext = async (fresh = false) => {
     try {
+      if (fresh) {
+        setRefreshing(true);
+        toast.info('Refreshing intelligence scores...');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -23,9 +29,14 @@ export default function IntelligencePage() {
 
       if (error) throw error;
       setContext(data);
+      setLastUpdated(new Date());
+      
+      if (fresh) {
+        toast.success('Intelligence scores updated successfully!');
+      }
     } catch (error) {
       console.error('Error fetching graph context:', error);
-      toast.error('Failed to load intelligence data');
+      toast.error('Failed to load intelligence data. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -224,6 +235,11 @@ export default function IntelligencePage() {
           <p className="text-muted-foreground mt-1">
             Your business intelligence powered by PGIC
           </p>
+          {lastUpdated && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </div>
         <Button 
           onClick={handleRefresh} 
@@ -231,11 +247,16 @@ export default function IntelligencePage() {
           variant="outline"
         >
           {refreshing ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Refreshing...
+            </>
           ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Scores
+            </>
           )}
-          Refresh
         </Button>
       </div>
 
@@ -363,7 +384,7 @@ export default function IntelligencePage() {
         <CardHeader>
           <CardTitle>AI Insights & Recommendations</CardTitle>
           <CardDescription>
-            Personalized guidance powered by Pulse Intelligence
+            Personalized guidance powered by Pulse Intelligence • Convert recommendations into actionable tasks
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

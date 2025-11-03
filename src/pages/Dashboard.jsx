@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [insightLoading, setInsightLoading] = useState(false);
   const [intelligenceData, setIntelligenceData] = useState(null);
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
+  const [lastIntelligenceUpdate, setLastIntelligenceUpdate] = useState(null);
   const navigate = useNavigate();
 
   const agentAvatars = [
@@ -124,7 +125,7 @@ export default function DashboardPage() {
     return { completionRateDelta };
   }, [allActions]);
 
-  // Fetch intelligence data
+  // Fetch intelligence data with real-time updates
   useEffect(() => {
     const fetchIntelligence = async () => {
       if (!user) return;
@@ -137,14 +138,37 @@ export default function DashboardPage() {
         
         if (error) throw error;
         setIntelligenceData(data);
+        setLastIntelligenceUpdate(new Date());
       } catch (error) {
         console.error('Error fetching intelligence:', error);
+        toast.error('Failed to load intelligence scores');
       } finally {
         setIntelligenceLoading(false);
       }
     };
     
     fetchIntelligence();
+
+    // Set up real-time subscription for intelligence updates
+    const channel = supabase
+      .channel('dashboard-intelligence-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'graph_context_cache'
+        },
+        () => {
+          console.log('Intelligence data updated, refreshing dashboard...');
+          fetchIntelligence();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Generate dashboard insight
@@ -479,12 +503,17 @@ export default function DashboardPage() {
 
           {/* Intelligence Score */}
           <div className="bg-white border border-[#E2E8F0] rounded-lg p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-base font-semibold text-[#1E293B]">Intelligence Score</h3>
               <button onClick={() => navigate(createPageUrl('Intelligence'))}>
                 <ArrowRight className="w-5 h-5 text-[#475569] hover:text-[#6D28D9]" />
               </button>
             </div>
+            {lastIntelligenceUpdate && (
+              <p className="text-xs text-[#64748B] mb-4">
+                Updated: {lastIntelligenceUpdate.toLocaleTimeString()}
+              </p>
+            )}
             
             <div className="flex-1">
               {intelligenceLoading ? (
