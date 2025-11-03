@@ -17,7 +17,18 @@ export default function Login() {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/dashboard');
+        // Check onboarding status before redirecting
+        const { data: onboardingData } = await supabase
+          .from('user_onboarding')
+          .select('agent_onboarding_completed')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!onboardingData?.agent_onboarding_completed) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
       }
     };
     checkAuth();
@@ -35,11 +46,23 @@ export default function Login() {
 
       if (error) throw error;
 
+      // Check onboarding status before redirecting
+      const { data: onboardingData } = await supabase
+        .from('user_onboarding')
+        .select('agent_onboarding_completed')
+        .eq('user_id', data.user.id)
+        .single();
+
       toast({
         title: "Welcome back!",
         description: "Successfully logged in.",
       });
-      navigate('/dashboard');
+
+      if (!onboardingData?.agent_onboarding_completed) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
       toast({
