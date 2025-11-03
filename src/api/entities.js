@@ -134,41 +134,43 @@ const createStubEntity = (name) => ({
   }
 });
 
-// Export stub entities
-export const Goal = createStubEntity('Goal');
-export const BusinessPlan = createStubEntity('BusinessPlan');
-export const DailyAction = createStubEntity('DailyAction');
-export const UserOnboarding = createStubEntity('UserOnboarding');
-export const UserPreferences = createStubEntity('UserPreferences');
-export const UserMarketConfig = createStubEntity('UserMarketConfig');
-export const MarketIntelligence = createStubEntity('MarketIntelligence');
-export const AgentConfig = createStubEntity('AgentConfig');
-export const AgentVoice = createStubEntity('AgentVoice');
-export const UserGuidelines = createStubEntity('UserGuidelines');
-export const UserKnowledge = createStubEntity('UserKnowledge');
-export const CrmConnection = createStubEntity('CrmConnection');
+// Export real entity connections
+export const Goal = createEntity('goals');
+export const BusinessPlan = createEntity('business_plans');
+export const DailyAction = createEntity('daily_actions');
+export const UserOnboarding = createEntity('user_onboarding');
+export const UserPreferences = createEntity('user_preferences');
+export const UserMarketConfig = createEntity('market_config');
+export const MarketIntelligence = createEntity('market_intelligence');
+export const AgentConfig = createEntity('agent_config');
+export const AgentVoice = createEntity('agent_voices');
+export const UserGuidelines = createEntity('user_guidelines');
+export const UserKnowledge = createEntity('user_knowledge');
+export const CrmConnection = createEntity('crm_connections');
 export const TaskTemplate = createEntity('task_templates');
 export const ClientPersona = createEntity('client_personas');
-export const ContentPack = createStubEntity('ContentPack');
-export const ContentTopic = createStubEntity('ContentTopic');
-export const FeaturedContentPack = createStubEntity('FeaturedContentPack');
-export const GeneratedContent = createStubEntity('GeneratedContent');
-export const AiPromptConfig = createStubEntity('AiPromptConfig');
+export const ContentPack = createEntity('content_packs');
+export const ContentTopic = createEntity('content_topics');
+export const FeaturedContentPack = createEntity('featured_content_packs');
+export const GeneratedContent = createEntity('generated_content');
+export const AiPromptConfig = createEntity('ai_prompt_configs');
 export const CampaignTemplate = createEntity('campaign_templates');
-export const Transaction = createStubEntity('Transaction');
-export const UserCredit = createStubEntity('UserCredit');
-export const CreditTransaction = createStubEntity('CreditTransaction');
-export const User = createStubEntity('User');
-export const CallLog = createStubEntity('CallLog');
+export const Transaction = createEntity('transactions');
+export const UserCredit = createEntity('user_credits');
+export const CreditTransaction = createEntity('credit_transactions');
+export const CallLog = createEntity('call_logs');
 export const RolePlayScenario = createEntity('role_play_scenarios');
-export const RolePlaySessionLog = createStubEntity('RolePlaySessionLog');
-export const RolePlayUserProgress = createStubEntity('RolePlayUserProgress');
-export const RolePlayAnalysisReport = createStubEntity('RolePlayAnalysisReport');
+export const RolePlaySessionLog = createEntity('role_play_session_logs');
+export const RolePlayUserProgress = createEntity('role_play_user_progress');
+export const RolePlayAnalysisReport = createEntity('role_play_analysis_reports');
 export const ObjectionScript = createEntity('objection_scripts');
-export const Referral = createStubEntity('Referral');
-export const BrandColorPalette = createStubEntity('BrandColorPalette');
-export const UserAgentSubscription = createStubEntity('UserAgentSubscription');
-export const LegalDocument = createStubEntity('LegalDocument');
-export const EmailTemplate = createStubEntity('EmailTemplate');
-export const EmailCampaign = createStubEntity('EmailCampaign');
-export const FeatureFlag = createStubEntity('FeatureFlag');
+export const Referral = createEntity('referrals');
+export const BrandColorPalette = createEntity('brand_color_palettes');
+export const UserAgentSubscription = createEntity('user_agent_subscriptions');
+export const LegalDocument = createEntity('legal_documents');
+export const EmailTemplate = createEntity('email_templates');
+export const EmailCampaign = createEntity('email_campaigns');
+export const FeatureFlag = createEntity('feature_flags');
+
+// User entity remains stub as it references auth.users which is not directly accessible
+export const User = createStubEntity('User');
