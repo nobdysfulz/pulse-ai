@@ -15,13 +15,29 @@ const normalizeInsights = (insights) => {
 
   let parsed = insights;
 
-  // Handle string insights (parse JSON if needed)
+  // Step 1: Handle string insights (parse JSON if needed)
   if (typeof insights === 'string') {
     try {
       parsed = JSON.parse(cleanJsonText(insights));
     } catch (error) {
       // If it's not JSON, treat as plain text
       return { message: insights, highlights: [], actions: [] };
+    }
+  }
+
+  // Step 2: Handle double-nested JSON structure
+  // The API returns: { message: "```json{...}```", actions: [] }
+  // Where the inner message contains the actual data
+  if (parsed && typeof parsed === 'object' && typeof parsed.message === 'string') {
+    try {
+      const innerParsed = JSON.parse(cleanJsonText(parsed.message));
+      if (innerParsed && typeof innerParsed === 'object') {
+        // Use the inner parsed object which has the real message and actions
+        parsed = innerParsed;
+      }
+    } catch {
+      // If inner parse fails, it means parsed.message is already clean text
+      // Keep parsed as is
     }
   }
 
@@ -58,7 +74,7 @@ const normalizeInsights = (insights) => {
     }
   });
 
-  // Extract actions array
+  // Extract actions array (should now be from the correct level)
   const actions = Array.isArray(parsed.actions)
     ? parsed.actions.filter(action => action && typeof action === 'object')
     : [];
