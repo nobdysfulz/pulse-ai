@@ -572,7 +572,7 @@ export default function ToDoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                src="/images/icons/pulse-ai-icon.png"
                 alt="AI Takeaways"
                 className="w-5 h-5 object-contain"
               />

@@ -20,22 +20,22 @@ export default function OnboardingWelcome() {
       
       <div className="grid grid-cols-2 gap-4">
         <AgentCard
-          avatarUrl="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/9b81961d8_ExecutiveAssistant.png"
+          avatarUrl="/images/agents/executive-assistant.png"
           name="NOVA - Executive Assistant"
           description="Email, scheduling, and business management" />
 
         <AgentCard
-          avatarUrl="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/87cbb14be_ContentAgent.png"
+          avatarUrl="/images/agents/content-agent.png"
           name="SIRIUS - Content Agent"
           description="Social media and marketing content" />
 
         <AgentCard
-          avatarUrl="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/76c3f0c3c_TransactionCoordinator.png"
+          avatarUrl="/images/agents/transaction-coordinator.png"
           name="VEGA - Transaction Coordinator"
           description="Deal management and communication" />
 
         <AgentCard
-          avatarUrl="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/39b5ba55a_LeadsAgent.png"
+          avatarUrl="/images/agents/leads-agent.png"
           name="PHOENIX - Leads Agent"
           description="Calling and lead follow-up" />
 

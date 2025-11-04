@@ -690,7 +690,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                     {/* Google Workspace */}
                     <div className="flex items-center justify-between p-4 border rounded-lg bg-white mb-3">
                         <div className="flex items-center gap-4">
-                            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/c3eacb048_image.png" alt="Google Workspace" className="w-8 h-8" />
+                            <img src="/images/integrations/google-workspace.png" alt="Google Workspace" className="w-8 h-8" />
                             <div>
                                 <h3 className="font-semibold">Google Workspace</h3>
                                 <p className="text-sm text-slate-500">Send emails, schedule meetings, create documents, manage calendar</p>
@@ -745,7 +745,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                   {/* Zoom */}
                   <div className="flex items-center justify-between p-4 border rounded-lg bg-white">
                     <div className="flex items-center gap-4">
-                      <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/f9f1930e0_image.png" alt="Zoom" className="w-8 h-8" />
+                      <img src="/images/integrations/zoom.png" alt="Zoom" className="w-8 h-8" />
                       <div>
                         <h3 className="font-semibold">Zoom</h3>
                         <p className="text-sm text-slate-500">Join meetings for notes, auto-create meeting links</p>
@@ -776,7 +776,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                     {/* Facebook */}
                     <div className="flex items-center justify-between p-4 border rounded-lg bg-white mb-3">
                         <div className="flex items-center gap-4">
-                            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/8f4820e32_image.png" alt="Facebook" className="w-8 h-8" />
+                            <img src="/images/integrations/facebook.png" alt="Facebook" className="w-8 h-8" />
                             <div>
                                 <h3 className="font-semibold">Facebook</h3>
                                 <p className="text-sm text-slate-500">Auto-post content, schedule posts, analyze performance</p>
@@ -801,7 +801,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                     {/* Instagram */}
                     <div className="flex items-center justify-between p-4 border rounded-lg bg-white mb-3">
                         <div className="flex items-center gap-4">
-                            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/1a5b15bc7_image.png" alt="Instagram" className="w-8 h-8" />
+                            <img src="/images/integrations/instagram.png" alt="Instagram" className="w-8 h-8" />
                             <div>
                                 <h3 className="font-semibold">Instagram</h3>
                                 <p className="text-sm text-slate-500">Auto-post content, schedule posts, analyze engagement</p>
@@ -857,7 +857,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                     <div className="p-4 border rounded-lg bg-white mb-3">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
-                                <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/df9f942a5_image.png" alt="Lofty Logo" className="w-8 h-8" />
+                                <img src="/images/integrations/lofty.png" alt="Lofty Logo" className="w-8 h-8" />
                                 <div>
                                     <h3 className="font-semibold">Lofty CRM</h3>
                                     <p className="text-sm text-slate-500">Auto-log calls, sync lead data, update deal status</p>
@@ -932,7 +932,7 @@ export default function IntegrationsTab({ onUpdate, user }) {
                     <div className="p-4 border rounded-lg bg-white">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
-                                <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/8b2d7bbac_image.png" alt="Follow Up Boss Logo" className="w-8 h-8" />
+                                <img src="/images/integrations/followupboss.png" alt="Follow Up Boss Logo" className="w-8 h-8" />
                                 <div>
                                     <h3 className="font-semibold">Follow Up Boss</h3>
                                     <p className="text-sm text-slate-500">Auto-log calls, sync lead data, update deal status</p>

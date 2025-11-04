@@ -41,25 +41,25 @@ export default function DashboardPage() {
     {
       name: 'NOVA',
       role: 'Executive Assistant',
-      image: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/9ed7e57e3_ExecutiveAssistant.png',
+      image: '/images/agents/executive-assistant.png',
       link: createPageUrl('Agents') + '?tab=executive_assistant'
     },
     {
       name: 'SIRIUS',
       role: 'Content Agent',
-      image: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/4cce42e70_ContentAgent.png',
+      image: '/images/agents/content-agent.png',
       link: createPageUrl('Agents') + '?tab=content_agent'
     },
     {
       name: 'VEGA',
       role: 'Transaction Coordinator',
-      image: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/1b1eebc95_TransactionCoordinator.png',
+      image: '/images/agents/transaction-coordinator.png',
       link: createPageUrl('Agents') + '?tab=transaction_coordinator'
     },
     {
       name: 'PHOENIX',
       role: 'Leads Agent',
-      image: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/20de0fbee_LeadsAgent.png',
+      image: '/images/agents/leads-agent.png',
       link: createPageUrl('Agents') + '?tab=leads_agent'
     }
   ];
@@ -391,7 +391,7 @@ export default function DashboardPage() {
             <div className="pl-3 rounded-lg">
               <form onSubmit={handleAdvisorSubmit} className="relative">
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                  src="/images/icons/pulse-ai-icon.png"
                   alt="PULSE AI"
                   className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 object-contain pointer-events-none z-10"
                 />
@@ -610,7 +610,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                  src="/images/icons/pulse-ai-icon.png"
                   alt="PULSE AI"
                   className="w-6 h-6 object-contain"
                 />
@@ -636,7 +636,7 @@ export default function DashboardPage() {
               <div className="flex items-start gap-2">
                 <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                   <img
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                    src="/images/icons/pulse-ai-icon.png"
                     alt="PULSE AI"
                     className="w-4 h-4 object-contain"
                   />

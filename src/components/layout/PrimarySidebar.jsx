@@ -172,7 +172,7 @@ export default function PrimarySidebar({ onNavigate }) {
             onClick={() => onNavigate?.()}
           >
             <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/296c6f901_image.png" 
+              src="/images/logos/pulse-logo.png" 
               alt="Upgrade" 
               className="w-5 h-5 mr-3"
             />

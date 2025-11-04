@@ -152,7 +152,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
     <div className="space-y-6">
         <div className="text-center">
             <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+              src="/images/icons/pulse-ai-icon.png"
               alt="PULSE AI"
               className="w-8 h-8 mx-auto mb-2 object-contain"
             />
@@ -215,7 +215,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
                 ) : (
                 <>
                     <img
-                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                      src="/images/icons/pulse-ai-icon.png"
                       alt="PULSE AI"
                       className="w-4 h-4 mr-2 object-contain"
                     />

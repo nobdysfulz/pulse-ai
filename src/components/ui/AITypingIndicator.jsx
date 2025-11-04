@@ -19,7 +19,7 @@ export default function AITypingIndicator({ agentName = "PULSE AI", avatarUrl, c
         ) : (
           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
             <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+              src="/images/icons/pulse-ai-icon.png"
               alt="PULSE AI"
               className="w-5 h-5 object-contain"
             />

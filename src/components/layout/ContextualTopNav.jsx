@@ -2,10 +2,10 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 const agentAvatars = {
-  executive_assistant: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/9ed7e57e3_ExecutiveAssistant.png',
-  leads_agent: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/20de0fbee_LeadsAgent.png',
-  content_agent: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/4cce42e70_ContentAgent.png',
-  transaction_coordinator: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/1b1eebc95_TransactionCoordinator.png'
+  executive_assistant: '/images/agents/executive-assistant.png',
+  leads_agent: '/images/agents/leads-agent.png',
+  content_agent: '/images/agents/content-agent.png',
+  transaction_coordinator: '/images/agents/transaction-coordinator.png'
 };
 
 export default function ContextualTopNav({ tabs, activeTab, onTabChange, actionButton }) {

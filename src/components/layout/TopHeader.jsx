@@ -72,7 +72,7 @@ export default function TopHeader() {
       {/* Left side with logo and name */}
       <div className="flex items-center gap-3">
         <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/a45eda2ff_PWRUEmblem.png"
+          src="/images/logos/emblem.png"
           alt="PULSE Emblem"
           className="h-7 w-auto"
         />

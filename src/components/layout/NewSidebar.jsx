@@ -208,7 +208,7 @@ export default function NewSidebar({ user, credits, tasksDueTodayCount, onMobile
       {/* Logo and Toggle Section */}
       <div className="bg-[#350250] pt-6 pb-6 px-3 h-[80px] flex items-center justify-between flex-shrink-0">
         <img
-          src={isOpen ? "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/833e70c7a_PWRULogoWhite.png" : "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/27476d832_PWRUEmblem.png"}
+          src={isOpen ? "/images/logos/logo-white.png" : "/images/logos/emblem.png"}
           alt="PWRU Logo"
           className="transition-all duration-300 h-10" />
 

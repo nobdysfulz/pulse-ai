@@ -663,7 +663,7 @@ export default function GoalsPage() {
             <div>
               <h3 className="text-sm font-semibold text-[#1E293B] mb-3 flex items-center gap-2">
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                  src="/images/icons/pulse-ai-icon.png"
                   alt="AI Analysis"
                   className="w-4 h-4 object-contain"
                 />

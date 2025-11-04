@@ -24,7 +24,7 @@ export default function LoadingIndicator({ text = "Loading...", size = "md", cla
     <div className={cn("flex flex-col items-center justify-center gap-3", className)}>
       <div className="relative">
         <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+          src="/images/icons/pulse-ai-icon.png"
           alt="PULSE AI"
           className={cn(
             sizeClasses[size],
@@ -56,7 +56,7 @@ export function InlineLoadingIndicator({ text = "", className }) {
     <div className={cn("flex items-center gap-2", className)}>
       <div className="relative w-5 h-5">
         <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+          src="/images/icons/pulse-ai-icon.png"
           alt="PULSE AI"
           className="w-5 h-5 animate-spin-slow object-contain"
         />

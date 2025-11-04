@@ -10,7 +10,7 @@ export default function ContentGeneratingIndicator({ className }) {
     <div className={cn("flex items-center justify-center gap-3 py-8", className)}>
       <div className="relative">
         <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+          src="/images/icons/pulse-ai-icon.png"
           alt="PULSE AI"
           className="w-12 h-12 animate-spin-slow object-contain"
           style={{ animationDuration: '3s' }}

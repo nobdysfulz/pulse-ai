@@ -236,7 +236,7 @@ export default function ContentStudioPage() {
             <div className="space-y-3">
               <Card className="overflow-hidden border-[#E2E8F0]">
                 <img
-                  src={weeklyTopic.socialFeedGraphicUrl || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/445336944_pulse_content_dashboard.png"}
+                  src={weeklyTopic.socialFeedGraphicUrl || "/images/content/content-dashboard-placeholder.png"}
                   alt={weeklyTopic.title}
                   className="w-full h-auto object-cover aspect-[4/5]"
                 />

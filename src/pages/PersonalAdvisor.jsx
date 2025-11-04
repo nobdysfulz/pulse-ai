@@ -167,7 +167,7 @@ export default function PersonalAdvisorPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <img
-          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+          src="/images/icons/pulse-ai-icon.png"
           alt="PULSE AI"
           className="w-12 h-12 animate-spin-slow object-contain"
           style={{ animationDuration: '3s' }}
@@ -185,7 +185,7 @@ export default function PersonalAdvisorPage() {
               <div className="text-center">
                 <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
                   <img 
-                    src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+                    src="/images/icons/pulse-ai-icon.png"
                     alt="My Advisor"
                     className="w-10 h-10 object-contain"
                   />

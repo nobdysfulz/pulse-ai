@@ -171,7 +171,7 @@ export default function CopilotChatInterface({
             <div className="text-center py-12">
               <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mx-auto mb-4">
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+                  src="/images/icons/pulse-ai-icon.png"
                   alt="PULSE Copilot"
                   className="w-10 h-10 object-contain"
                 />

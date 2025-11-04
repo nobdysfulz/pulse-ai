@@ -476,7 +476,7 @@ export default function MarketPage() {
             >
               {generatingReport ? (
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/3ac877de1_PULSEaiicon.png"
+                  src="/images/icons/pulse-ai-icon.png"
                   alt="Loading"
                   className="w-5 h-5 animate-spin-slow object-contain"
                   style={{ animationDuration: '3s' }}
@@ -618,7 +618,7 @@ export default function MarketPage() {
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68a795970202102129f19983/af4da936f_PULSEaiicon.png"
+                src="/images/icons/pulse-ai-icon.png"
                 alt="PULSE AI"
                 className="w-6 h-6 object-contain"
               />
