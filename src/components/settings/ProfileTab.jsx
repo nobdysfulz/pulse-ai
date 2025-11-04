@@ -38,7 +38,7 @@ export default function ProfileTab() {
                 licenseNumber: user.licenseNumber || '',
                 licenseState: user.licenseState || '',
                 yearsExperience: user.yearsExperience || 0,
-                avatar: user.avatar || '',
+                avatar: user.avatar || user.avatar_url || '',
             });
         }
     }, [user]);

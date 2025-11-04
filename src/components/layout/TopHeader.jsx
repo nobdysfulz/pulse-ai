@@ -71,7 +71,7 @@ export default function TopHeader() {
             ) : user ? (
               <Button variant="ghost" className="h-full rounded-full flex items-center gap-2 text-white hover:bg-white/10 pr-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar} alt={user.firstName || user.full_name} />
+                  <AvatarImage src={user.avatar || user.avatar_url} alt={user.firstName || user.full_name} />
                   <AvatarFallback className="bg-[#7C3AED] text-white text-sm">
                     {(user.firstName || user.full_name || 'U')[0].toUpperCase()}
                   </AvatarFallback>

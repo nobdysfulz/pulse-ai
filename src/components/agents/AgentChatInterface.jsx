@@ -61,7 +61,7 @@ export default function AgentChatInterface({ agentType }) {
 
   const agentName = agentNames[agentType];
   const agentAvatar = agentAvatars[agentType];
-  const userAvatar = user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`;
+  const userAvatar = user?.avatar || user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

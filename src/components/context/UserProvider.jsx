@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserContext } from './UserContext';
-import { differenceInDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/api/entities';
 
 export default function UserProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -27,54 +27,21 @@ export default function UserProvider({ children }) {
         setError(null);
         
         try {
-            // Get authenticated user from Supabase
             console.log('[UserProvider] Fetching authenticated user...');
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError || !session) {
-                console.log("[UserProvider] No active session");
+            const userData = await User.me();
+
+            if (!userData) {
+                console.log('[UserProvider] No active session');
                 setLoading(false);
                 return;
             }
-
-            // Get user profile from profiles table
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .maybeSingle();
-
-            if (profileError) {
-                console.error('[UserProvider] Error fetching profile:', profileError);
-                throw profileError;
-            }
-
-            // Fetch roles from protected user_roles table (RLS allows users to read only their own)
-            const { data: userRoles, error: rolesError } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', session.user.id);
-            if (rolesError) {
-                console.warn('[UserProvider] Failed to load user roles:', rolesError.message);
-            }
-            const roles = Array.isArray(userRoles) ? userRoles.map(r => r.role) : [];
-            const isAdmin = roles.includes('admin');
-
-            const userData = {
-                id: session.user.id,
-                email: session.user.email,
-                role: isAdmin ? 'admin' : 'user', // Backward compatibility for existing UI checks
-                roles,
-                isAdmin,
-                ...profile,
-            };
 
             console.log('[UserProvider] User loaded:', userData.email);
             setUser(userData);
 
             // Fetch all user context data in parallel
             console.log('[UserProvider] Fetching user context in parallel...');
-            
+
             const [
                 onboardingResult,
                 marketConfigResult,

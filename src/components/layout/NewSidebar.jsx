@@ -51,7 +51,7 @@ const SettingsMenu = ({ user, credits, onSignOut, onClose }) => {
     <div className="absolute bottom-20 left-4 w-60 bg-white rounded-lg shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300" style={{ color: '#565d6d' }}>
       <div className="p-3 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <img src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=450063&color=fff`} alt="User Avatar" className="w-10 h-10 rounded-full object-cover" />
+          <img src={user?.avatar || user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=450063&color=fff`} alt="User Avatar" className="w-10 h-10 rounded-full object-cover" />
           <div>
             <p className="font-medium text-slate-800">{user?.firstName} {user?.lastName}</p>
             <p className="text-sm text-slate-500">{user?.email}</p>
@@ -251,7 +251,7 @@ export default function NewSidebar({ user, credits, tasksDueTodayCount, onMobile
 
         {/* User Profile Link */}
         <a href="#" onClick={(e) => {e.preventDefault();setIsSettingsOpen(true);}} className="flex items-center gap-3 p-3 hover:bg-black/10 transition-colors rounded-md mx-2 mb-2">
-          <img src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=450063&color=fff`} alt="User Avatar" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+          <img src={user?.avatar || user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=450063&color=fff`} alt="User Avatar" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
           {isOpen &&
           <div className="flex-grow truncate">
               <p className="font-semibold text-sm text-white">{user?.firstName} {user?.lastName}</p>

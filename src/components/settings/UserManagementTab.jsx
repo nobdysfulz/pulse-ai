@@ -268,7 +268,7 @@ export default function UserManagementTab() {
                                 <TableRow key={user.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`} alt="avatar" className="w-8 h-8 rounded-full" />
+                                            <img src={user.avatar || user.avatar_url || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=random`} alt="avatar" className="w-8 h-8 rounded-full" />
                                             <div>
                                                 <div className="font-medium">{user.firstName} {user.lastName}</div>
                                                 <div className="text-xs text-slate-500">{user.email}</div>

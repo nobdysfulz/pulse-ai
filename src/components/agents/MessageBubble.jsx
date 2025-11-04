@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from "@/components/ui/button";
 import { Copy, Zap, CheckCircle2, AlertCircle, Loader2, ChevronRight, Clock } from 'lucide-react';
@@ -98,9 +98,17 @@ const FunctionDisplay = ({ toolCall }) => {
 
 export default function MessageBubble({ message }) {
     const isUser = message.role === 'user';
-    
+    const formattedContent = useMemo(() => {
+        if (!isUser && typeof message.content === 'string') {
+            return message.content
+                .replace(/\r\n/g, '\n')
+                .replace(/\n{2,}/g, '\n');
+        }
+        return message.content;
+    }, [isUser, message.content]);
+
     return (
-        <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+        <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}> 
             {!isUser && (
                 <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center mt-0.5">
                     <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
@@ -115,7 +123,7 @@ export default function MessageBubble({ message }) {
                         {isUser ? (
                             <p className="text-sm leading-relaxed">{message.content}</p>
                         ) : (
-                            <ReactMarkdown 
+                            <ReactMarkdown
                                 className="text-sm prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                                 components={{
                                     code: ({ inline, className, children, ...props }) => {
@@ -160,7 +168,7 @@ export default function MessageBubble({ message }) {
                                     ),
                                 }}
                             >
-                                {message.content}
+                                {formattedContent}
                             </ReactMarkdown>
                         )}
                     </div>
