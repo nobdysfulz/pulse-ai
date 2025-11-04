@@ -31,6 +31,16 @@ export default function TopHeader() {
     const isSubscriber = user.subscriptionTier === 'Subscriber' || user.subscriptionTier === 'Admin';
     const hasCallCenter = userAgentSubscription?.status === 'active';
 
+    // Check if any onboarding steps are incomplete
+    const hasIncompleteOnboarding = 
+      !onboarding.onboardingCompleted || 
+      (isSubscriber && !onboarding.agentOnboardingCompleted) ||
+      (hasCallCenter && !onboarding.callCenterOnboardingCompleted);
+
+    if (!hasIncompleteOnboarding) {
+      return { needed: false };
+    }
+
     // Phase 1: Core onboarding not complete
     if (!onboarding.onboardingCompleted) {
       return {
@@ -46,7 +56,7 @@ export default function TopHeader() {
       return {
         needed: true,
         phase: 'agents',
-        link: createPageUrl('Onboarding') + '?phase=agents',
+        link: createPageUrl('Settings') + '?tab=onboarding',
         label: 'SETUP AI AGENTS'
       };
     }
@@ -56,12 +66,11 @@ export default function TopHeader() {
       return {
         needed: true,
         phase: 'callcenter',
-        link: createPageUrl('Onboarding') + '?phase=callcenter',
+        link: createPageUrl('Settings') + '?tab=onboarding',
         label: 'SETUP CALL CENTER'
       };
     }
 
-    // All onboarding complete
     return { needed: false };
   };
 

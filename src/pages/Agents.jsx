@@ -39,7 +39,7 @@ export default function AgentsPage() {
   const [showSingleCallModal, setShowSingleCallModal] = useState(false);
   const logsPerPage = 10;
 
-  const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
+  const isSubscriber = ['Subscriber', 'Admin', 'Owner', 'Investor'].includes(user?.subscriptionTier);
 
   // Check onboarding status
   useEffect(() => {

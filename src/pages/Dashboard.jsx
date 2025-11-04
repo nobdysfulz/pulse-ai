@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Send, ArrowRight, Sparkles, Target } from "lucide-react";
+import { Send, ArrowRight, Sparkles, Target, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -64,7 +64,7 @@ export default function DashboardPage() {
     }
   ];
 
-  const isSubscriberOrAdmin = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
+  const isSubscriberOrAdmin = ['Subscriber', 'Admin', 'Owner', 'Investor'].includes(user?.subscriptionTier);
 
   const userInitials = useMemo(() => {
     const firstName = user?.firstName || user?.full_name?.split(' ')[0];
@@ -544,14 +544,14 @@ export default function DashboardPage() {
             <div className="flex-1">
               {intelligenceLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-[#6D28D9] border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-8 h-8 text-[#15AABF] animate-spin" />
                 </div>
               ) : intelligenceData ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center">
                     <div className="text-center">
                       <div className="text-4xl font-bold text-[#6D28D9] mb-1">
-                        {intelligenceData.overallScore || 0}
+                        {intelligenceData?.scores?.overall || 0}
                       </div>
                       <div className="text-xs text-[#64748B] font-medium">Overall Score</div>
                     </div>
@@ -560,14 +560,31 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
                       <div className="text-lg font-semibold text-[#1E293B]">
-                        {intelligenceData.pulseScore || 0}
+                        {intelligenceData?.scores?.pulse || 0}
                       </div>
                       <div className="text-xs text-[#64748B]">Pulse</div>
                     </div>
                     <div>
                       <div className="text-lg font-semibold text-[#1E293B]">
-                        {intelligenceData.ganeScore || 0}
+                        {intelligenceData?.scores?.gane || 0}
                       </div>
+                      <div className="text-xs text-[#64748B]">GANE</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-[#1E293B]">
+                        {intelligenceData?.scores?.moro || 0}
+                      </div>
+                      <div className="text-xs text-[#64748B]">MORO</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-sm text-[#64748B]">No data available</p>
+                </div>
+              )}
+            </div>
+          </div>
                       <div className="text-xs text-[#64748B]">GANE</div>
                     </div>
                     <div>

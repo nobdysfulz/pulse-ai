@@ -6,6 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper: Normalize column headers from CSV
+function normalizeColumnName(header: string): string {
+  return header.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
+
+// Column synonyms for common variations
+const columnSynonyms: Record<string, string[]> = {
+  'action_type': ['action_type', 'action type', 'actiontype', 'type'],
+  'trigger_type': ['trigger_type', 'trigger type', 'triggertype', 'trigger'],
+  'priority_weight': ['priority_weight', 'priority weight', 'priorityweight', 'weight'],
+  'display_category': ['display_category', 'display category', 'displaycategory', 'display'],
+  'impact_area': ['impact_area', 'impact area', 'impactarea', 'impact'],
+};
+
+// Build reverse lookup for header matching
+function buildHeaderMap(headers: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const normalizedHeaders = headers.map(h => normalizeColumnName(h));
+  
+  headers.forEach((originalHeader, idx) => {
+    const normalized = normalizedHeaders[idx];
+    
+    // Direct match
+    map.set(normalized, originalHeader);
+    
+    // Check synonyms
+    for (const [canonicalName, synonyms] of Object.entries(columnSynonyms)) {
+      if (synonyms.some(syn => normalizeColumnName(syn) === normalized)) {
+        map.set(canonicalName, originalHeader);
+      }
+    }
+  });
+  
+  return map;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,8 +73,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse CSV
-    const records = parse(csvData, { skipFirstRow: true });
+    // Parse CSV with header normalization
+    const records = parse(csvData, { skipFirstRow: false });
+    const rawHeaders = records[0] as string[];
+    const dataRows = records.slice(1);
+    
+    const headerMap = buildHeaderMap(rawHeaders);
+    
+    console.log('CSV Raw Headers:', rawHeaders);
+    console.log('Normalized Header Map:', Array.from(headerMap.entries()));
     
     // Define admin tables that don't have user_id
     const adminTables = [
@@ -54,6 +97,8 @@ Deno.serve(async (req) => {
       'campaign_templates',
       'legal_documents',
       'feature_flags',
+      'brand_color_palettes',
+      'agent_voices',
     ];
     
     const isAdminTable = adminTables.includes(entityType);
@@ -65,74 +110,93 @@ Deno.serve(async (req) => {
     };
 
     // Map columns to database fields and auto-inject system fields
-    const mappedRecords = records.map((row: any, index: number) => {
+    const mappedRecords = dataRows.map((row: any, index: number) => {
       const mapped: any = {};
       
-      Object.entries(columnMapping).forEach(([csvCol, dbCol]) => {
-        const value = row[csvCol];
-        const dbColStr = dbCol as string;
+      // Map each CSV column to DB column using normalized headers and synonyms
+      rawHeaders.forEach((header, idx) => {
+        const normalizedHeader = normalizeColumnName(header);
+        const value = row[idx];
+        
+        // Find DB column name from mapping or synonyms
+        let dbCol = columnMapping[header] || header;
+        
+        // Check if this header matches a synonym
+        for (const [canonicalName, synonyms] of Object.entries(columnSynonyms)) {
+          if (synonyms.some(syn => normalizeColumnName(syn) === normalizedHeader)) {
+            dbCol = canonicalName;
+            break;
+          }
+        }
         
         // Handle JSON objects (for storing complex data in jsonb fields)
         if (value && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
           try {
-            mapped[dbColStr] = JSON.parse(value);
+            mapped[dbCol] = JSON.parse(value);
           } catch (e) {
-            mapped[dbColStr] = value;
+            mapped[dbCol] = value;
           }
         }
         // Handle array fields (pipe-separated values or JSON arrays)
         else if (typeof value === 'string' && value.includes('|')) {
-          mapped[dbColStr] = value.split('|').map((v: string) => v.trim()).filter(v => v);
+          mapped[dbCol] = value.split('|').map((v: string) => v.trim()).filter(v => v);
         } 
         // Handle boolean conversion
         else if (value === 'true' || value === 'false') {
-          mapped[dbColStr] = value === 'true';
+          mapped[dbCol] = value === 'true';
         } 
         // Handle numeric conversions
         else if (value && !isNaN(Number(value)) && (
-          dbColStr.includes('score') || 
-          dbColStr.includes('weight') || 
-          dbColStr.includes('order') ||
-          dbColStr.includes('duration') ||
-          dbColStr.includes('threshold') ||
-          dbColStr.includes('value')
+          dbCol.includes('score') || 
+          dbCol.includes('weight') || 
+          dbCol.includes('order') ||
+          dbCol.includes('duration') ||
+          dbCol.includes('threshold') ||
+          dbCol.includes('value')
         )) {
-          mapped[dbColStr] = Number(value);
+          mapped[dbCol] = Number(value);
         }
         // Handle hex color codes
-        else if (dbColStr.includes('color') && typeof value === 'string' && value.match(/^#?[0-9A-Fa-f]{6}$/)) {
-          mapped[dbColStr] = normalizeHex(value);
+        else if (dbCol.includes('color') && typeof value === 'string' && value.match(/^#?[0-9A-Fa-f]{6}$/)) {
+          mapped[dbCol] = normalizeHex(value);
         }
         // Default: store as-is or null
         else {
-          mapped[dbColStr] = value || null;
+          mapped[dbCol] = value || null;
         }
       });
 
       // Special handling for agent_voices: store extra fields in voice_settings
       if (entityType === 'agent_voices') {
-        const previewUrl = row['previewAudioUrl'];
-        const isActive = row['isActive'];
-        if (previewUrl || isActive !== undefined) {
+        const previewUrlIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'previewaudiourl');
+        const isActiveIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'isactive');
+        
+        if (previewUrlIdx >= 0 || isActiveIdx >= 0) {
           mapped.voice_settings = {
             ...(mapped.voice_settings || {}),
-            previewAudioUrl: previewUrl || null,
-            isActive: isActive === 'true' || isActive === true
+            previewAudioUrl: previewUrlIdx >= 0 ? row[previewUrlIdx] : null,
+            isActive: isActiveIdx >= 0 ? (row[isActiveIdx] === 'true' || row[isActiveIdx] === true) : true
           };
         }
       }
 
       // Special handling for call_logs: store full data in metadata
       if (entityType === 'call_logs') {
-        // Store all CSV data in metadata for reference
+        const conversationIdIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'conversationid');
+        const callSidIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'callsid');
+        const campaignNameIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'campaignname');
+        const transcriptIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'transcript');
+        const analysisIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'analysis');
+        const formDataIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'formdata');
+        
         mapped.metadata = {
           ...mapped.metadata,
-          conversationId: row['conversationId'],
-          callSid: row['callSid'],
-          campaignName: row['campaignName'],
-          transcript: row['transcript'] ? (typeof row['transcript'] === 'string' ? JSON.parse(row['transcript']) : row['transcript']) : null,
-          analysis: row['analysis'] ? (typeof row['analysis'] === 'string' ? JSON.parse(row['analysis']) : row['analysis']) : null,
-          formData: row['formData'] ? (typeof row['formData'] === 'string' ? JSON.parse(row['formData']) : row['formData']) : null
+          conversationId: conversationIdIdx >= 0 ? row[conversationIdIdx] : null,
+          callSid: callSidIdx >= 0 ? row[callSidIdx] : null,
+          campaignName: campaignNameIdx >= 0 ? row[campaignNameIdx] : null,
+          transcript: transcriptIdx >= 0 && row[transcriptIdx] ? (typeof row[transcriptIdx] === 'string' ? JSON.parse(row[transcriptIdx]) : row[transcriptIdx]) : null,
+          analysis: analysisIdx >= 0 && row[analysisIdx] ? (typeof row[analysisIdx] === 'string' ? JSON.parse(row[analysisIdx]) : row[analysisIdx]) : null,
+          formData: formDataIdx >= 0 && row[formDataIdx] ? (typeof row[formDataIdx] === 'string' ? JSON.parse(row[formDataIdx]) : row[formDataIdx]) : null
         };
       }
 
@@ -153,14 +217,17 @@ Deno.serve(async (req) => {
 
       // Handle timestamps: map created_date/updated_date to created_at/updated_at
       const now = new Date().toISOString();
-      if (row['created_date'] && !mapped.created_at) {
-        mapped.created_at = row['created_date'];
+      const createdDateIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'created_date');
+      const updatedDateIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'updated_date');
+      
+      if (createdDateIdx >= 0 && row[createdDateIdx] && !mapped.created_at) {
+        mapped.created_at = row[createdDateIdx];
       } else if (!mapped.created_at) {
         mapped.created_at = now;
       }
       
-      if (row['updated_date'] && !mapped.updated_at) {
-        mapped.updated_at = row['updated_date'];
+      if (updatedDateIdx >= 0 && row[updatedDateIdx] && !mapped.updated_at) {
+        mapped.updated_at = row[updatedDateIdx];
       } else if (!mapped.updated_at) {
         mapped.updated_at = now;
       }
@@ -168,13 +235,41 @@ Deno.serve(async (req) => {
       return mapped;
     });
 
-    // Batch insert (50 at a time)
+    console.log(`Parsed ${mappedRecords.length} records`);
+    console.log('First 2 parsed records:', mappedRecords.slice(0, 2));
+
+    // Batch insert (50 at a time) with validation
     const batchSize = 50;
     let imported = 0;
     const errors: any[] = [];
 
     for (let i = 0; i < mappedRecords.length; i += batchSize) {
       const batch = mappedRecords.slice(i, i + batchSize);
+      const currentBatch = Math.floor(i / batchSize) + 1;
+      
+      // Validate required fields for task_templates
+      if (entityType === 'task_templates') {
+        const requiredFields = ['title', 'category', 'action_type', 'trigger_type'];
+        const missingFieldsErrors: string[] = [];
+        
+        batch.forEach((record, idx) => {
+          const actualRowNum = i + idx + 2; // +2 for header and 1-indexing
+          const missing = requiredFields.filter(field => !record[field] || (typeof record[field] === 'string' && record[field].trim() === ''));
+          if (missing.length > 0) {
+            missingFieldsErrors.push(`Row ${actualRowNum} missing: ${missing.join(', ')}`);
+          }
+        });
+        
+        if (missingFieldsErrors.length > 0) {
+          errors.push({
+            batch: currentBatch,
+            rows: `${i + 2} to ${i + batch.length + 1}`,
+            error: missingFieldsErrors.join('; ')
+          });
+          console.error(`Validation failed for batch ${currentBatch}:`, missingFieldsErrors);
+          continue; // Skip this batch
+        }
+      }
       
       const { data, error } = await supabase
         .from(entityType)
@@ -182,11 +277,11 @@ Deno.serve(async (req) => {
         .select();
 
       if (error) {
-        console.error(`Batch ${i / batchSize + 1} error:`, error);
+        console.error(`Batch ${currentBatch} error:`, error);
         errors.push({ 
-          batch: i / batchSize + 1, 
+          batch: currentBatch, 
           error: error.message,
-          rows: `${i + 1} to ${Math.min(i + batchSize, mappedRecords.length)}`
+          rows: `${i + 2} to ${i + batch.length + 1}`
         });
       } else {
         imported += data?.length || 0;
