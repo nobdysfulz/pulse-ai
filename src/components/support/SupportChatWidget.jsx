@@ -16,20 +16,36 @@ export default function SupportChatWidget() {
 
     setSending(true);
     try {
-      await supabase.functions.invoke('sendEmail', {
+      const { data, error } = await supabase.functions.invoke('sendEmail', {
         body: {
           to: 'support@pulseai.com',
           subject: 'Support Request from Widget',
           body: message
         }
       });
-      
+
+      if (error) {
+        throw new Error(error.message || 'Failed to call support function');
+      }
+
+      if (data?.error || data?.details) {
+        const details =
+          (typeof data.error === 'string' && data.error) ||
+          (typeof data.details === 'string' && data.details) ||
+          'Failed to send support request';
+        throw new Error(details);
+      }
+
+      if (!data?.success) {
+        throw new Error('Support function did not complete successfully');
+      }
+
       toast.success('Support request sent successfully!');
       setMessage('');
       setSupportChatOpen(false);
     } catch (error) {
       console.error('Error sending support request:', error);
-      toast.error('Failed to send support request');
+      toast.error(error?.message || 'Failed to send support request');
     } finally {
       setSending(false);
     }
