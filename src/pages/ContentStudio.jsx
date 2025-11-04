@@ -116,21 +116,30 @@ export default function ContentStudioPage() {
   };
 
   const handleContentGenerated = async (contentData) => {
-    if (!hasSufficientCredits(contentData.credits)) {
-      setShowCreditModal(true);
-      return;
-    }
-
-    const success = await deductCredits(contentData.credits, 'Content Studio', `Generated ${contentData.type}: ${contentData.title}`);
-    if (!success) return;
-
+    // Credits are already deducted in AIContentGenerator before generation
+    // So we just need to save the content here
     try {
-      // Content generation will be implemented later
-      toast.success('Content generation feature coming soon!');
-      await loadPageData();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('generated_content')
+        .insert({
+          user_id: user.id,
+          title: contentData.title,
+          content: contentData.body,
+          content_type: contentData.type,
+          platform: contentData.platform || null,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast.success('Content saved successfully!');
+      await loadRecentGenerated();
     } catch (error) {
       console.error('Error saving generated content:', error);
-      toast.error('Failed to save generated content');
+      toast.error('Failed to save content');
     }
   };
 

@@ -15,23 +15,32 @@ const normalizeInsights = (insights) => {
 
   let parsed = insights;
 
+  // Handle string insights (parse JSON if needed)
   if (typeof insights === 'string') {
     try {
       parsed = JSON.parse(cleanJsonText(insights));
     } catch (error) {
+      // If it's not JSON, treat as plain text
       return { message: insights, highlights: [], actions: [] };
     }
   }
 
+  // Ensure parsed is an object
   if (!parsed || typeof parsed !== 'object') {
-    return { message: typeof parsed === 'string' ? parsed : JSON.stringify(parsed), highlights: [], actions: [] };
+    return { message: null, highlights: [], actions: [] };
   }
 
+  // Extract message - check both 'message' and 'summary' fields
   const messageParts = [];
   if (typeof parsed.message === 'string') messageParts.push(parsed.message);
   if (typeof parsed.summary === 'string') messageParts.push(parsed.summary);
-  if (Array.isArray(parsed.summary)) messageParts.push(...parsed.summary);
+  if (Array.isArray(parsed.summary)) {
+    parsed.summary.forEach(item => {
+      if (typeof item === 'string') messageParts.push(item);
+    });
+  }
 
+  // Extract highlights from various possible keys
   const highlightSources = ['insights', 'highlights', 'key_findings', 'opportunities', 'risks'];
   const highlights = [];
   highlightSources.forEach((key) => {
@@ -40,8 +49,8 @@ const normalizeInsights = (insights) => {
       value.forEach((item) => {
         if (typeof item === 'string') {
           highlights.push(item);
-        } else if (item) {
-          highlights.push(JSON.stringify(item));
+        } else if (item && typeof item === 'object' && item.text) {
+          highlights.push(item.text);
         }
       });
     } else if (typeof value === 'string') {
@@ -49,13 +58,14 @@ const normalizeInsights = (insights) => {
     }
   });
 
+  // Extract actions array
   const actions = Array.isArray(parsed.actions)
-    ? parsed.actions.filter(Boolean)
+    ? parsed.actions.filter(action => action && typeof action === 'object')
     : [];
 
   return {
     message: messageParts.filter(Boolean).join('\n\n') || null,
-    highlights,
+    highlights: [...new Set(highlights)], // Remove duplicates
     actions
   };
 };

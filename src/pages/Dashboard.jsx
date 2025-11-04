@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
 import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
 import { calculatePulseScore } from "../components/pulse/pulseScoring";
+import AddActionModal from "../components/actions/AddActionModal";
 
 export default function DashboardPage() {
   const {
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const [intelligenceData, setIntelligenceData] = useState(null);
   const [intelligenceLoading, setIntelligenceLoading] = useState(false);
   const [lastIntelligenceUpdate, setLastIntelligenceUpdate] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const navigate = useNavigate();
 
   const agentAvatars = [
@@ -302,6 +304,36 @@ export default function DashboardPage() {
       toast.error("Could not update task.");
     }
   }, [refreshUserData]);
+
+  const handleCreateAction = async (formData) => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('daily_actions')
+        .insert({
+          user_id: authUser.id,
+          title: formData.title,
+          description: formData.description || '',
+          category: formData.category,
+          priority: formData.priority,
+          action_type: formData.actionType,
+          due_date: formData.dueDate || formData.actionDate,
+          action_date: formData.actionDate,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast.success('Task added successfully!');
+      await refreshUserData();
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to add task');
+    }
+  };
 
   const handleAdvisorSubmit = (e) => {
     e.preventDefault();
@@ -765,6 +797,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <AddActionModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onCreateAction={handleCreateAction}
+      />
     </div>
   );
 }

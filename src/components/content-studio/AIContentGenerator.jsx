@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react'; // Sparkles import removed
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AiPromptConfig } from '@/api/entities';
@@ -83,12 +83,44 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
     const currentCredits = selectedPromptConfig?.creditsCost || 5;
 
-    // Check credits for free users BEFORE generation
+    // Check and deduct credits for free users BEFORE generation
     if (!isSubscriber) {
-      const hasCredits = userCredits && userCredits.creditsRemaining >= currentCredits;
-      if (!hasCredits) {
+      if (!userCredits || userCredits.creditsRemaining < currentCredits) {
         toast.error(`Insufficient credits. This action requires ${currentCredits} credits.`);
         if (onCreditError) onCreditError(currentCredits);
+        return;
+      }
+
+      // Deduct credits immediately before generation
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { data: creditData, error: creditError } = await supabase
+          .from('user_credits')
+          .update({ 
+            credits_remaining: userCredits.creditsRemaining - currentCredits,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single();
+
+        if (creditError) throw creditError;
+
+        // Log the transaction
+        await supabase.from('credit_transactions').insert({
+          user_id: user.id,
+          amount: -currentCredits,
+          transaction_type: 'deduction',
+          description: `Generated ${contentType} content`,
+          balance_after: creditData.credits_remaining
+        });
+
+        toast.success(`${currentCredits} credits deducted`);
+      } catch (error) {
+        console.error('Error deducting credits:', error);
+        toast.error('Failed to deduct credits. Please try again.');
         return;
       }
     }
