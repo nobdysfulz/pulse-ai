@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const [lastIntelligenceUpdate, setLastIntelligenceUpdate] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
 
   const onboardingJourney = useMemo(() => {
     if (!user) return null;
@@ -165,8 +166,12 @@ export default function DashboardPage() {
         
         if (error) throw error;
         
-        if (data) {
-          console.log('[Dashboard] Intelligence data loaded successfully');
+        if (data && isMountedRef.current) {
+          console.log('[Dashboard] Intelligence data received:', {
+            hasScores: !!data.scores,
+            overallScore: data.scores?.overall,
+            dataStructure: Object.keys(data)
+          });
           setIntelligenceData(data);
           setLastIntelligenceUpdate(new Date());
         }
@@ -207,7 +212,7 @@ export default function DashboardPage() {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             fetchIntelligence();
-          }, 5000); // Wait 5 seconds before refreshing
+          }, 10000); // Wait 10 seconds before refreshing
         }
       )
       .subscribe();
@@ -215,8 +220,9 @@ export default function DashboardPage() {
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
+      isMountedRef.current = false;
     };
-  }, [user, contextLoading, intelligenceData]);
+  }, [user, contextLoading]);
 
   // Generate dashboard insight
   useEffect(() => {
@@ -604,7 +610,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 text-[#15AABF] animate-spin" />
                 </div>
-              ) : intelligenceData ? (
+              ) : (intelligenceData && intelligenceData.scores) ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-center">
                     <div className="text-center">
