@@ -888,6 +888,7 @@ export default function RolePlayPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
+      console.log('Loading role play scenarios...');
       const [scenarios, logs, analysesRaw] = await Promise.all([
         RolePlayScenario.filter({ isActive: true }, 'name'),
         RolePlaySessionLog.filter({ userId: user.id }, '-created_at'),
@@ -896,6 +897,8 @@ export default function RolePlayPage() {
           return [];
         })
       ]);
+
+      console.log('Loaded scenarios:', scenarios.length, scenarios);
 
       const mappedScenarios = scenarios.map((scenario) => ({
         ...scenario,

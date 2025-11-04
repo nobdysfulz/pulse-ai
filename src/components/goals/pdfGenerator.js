@@ -2,15 +2,25 @@ import jsPDF from 'jspdf';
 
 const defaultBrandColor = '#7C3AED';
 
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 124, g: 58, b: 237 };
+};
+
 const drawHeader = (doc, brandColor, planYear) => {
-  doc.setFillColor(brandColor);
+  const rgb = hexToRgb(brandColor);
+  doc.setFillColor(rgb.r, rgb.g, rgb.b);
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F');
-  doc.setTextColor('#FFFFFF');
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.text('Goals Performance Report', 14, 20);
   doc.setFontSize(11);
   doc.text(`Plan Year ${planYear}`, doc.internal.pageSize.getWidth() - 14, 20, { align: 'right' });
-  doc.setTextColor('#111111');
+  doc.setTextColor(17, 17, 17);
   doc.setFontSize(10);
 };
 

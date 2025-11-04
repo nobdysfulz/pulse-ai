@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from './calculations';
+import { Mail, Printer } from 'lucide-react';
+import { toast } from 'sonner';
+import { generateGoalsReportPdf } from '../goals/pdfGenerator';
 
 const SummaryStat = ({ label, value, highlight }) => (
   <div className={`rounded-lg p-4 text-center ${highlight ? 'bg-violet-50 text-violet-900' : 'bg-slate-50 text-slate-900'}`}>
@@ -27,18 +30,127 @@ const ActivityList = ({ title, funnel }) => (
 export default function Step5Summary({ planData, calculatedTargets, onEditStep }) {
   const { financialSummary, dealStructure, activityTargets, monthlyBreakdown } = calculatedTargets;
 
+  const handlePrintPlan = () => {
+    try {
+      // Prepare data for PDF generation
+      const summaryData = {
+        overallProgress: 0,
+        currentGci: '$0',
+        annualGciTarget: formatCurrency(financialSummary.gciRequired),
+        quarterlyProgress: 0,
+        currentQuarter: 'Q1',
+        projectedPace: 0
+      };
+
+      const priorityGoals = [
+        {
+          title: 'Annual GCI',
+          status: 'Not Started',
+          progress: 0,
+          currentValue: 0,
+          targetValue: financialSummary.gciRequired,
+          targetUnit: 'USD',
+          nextStep: 'Begin tracking commission income'
+        },
+        {
+          title: 'Total Transactions',
+          status: 'Not Started',
+          progress: 0,
+          currentValue: 0,
+          targetValue: dealStructure.totalDealsNeeded,
+          targetUnit: 'closings',
+          nextStep: 'Focus on lead generation'
+        }
+      ];
+
+      const activityGoals = [
+        {
+          title: 'Total Conversations',
+          progress: 0,
+          currentValue: 0,
+          targetValue: activityTargets.totals.conversations
+        },
+        {
+          title: 'Total Appointments',
+          progress: 0,
+          currentValue: 0,
+          targetValue: activityTargets.totals.appointments
+        }
+      ];
+
+      const allGoals = [
+        { title: 'Annual GCI', category: 'production', currentValue: 0, targetValue: financialSummary.gciRequired, targetUnit: 'USD', status: 'active' },
+        { title: 'Total Transactions', category: 'production', currentValue: 0, targetValue: dealStructure.totalDealsNeeded, targetUnit: 'closings', status: 'active' },
+        { title: 'Buyer Transactions', category: 'production', currentValue: 0, targetValue: dealStructure.buyerTransactions, targetUnit: 'closings', status: 'active' },
+        { title: 'Listing Transactions', category: 'production', currentValue: 0, targetValue: dealStructure.listingTransactions, targetUnit: 'closings', status: 'active' },
+        { title: 'Total Conversations', category: 'activity', currentValue: 0, targetValue: activityTargets.totals.conversations, targetUnit: 'conversations', status: 'active' },
+        { title: 'Total Appointments', category: 'activity', currentValue: 0, targetValue: activityTargets.totals.appointments, targetUnit: 'appointments', status: 'active' }
+      ];
+
+      generateGoalsReportPdf({
+        summaryData,
+        priorityGoals,
+        activityGoals,
+        allGoals,
+        planYear: planData.planYear,
+        brandColor: '#7C3AED'
+      });
+
+      toast.success('PDF generated successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const handleEmailPlan = () => {
+    try {
+      const subject = encodeURIComponent(`${planData.planYear} Business Plan Summary`);
+      const body = encodeURIComponent(`
+Hi,
+
+Here's a summary of my ${planData.planYear} Business Plan:
+
+Financial Goals:
+- Net Income Goal: ${formatCurrency(planData.netIncomeGoal)}
+- Gross Commission Income Required: ${formatCurrency(financialSummary.gciRequired)}
+- Total Annual Expenses: ${formatCurrency(financialSummary.totalExpenses)}
+
+Production Targets:
+- Total Deals Needed: ${dealStructure.totalDealsNeeded}
+- Buyer Transactions: ${dealStructure.buyerTransactions}
+- Listing Transactions: ${dealStructure.listingTransactions}
+- Total Sales Volume: ${formatCurrency(dealStructure.totalSalesVolume)}
+
+Activity Requirements:
+- Conversations: ${activityTargets.totals.conversations}
+- Appointments: ${activityTargets.totals.appointments}
+- Agreements: ${activityTargets.totals.agreements}
+- Contracts: ${activityTargets.totals.contracts}
+
+Monthly Averages:
+- ${monthlyBreakdown.conversations} conversations/month
+- ${monthlyBreakdown.appointments} appointments/month
+- ${monthlyBreakdown.closings} closings/month
+
+Best regards
+      `);
+      
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      toast.success('Opening email client...');
+    } catch (error) {
+      console.error('Error opening email:', error);
+      toast.error('Failed to open email client');
+    }
+  };
+
   return (
     <div className="space-y-10">
       <div className="text-center space-y-3">
         <h2 className="text-2xl font-bold text-slate-900">Your {planData.planYear} Business Plan Summary</h2>
         <p className="text-sm text-slate-500">
-          Review the financial goals and activity requirements for your production plan. You can jump back to any step to make adjustments.
+          Review the financial goals and activity requirements for your production plan.
         </p>
-        <div className="flex justify-center gap-3">
-          <Button variant="outline" onClick={() => onEditStep?.(1)}>Edit Agent Info</Button>
-          <Button variant="outline" onClick={() => onEditStep?.(2)}>Edit Expenses</Button>
-          <Button variant="outline" onClick={() => onEditStep?.(3)}>Edit Deal Structure</Button>
-        </div>
       </div>
 
       <Card className="border-slate-200">
@@ -96,6 +208,17 @@ export default function Step5Summary({ planData, calculatedTargets, onEditStep }
           <SummaryStat label="Closings / Month" value={`${monthlyBreakdown.closings}`} />
         </CardContent>
       </Card>
+
+      <div className="flex justify-center gap-4 pt-6">
+        <Button variant="outline" onClick={handleEmailPlan} className="gap-2">
+          <Mail className="h-4 w-4" />
+          Email This Plan
+        </Button>
+        <Button onClick={handlePrintPlan} className="gap-2">
+          <Printer className="h-4 w-4" />
+          Print This Plan
+        </Button>
+      </div>
     </div>
   );
 }

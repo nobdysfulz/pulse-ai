@@ -70,6 +70,13 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
                 agent_phone: user?.phone
             };
 
+            console.log('Initiating single call with data:', {
+                contacts,
+                callType,
+                agentData,
+                campaignName: `Single Call - ${callType}`
+            });
+
             const { data, error } = await supabase.functions.invoke('sendContactsToElevenLabs', {
                 body: {
                     contacts,
@@ -78,6 +85,8 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
                     campaignName: `Single Call - ${callType}`
                 }
             });
+
+            console.log('ElevenLabs response:', { data, error });
 
             if (error) throw error;
 

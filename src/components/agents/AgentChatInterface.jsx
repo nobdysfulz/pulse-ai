@@ -199,11 +199,21 @@ export default function AgentChatInterface({ agentType }) {
         ];
       }
 
+      // Check if response contains an image URL (for Sirius content generation)
+      let imageUrl = null;
+      if (data.response && typeof data.response === 'string') {
+        const imageMatch = data.response.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/);
+        if (imageMatch) {
+          imageUrl = imageMatch[1];
+        }
+      }
+
       const assistantMessage = { 
         role: 'assistant', 
         content: data.response, 
         isTyping: true,
-        toolCalls: data.toolCalls || []
+        toolCalls: data.toolCalls || [],
+        imageUrl: imageUrl
       };
       
       const finalMessages = [...messagesWithTools, assistantMessage];
@@ -289,8 +299,22 @@ export default function AgentChatInterface({ agentType }) {
                   {message.isTyping ? (
                     <TypingBubble text={message.content} onTypingComplete={() => handleTypingComplete(index)} />
                   ) : (
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <div className="space-y-3">
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                      {message.imageUrl && (
+                        <div className="mt-3">
+                          <img 
+                            src={message.imageUrl} 
+                            alt="Generated content" 
+                            className="rounded-lg max-w-full h-auto border border-[#E2E8F0]"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

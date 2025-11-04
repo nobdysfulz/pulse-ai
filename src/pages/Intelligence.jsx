@@ -223,7 +223,15 @@ export default function IntelligencePage() {
 
       const today = new Date().toISOString().split('T')[0];
 
-      await DailyAction.create({
+      console.log('Creating daily action:', {
+        userId,
+        title: action.title,
+        category,
+        priority: action.priority || 'medium',
+        today
+      });
+
+      const result = await DailyAction.create({
         userId,
         title: action.title,
         description: 'AI-recommended action from Pulse Intelligence Core',
@@ -234,6 +242,8 @@ export default function IntelligencePage() {
         dueDate: today,
         actionType: action.type || 'general'
       });
+
+      console.log('Daily action created successfully:', result);
 
       const { error: logError } = await supabase
         .from('ai_actions_log')

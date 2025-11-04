@@ -13,60 +13,65 @@ export const PERSONAL_EXPENSE_CATEGORIES = [
   {
     key: 'housingUtilities',
     label: 'Housing & Utilities',
-    defaultItems: ['Mortgage / Rent', 'Utilities', 'Internet', 'Mobile Phone'],
+    defaultItems: ['Mortgage/Rent', 'Utilities: Electricity', 'Utilities: Gas', 'Internet', 'Mobile Phone', 'Water'],
   },
   {
     key: 'transportation',
     label: 'Transportation',
-    defaultItems: ['Car Payment', 'Fuel / Charging', 'Insurance'],
+    defaultItems: ['Car Payment', 'Car Gas/Electricity', 'Car Insurance', 'Car Maintenance'],
   },
   {
-    key: 'foodGroceries',
-    label: 'Food & Groceries',
-    defaultItems: ['Groceries', 'Dining & Entertainment'],
+    key: 'lifestyle',
+    label: 'Lifestyle & Entertainment',
+    defaultItems: ['Streaming Apps', 'Food / Entertainment', 'Travel', 'Shopping & Clothing'],
   },
   {
     key: 'healthcare',
-    label: 'Healthcare',
-    defaultItems: ['Health Insurance', 'Prescriptions', 'Medical'],
+    label: 'Healthcare & Insurance',
+    defaultItems: ['Health Insurance'],
   },
   {
-    key: 'personalFamily',
-    label: 'Personal & Family',
-    defaultItems: ['Child Care', 'Education', 'Family Activities'],
+    key: 'familyFinancial',
+    label: 'Family & Financial',
+    defaultItems: ['Child Care', 'Savings', 'Credit Cards'],
   },
   {
-    key: 'savingsInvestments',
-    label: 'Savings & Investments',
-    defaultItems: ['Emergency Fund', 'Investments'],
+    key: 'other',
+    label: 'Other',
+    defaultItems: ['Other 1', 'Other 2', 'Other 3', 'Other 4', 'Other 5'],
   },
 ];
 
 export const BUSINESS_EXPENSE_CATEGORIES = [
   {
-    key: 'marketingAdvertising',
-    label: 'Marketing & Advertising',
-    defaultItems: ['Digital Ads', 'Print Marketing', 'Events'],
+    key: 'professionalFees',
+    label: 'Professional Fees & Dues',
+    defaultItems: ['Association Dues/Fees', 'RPAC Contributions', 'MLS Fees', 'MLS Application', 'License Renewals / Applications'],
   },
   {
-    key: 'technologyTools',
-    label: 'Technology & Tools',
-    defaultItems: ['CRM', 'Website', 'Productivity Tools'],
+    key: 'officeInsurance',
+    label: 'Office & Insurance',
+    defaultItems: ['Office Desk Fees', 'E&O Insurance', 'Additional Brokerage Fees', 'Keycard & Lockbox'],
   },
   {
     key: 'professionalDevelopment',
     label: 'Professional Development',
-    defaultItems: ['Coaching', 'Training', 'Certifications'],
+    defaultItems: ['CE Credits / Certifications', 'Coaching / Training Fees'],
   },
   {
-    key: 'officeOperations',
-    label: 'Office & Operations',
-    defaultItems: ['Office Rent', 'Supplies', 'Insurance'],
+    key: 'marketingOperations',
+    label: 'Marketing & Operations',
+    defaultItems: ['Marketing & Advertising', 'Printing & Signage', 'Mail & Postage', 'Client Gifts / Events'],
   },
   {
-    key: 'licensesFees',
-    label: 'Licenses & Fees',
-    defaultItems: ['MLS Fees', 'Association Dues'],
+    key: 'technologyStaffing',
+    label: 'Technology & Staffing',
+    defaultItems: ['Software Subscriptions', 'Payroll / Employees'],
+  },
+  {
+    key: 'other',
+    label: 'Other',
+    defaultItems: ['Other'],
   },
 ];
 
