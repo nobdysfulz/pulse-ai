@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect } from "react";
-import { User } from "@/api/entities";
-import { AgentIntelligenceProfile } from "@/api/entities";
-import { UserOnboarding } from "@/api/entities"; // Added import for UserOnboarding
+import React, { useState, useEffect, useContext } from "react";
+import { UserContext } from '../components/context/UserContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,7 +13,7 @@ import { ArrowRight, ArrowLeft, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { cn } from "@/lib/utils";
-import toast from 'react-hot-toast'; // Added toast import
+import { toast } from 'sonner';
 
 const questions = [
   { id: 'experience_level', section: 'Agent Profile', text: "How long have you been an active real estate agent?", type: 'single_select', options: [{ value: "0-6_months", label: "0-6 months (New Agent)"}, { value: "6_months-2_years", label: "6 months - 2 years (Developing)"}, { value: "2-5_years", label: "2-5 years (Experienced)"}, { value: "5-10_years", label: "5-10 years (Veteran)"}, { value: "10_plus_years", label: "10+ years (Master)"}] },
@@ -51,9 +50,10 @@ const questions = [
 const sections = [...new Set(questions.map(q => q.section))];
 
 export default function IntelligenceSurveyPage() {
+  const { user, refreshUserData } = useContext(UserContext);
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [submitting, setSubmitting] = useState(false); // Renamed isSubmitting to submitting
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleAnswerChange = (questionId, value) => {
@@ -82,48 +82,88 @@ export default function IntelligenceSurveyPage() {
 
     setSubmitting(true);
     try {
-      const user = await User.me(); // Fetch user info
-      
       const profileData = {
-        ...answers,
-        userId: user.id,
-        surveyCompletedAt: new Date().toISOString()
+        user_id: user.id,
+        experience_level: answers.experience_level,
+        work_commitment: answers.work_commitment,
+        business_structure: answers.business_structure,
+        database_size: answers.database_size,
+        sphere_warmth: answers.sphere_warmth,
+        previous_year_transactions: answers.previousYearTransactions ? parseInt(answers.previousYearTransactions) : null,
+        previous_year_volume: answers.previousYearVolume ? parseInt(answers.previousYearVolume) : null,
+        average_price_point: answers.average_price_point,
+        business_consistency: answers.business_consistency,
+        biggest_challenges: answers.biggest_challenges || [],
+        growth_timeline: answers.growth_timeline,
+        learning_preference: answers.learning_preference,
+        survey_completed_at: new Date().toISOString()
       };
 
       // Check if profile already exists
-      const existingProfiles = await AgentIntelligenceProfile.filter({ userId: user.id });
+      const { data: existingProfiles } = await supabase
+        .from('agent_intelligence_profiles')
+        .select('*')
+        .eq('user_id', user.id);
       
       if (existingProfiles && existingProfiles.length > 0) {
         // Update existing profile
-        await AgentIntelligenceProfile.update(existingProfiles[0].id, profileData);
+        await supabase
+          .from('agent_intelligence_profiles')
+          .update(profileData)
+          .eq('user_id', user.id);
       } else {
         // Create new profile
-        await AgentIntelligenceProfile.create(profileData);
+        await supabase
+          .from('agent_intelligence_profiles')
+          .insert(profileData);
       }
 
       // Update onboarding status
-      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
+      const { data: onboardingRecords } = await supabase
+        .from('user_onboarding')
+        .select('*')
+        .eq('user_id', user.id);
       
       if (onboardingRecords && onboardingRecords.length > 0) {
-        await UserOnboarding.update(onboardingRecords[0].id, {
-          agentIntelligenceCompleted: true,
-          agentIntelligenceCompletionDate: new Date().toISOString()
-        });
+        await supabase
+          .from('user_onboarding')
+          .update({
+            agent_intelligence_completed: true,
+            agent_intelligence_completion_date: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
       } else {
         // Create onboarding record if it doesn't exist
-        await UserOnboarding.create({
-          userId: user.id,
-          agentIntelligenceCompleted: true,
-          agentIntelligenceCompletionDate: new Date().toISOString()
-        });
+        await supabase
+          .from('user_onboarding')
+          .insert({
+            user_id: user.id,
+            agent_intelligence_completed: true,
+            agent_intelligence_completion_date: new Date().toISOString()
+          });
       }
 
+      await refreshUserData();
       toast.success("Intelligence profile saved successfully!");
       
-      // Redirect to Dashboard
-      setTimeout(() => {
-        navigate(createPageUrl('Dashboard'));
-      }, 1000);
+      // Check if user should continue with agent onboarding or go to dashboard
+      const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
+      const { data: onboardingData } = await supabase
+        .from('user_onboarding')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (isSubscriber && !onboardingData?.agent_onboarding_completed) {
+        setTimeout(() => {
+          navigate(createPageUrl('Onboarding') + '?phase=agents');
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          navigate(createPageUrl('Dashboard'));
+        }, 1000);
+      }
 
     } catch (error) {
       console.error("Error saving intelligence profile:", error);
@@ -138,30 +178,29 @@ export default function IntelligenceSurveyPage() {
   const progress = ((currentStep + 1) / sections.length) * 100;
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 md:p-8 bg-slate-50">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#F8FAFC]">
       <div className="max-w-2xl mx-auto">
-        <Card className="w-full shadow-2xl">
+        <Card className="w-full shadow-sm">
           <CardHeader>
             <div className="text-center mb-4">
-              
-              <h1 className="text-2xl font-bold text-slate-900 mt-2">PULSE Intelligence Assessment</h1>
-              <p className="text-slate-600">Help us understand your business to provide personalized AI insights.</p>
+              <h1 className="text-2xl font-bold text-[#1E293B] mt-2">Intelligence Survey</h1>
+              <p className="text-[#64748B]">Help us understand your business to provide personalized AI insights.</p>
             </div>
-            <Progress value={progress} indicatorClassName="bg-gradient-to-r from-green-400 to-green-600" className="h-2.5" />
+            <Progress value={progress} className="h-2.5" />
             <div className="flex justify-between text-sm font-medium mt-2">
               {sections.map((sec, index) => (
-                <span key={sec} className={index <= currentStep ? 'text-purple-600' : 'text-slate-400'}>
+                <span key={sec} className={index <= currentStep ? 'text-[#7C3AED]' : 'text-[#94A3B8]'}>
                   {sec}
                 </span>
               ))}
             </div>
           </CardHeader>
           <CardContent className="min-h-[300px] py-6">
-            <h2 className="text-xl font-semibold mb-6 text-center">{currentSection}</h2>
+            <h2 className="text-xl font-semibold mb-6 text-center text-[#1E293B]">{currentSection}</h2>
             <div className="space-y-6">
               {sectionQuestions.map(q => (
                 <div key={q.id}>
-                  <Label className="text-base font-medium">{q.text}</Label>
+                  <Label className="text-base font-medium text-[#1E293B]">{q.text}</Label>
                   <div className="mt-3">
                     {q.type === 'single_select' && (
                       <RadioGroup value={answers[q.id]} onValueChange={(val) => handleAnswerChange(q.id, val)}>
@@ -170,12 +209,12 @@ export default function IntelligenceSurveyPage() {
                             <Label 
                               key={opt.value} 
                               className={cn(
-                                "flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50",
-                                answers[q.id] === opt.value && "bg-purple-50 border-purple-300"
+                                "flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors",
+                                answers[q.id] === opt.value && "bg-[#7C3AED]/10 border-[#7C3AED]"
                               )}
                             >
                               <RadioGroupItem value={opt.value} id={`${q.id}-${opt.value}`} />
-                              <span>{opt.label}</span>
+                              <span className="text-sm">{opt.label}</span>
                             </Label>
                           ))}
                         </div>
@@ -187,15 +226,15 @@ export default function IntelligenceSurveyPage() {
                             <Label 
                               key={opt.value} 
                               className={cn(
-                                  "flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50",
-                                  (answers[q.id] || []).includes(opt.value) && "bg-purple-50 border-purple-300"
+                                  "flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-[#F8FAFC] transition-colors",
+                                  (answers[q.id] || []).includes(opt.value) && "bg-[#7C3AED]/10 border-[#7C3AED]"
                               )}
                              >
                                <Checkbox
                                   checked={(answers[q.id] || []).includes(opt.value)}
                                   onCheckedChange={() => handleMultiSelectChange(q.id, opt.value)}
                                 />
-                              <span>{opt.label}</span>
+                              <span className="text-sm">{opt.label}</span>
                             </Label>
                           ))}
                       </div>
@@ -217,7 +256,7 @@ export default function IntelligenceSurveyPage() {
                 Next <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={submitting} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleSubmit} disabled={submitting} className="bg-gradient-to-r from-[#E4018B] to-[#7017C3] hover:opacity-90">
                 {submitting ? "Submitting..." : "Complete Assessment"} <Send className="w-4 h-4 ml-2" />
               </Button>
             )}

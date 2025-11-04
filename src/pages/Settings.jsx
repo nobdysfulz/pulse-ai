@@ -3,6 +3,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { UserContext } from '../components/context/UserContext';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import SettingsSidebar from '../components/settings/SettingsSidebar';
+import SetupProgressTab from '../components/settings/SetupProgressTab';
 import IntegrationsTab from '../components/settings/IntegrationsTab';
 import ReferralTab from '../components/settings/ReferralTab';
 import AgentIntelligenceTab from '../components/settings/AgentIntelligenceTab';
@@ -50,6 +51,8 @@ export default function SettingsPage() {
   const renderContent = () => {
     // Regular Settings Tabs
     switch (activeTab) {
+      case 'setup-progress':
+        return <SetupProgressTab />;
       case 'account':
         return <ProfileTab />;
       case 'market':

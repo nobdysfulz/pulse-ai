@@ -8,6 +8,7 @@ export default function SettingsSidebar({ activeTab, onTabChange }) {
   const [adminExpanded, setAdminExpanded] = useState(false);
 
   const regularMenuItems = [
+    { id: 'setup-progress', label: 'Setup Progress', icon: Settings },
     { id: 'account', label: 'Profile', icon: User },
     { id: 'market', label: 'My Market', icon: MapPin },
     { id: 'agent-intelligence', label: 'AI', icon: Brain },

@@ -15,6 +15,7 @@ import BrandPreferencesSetup from './modules/core/BrandPreferencesSetup';
 import CoreConfirmation from './modules/core/CoreConfirmation';
 
 // Agents Module Components
+import AITeamIntro from './modules/agents/AITeamIntro';
 import IntegrationsSetup from './modules/agents/IntegrationsSetup';
 import AgentCustomization from './modules/agents/AgentCustomization';
 import AgentTestMode from './modules/agents/AgentTestMode';
@@ -34,11 +35,13 @@ const MODULES = {
       { id: 'market', component: MarketBusinessSetup, title: 'Business & Market' },
       { id: 'preferences', component: BrandPreferencesSetup, title: 'Preferences' },
       { id: 'core-confirm', component: CoreConfirmation, title: 'Review' }
-    ]
+    ],
+    postModuleRedirect: 'IntelligenceSurvey'
   },
   agents: {
     title: 'AI Agents',
     steps: [
+      { id: 'ai-team-intro', component: () => import('./modules/agents/AITeamIntro').then(m => m.default), title: 'Meet Your Team' },
       { id: 'integrations', component: IntegrationsSetup, title: 'Connect Services' },
       { id: 'customization', component: AgentCustomization, title: 'Customize' },
       { id: 'test', component: AgentTestMode, title: 'Test Mode' }
@@ -295,6 +298,16 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
 
         // Logic for module transitions
         if (currentPhase === 'core') {
+          // Core complete - redirect to Intelligence Survey if not completed
+          const onboardingData = await getUserOnboarding(user.id);
+          const normalizedData = normalizeOnboardingProgress(onboardingData);
+          
+          if (!normalizedData?.agentIntelligenceCompleted) {
+            toast.success('Core setup complete! Please complete the Intelligence Survey.');
+            navigate(createPageUrl('IntelligenceSurvey'));
+            return;
+          }
+          
           const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
           if (isSubscriber && activeModules.includes('agents')) {
             setCurrentPhase('agents');

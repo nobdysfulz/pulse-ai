@@ -2,15 +2,15 @@ import React, { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LifeBuoy, LogOut, ChevronDown, User, Settings, BookOpen, Bell, Sparkles } from 'lucide-react';
+import { LifeBuoy, LogOut, ChevronDown, User, Settings, BookOpen, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function TopHeader() {
-  const { user, onboarding, userAgentSubscription, loading, setSupportChatOpen } = useContext(UserContext);
+  const { user, loading, setSupportChatOpen } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -23,58 +23,6 @@ export default function TopHeader() {
       console.error('Logout error:', error);
     }
   };
-
-  // Determine which onboarding phase is needed
-  const getOnboardingStatus = () => {
-    if (!user || !onboarding || loading) return { needed: false };
-
-    const isSubscriber = user.subscriptionTier === 'Subscriber' || user.subscriptionTier === 'Admin';
-    const hasCallCenter = userAgentSubscription?.status === 'active';
-
-    // Check if any onboarding steps are incomplete
-    const hasIncompleteOnboarding = 
-      !onboarding.onboardingCompleted || 
-      (isSubscriber && !onboarding.agentOnboardingCompleted) ||
-      (hasCallCenter && !onboarding.callCenterOnboardingCompleted);
-
-    if (!hasIncompleteOnboarding) {
-      return { needed: false };
-    }
-
-    // Phase 1: Core onboarding not complete
-    if (!onboarding.onboardingCompleted) {
-      return {
-        needed: true,
-        phase: 'core',
-        link: createPageUrl('Onboarding'),
-        label: 'COMPLETE ONBOARDING'
-      };
-    }
-
-    // Phase 2: User is subscriber but hasn't completed agent onboarding
-    if (isSubscriber && !onboarding.agentOnboardingCompleted) {
-      return {
-        needed: true,
-        phase: 'agents',
-        link: createPageUrl('Settings') + '?tab=onboarding',
-        label: 'SETUP AI AGENTS'
-      };
-    }
-
-    // Phase 3: User has call center subscription but hasn't completed call center onboarding
-    if (hasCallCenter && !onboarding.callCenterOnboardingCompleted) {
-      return {
-        needed: true,
-        phase: 'callcenter',
-        link: createPageUrl('Settings') + '?tab=onboarding',
-        label: 'SETUP CALL CENTER'
-      };
-    }
-
-    return { needed: false };
-  };
-
-  const onboardingStatus = getOnboardingStatus();
 
   return (
     <header className="bg-[#232323] text-white pt-10 pr-6 pb-10 pl-6 h-14 flex-shrink-0 flex items-center justify-between shadow-[2px_2px_20px_0px_#707070AD]">
@@ -93,17 +41,6 @@ export default function TopHeader() {
 
       {/* Right side with user info and actions */}
       <div className="flex items-center gap-6">
-        {/* Dynamic Onboarding Button - Only show if needed */}
-        {onboardingStatus.needed && (
-          <Link
-            to={onboardingStatus.link}
-            className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white px-4 py-2 rounded-md text-sm font-semibold tracking-wider transition-colors inline-flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            {onboardingStatus.label}
-          </Link>
-        )}
-
         <a
           href="https://pwru.app/login"
           target="_blank"
