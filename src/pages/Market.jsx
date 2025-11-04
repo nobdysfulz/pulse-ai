@@ -129,6 +129,7 @@ export default function MarketPage() {
   const [activeTab, setActiveTab] = useState('data');
   const [loading, setLoading] = useState(true);
   const [marketData, setMarketData] = useState(null);
+  const [marketError, setMarketError] = useState(null);
   const [advisorQuery, setAdvisorQuery] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -167,12 +168,25 @@ export default function MarketPage() {
 
   const loadMarketData = async () => {
     setLoading(true);
+    setMarketError(null);
     try {
-      // TODO: Implement market intelligence data loading
-      setMarketData(null);
-      console.log('[Market Page] Market intelligence loading - coming soon');
+      const response = await supabase.functions.invoke('marketDataFetcher', { body: {} });
+      if (response.data?.marketData) {
+        const payload = response.data.marketData;
+        setMarketData({
+          ...payload,
+          rawResponse: JSON.stringify(payload.rawData ?? {}),
+        });
+      } else {
+        setMarketData(null);
+      }
+
+      if (response.data?.error) {
+        setMarketError(response.data.error);
+      }
     } catch (error) {
       console.error('Error loading market data:', error);
+      setMarketError(error.message ?? 'Failed to load market data');
       toast.error('Failed to load market data');
     } finally {
       setLoading(false);
@@ -243,9 +257,23 @@ export default function MarketPage() {
     setGeneratingReport(true);
     
     try {
-      // TODO: Implement market report generation
-      toast.info('Market report generation coming soon!');
-      
+      const response = await supabase.functions.invoke('marketDataFetcher', { body: {} });
+      if (response.data?.marketData) {
+        const payload = response.data.marketData;
+        setMarketData({
+          ...payload,
+          rawResponse: JSON.stringify(payload.rawData ?? {}),
+        });
+        toast.success('Market report refreshed');
+      } else {
+        toast.error('No market data returned');
+      }
+
+      if (response.data?.error) {
+        setMarketError(response.data.error);
+        toast.warning('Market data refreshed with warnings');
+      }
+
     } catch (error) {
       console.error('[Market Page] Error generating market report:', error);
       toast.error(error.message || 'Failed to generate market report');
@@ -461,6 +489,12 @@ export default function MarketPage() {
             <p className="text-base text-[#475569]">
               {marketConfig?.primaryTerritory || 'Set your market territory in settings'}
             </p>
+            {marketError && (
+              <div className="mt-2 text-sm text-[#EF4444] flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>{marketError}</span>
+              </div>
+            )}
             {!canRefresh && daysUntilRefresh > 0 && (
               <p className="text-sm text-[#EF4444] mt-1">
                 Next refresh available in {daysUntilRefresh} day{daysUntilRefresh !== 1 ? 's' : ''}
