@@ -293,7 +293,7 @@ export default function AirtableSyncStatusPage() {
               </li>
               <li>Create a new personal access token with <strong>read permissions</strong> for your base</li>
               <li>Copy your Base ID from your Airtable base URL (starts with "app")</li>
-              <li>Add both values to your Base44 app's environment variables in the dashboard</li>
+              <li>Add both values in Settings → Integrations → Airtable</li>
             </ol>
           </div>
 

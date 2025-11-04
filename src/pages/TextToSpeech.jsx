@@ -9,9 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertTriangle, Speaker, Download } from 'lucide-react';
 
 // --- Placeholder for the backend function call ---
-// This function needs to be connected to the actual Deno backend function
-// once it's deployed in your base44 workspace.
-// Example import: import { generateSpeech } from '@/backendFunctions';
+// This function needs to be connected to the actual edge function
+// Example: Use supabase.functions.invoke('elevenLabsTTS', { body: { text, ... } })
 async function generateSpeech({ text, stability, similarityBoost }) {
   // This is a mock implementation for UI development and will be replaced
   // by the platform's backend function call mechanism.

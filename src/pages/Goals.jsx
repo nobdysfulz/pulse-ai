@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
 import { generateDailyTasks } from "../components/actions/taskGeneration";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
-// base44 import removed - using supabase directly
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
   style: 'currency',

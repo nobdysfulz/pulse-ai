@@ -90,7 +90,6 @@ export default function SocialPostGenerator() {
     } catch (error) {
       console.error('[SocialPostGenerator] Error:', error);
       toast.error(error.message || "An error occurred while generating your post");
-      // Remove specific error handling for 429/timeout as it's likely handled by base44.functions.invoke or generic catch.
     } finally {
       setIsGenerating(false);
     }
