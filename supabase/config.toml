@@ -83,3 +83,33 @@ verify_jwt = true
 
 [functions.microsoftOAuthCallback]
 verify_jwt = false
+
+[functions.getIntegrationContext]
+verify_jwt = true
+
+[functions.elevenLabsTTS]
+verify_jwt = true
+
+[functions.whisperSTT]
+verify_jwt = true
+
+[functions.getTwilioAvailableNumbers]
+verify_jwt = true
+
+[functions.purchaseTwilioNumber]
+verify_jwt = true
+
+[functions.downloadCampaignTemplate]
+verify_jwt = true
+
+[functions.sendContactsToElevenLabs]
+verify_jwt = true
+
+[functions.getUserAutopilotActivity]
+verify_jwt = true
+
+[functions.loftyAuth]
+verify_jwt = true
+
+[functions.loftySync]
+verify_jwt = true

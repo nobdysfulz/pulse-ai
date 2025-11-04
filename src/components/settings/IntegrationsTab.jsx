@@ -514,20 +514,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsLoftyConnecting(true);
     try {
-      // TODO: Implement loftyAuth edge function
-      toast.info("Lofty CRM integration coming soon");
-      setIsLoftyConnecting(false);
-      return;
-      
-      /* Future implementation:
-      const { data } = await supabase.functions.invoke('loftyAuth', {
+      const { data, error } = await supabase.functions.invoke('loftyAuth', {
         body: {
-          action: 'connect',
           apiKey: loftyApiKey
         }
       });
 
-      if (data.success) {
+      if (error) {
+        toast.error("Failed to connect to Lofty CRM", { description: error.message });
+        setIsLoftyConnecting(false);
+        return;
+      }
+
+      if (data && data.success) {
         setIsLoftyConnected(true);
         setShowLoftyForm(false);
         setLoftyApiKey('');
@@ -542,10 +541,11 @@ export default function IntegrationsTab({ onUpdate, user }) {
         if (connections && connections.length > 0) {
           setLoftyConnection(connections[0]);
         }
+
+        if (onUpdate) await onUpdate();
       } else {
-        toast.error(data.error || "Failed to connect to Lofty CRM");
+        toast.error(data?.error || "Failed to connect to Lofty CRM");
       }
-      */
     } catch (e) {
       console.error("Lofty connection error:", e);
       toast.error("Could not connect to Lofty CRM. Please check your API key.");
@@ -555,22 +555,34 @@ export default function IntegrationsTab({ onUpdate, user }) {
   };
 
   const handleDisconnectLofty = async () => {
+    if (!user || !user.id) {
+      toast.error("User information not available");
+      return;
+    }
+
     setIsLoftyDisconnecting(true);
     try {
-      // TODO: Implement loftyAuth edge function
-      toast.info("Lofty CRM integration coming soon");
-      setIsLoftyDisconnecting(false);
-      return;
+      const { data: connections, error } = await supabase
+        .from('crm_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('provider', 'lofty');
       
-      /* Future implementation:
-      await supabase.functions.invoke('loftyAuth', { 
-        body: { action: 'disconnect' } 
-      });
-      setIsLoftyConnected(false);
-      setLoftyConnection(null);
-      toast.success("Lofty CRM has been disconnected.");
-      */
+      if (error) throw error;
+
+      if (connections && connections.length > 0) {
+        await supabase
+          .from('crm_connections')
+          .update({ connection_status: 'disconnected' })
+          .eq('id', connections[0].id);
+        
+        setIsLoftyConnected(false);
+        setLoftyConnection(null);
+        toast.success("Lofty CRM has been disconnected.");
+        if (onUpdate) await onUpdate();
+      }
     } catch (e) {
+      console.error("Disconnect Lofty error:", e);
       toast.error("Failed to disconnect Lofty CRM.");
     } finally {
       setIsLoftyDisconnecting(false);
