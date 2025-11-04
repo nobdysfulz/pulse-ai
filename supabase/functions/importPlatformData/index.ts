@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Step 3: Import Task Templates
     console.log('Importing task templates...');
     try {
-      const taskTemplatesCsv = await Deno.readTextFile('../_shared/imports/task_templates.csv');
+      const taskTemplatesCsv = await Deno.readTextFile(new URL('./task_templates.csv', import.meta.url));
       const taskTemplatesData = parse(taskTemplatesCsv, { skipFirstRow: true });
       
       const taskTemplates = taskTemplatesData.map((row: any) => ({
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     // Step 4: Import Client Personas
     console.log('Importing client personas...');
     try {
-      const clientPersonasCsv = await Deno.readTextFile('../_shared/imports/client_personas.csv');
+      const clientPersonasCsv = await Deno.readTextFile(new URL('./client_personas.csv', import.meta.url));
       const clientPersonasData = parse(clientPersonasCsv, { skipFirstRow: true });
       
       const clientPersonas = clientPersonasData.map((row: any) => {
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     // Step 5: Import Agent Voices
     console.log('Importing agent voices...');
     try {
-      const agentVoicesCsv = await Deno.readTextFile('../_shared/imports/agent_voices.csv');
+      const agentVoicesCsv = await Deno.readTextFile(new URL('./agent_voices.csv', import.meta.url));
       const agentVoicesData = parse(agentVoicesCsv, { skipFirstRow: true });
       
       const agentVoices = agentVoicesData.map((row: any) => ({
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     // Step 6: Import Call Logs
     console.log('Importing call logs...');
     try {
-      const callLogsCsv = await Deno.readTextFile('../_shared/imports/call_logs.csv');
+      const callLogsCsv = await Deno.readTextFile(new URL('./call_logs.csv', import.meta.url));
       const callLogsData = parse(callLogsCsv, { skipFirstRow: true });
       
       const callLogs = [];
@@ -275,7 +275,7 @@ Deno.serve(async (req) => {
     // Step 7: Import Featured Content Packs
     console.log('Importing featured content packs...');
     try {
-      const contentPacksCsv = await Deno.readTextFile('../_shared/imports/featured_content_packs.csv');
+      const contentPacksCsv = await Deno.readTextFile(new URL('./featured_content_packs.csv', import.meta.url));
       const contentPacksData = parse(contentPacksCsv, { skipFirstRow: true });
       
       const contentPacks = contentPacksData.map((row: any) => {
