@@ -54,9 +54,9 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
 
         setIsSubmitting(true);
         try {
-            const contacts = [{ 
-                firstName, 
-                lastName, 
+            const contacts = [{
+                firstName,
+                lastName,
                 phone: fullPhoneNumber,
                 address: addressRequiredTypes.includes(callType) ? address : undefined
             }];
@@ -70,8 +70,28 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
                 agent_phone: user?.phone
             };
 
-            // TODO: Implement ElevenLabs call initiation
-            toast.info('Call initiation feature coming soon!');
+            const { data, error } = await supabase.functions.invoke('sendContactsToElevenLabs', {
+                body: {
+                    contacts,
+                    callType,
+                    agentData,
+                    campaignName: `Single Call - ${callType}`
+                }
+            });
+
+            if (error) throw error;
+
+            if (data?.requiresOnboarding) {
+                toast.error("AI Agent Setup Incomplete", { description: data.error });
+                return;
+            }
+
+            if (!data?.success) {
+                toast.error("Call Failed", { description: data?.error || 'Unable to initiate the call.' });
+                return;
+            }
+
+            toast.success('Call initiated! Your phone will ring shortly.');
             onCallStarted();
             onClose();
 

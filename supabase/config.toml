@@ -150,6 +150,18 @@ verify_jwt = true
 [functions.sendContactsToElevenLabs]
 verify_jwt = true
 
+[functions.initElevenLabsRolePlaySession]
+verify_jwt = true
+
+[functions.elevenLabsWebhook]
+verify_jwt = false
+
+[functions.elevenLabsRolePlayWebhook]
+verify_jwt = false
+
+[functions.analyzeRolePlaySession]
+verify_jwt = false
+
 [functions.getUserAutopilotActivity]
 verify_jwt = true
 

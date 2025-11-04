@@ -292,7 +292,7 @@ export default function RolePlayPage() {
   const sessionsPerPage = 10;
 
   const navigate = useNavigate();
-  const { deductCredits, hasSufficientCredits } = useCredits();
+  const { hasSufficientCredits } = useCredits();
 
   const tabs = [
     { id: 'search', label: 'Search' },
@@ -367,21 +367,30 @@ export default function RolePlayPage() {
       return;
     }
 
-    const creditsCost = 10;
-    if (!hasSufficientCredits(creditsCost)) {
+    if (!hasSufficientCredits(5)) {
       toast.error("Insufficient credits to start a session.");
       return;
     }
 
     setIsInitiating(true);
     try {
-      await deductCredits(creditsCost, "Role-Play", `Initiated: ${scenario.name}`);
-      // TODO: Implement ElevenLabs role-play session initiation
-      toast.info("Role-play functionality coming soon!");
-      loadPageData();
+      const { data, error } = await supabase.functions.invoke('initElevenLabsRolePlaySession', {
+        body: { scenarioId: scenario.id }
+      });
+
+      if (error) throw error;
+
+      if (!data?.success) {
+        toast.error(data?.error || "Failed to initiate session.");
+        return;
+      }
+
+      toast.success("Role-play call initiated! Answer your phone to begin.");
+      await loadPageData();
     } catch (err) {
       console.error("Error starting scenario:", err);
-      toast.error(`Error: ${err.message}`);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Error: ${message}`);
     } finally {
       setIsInitiating(false);
     }
