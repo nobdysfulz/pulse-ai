@@ -62,6 +62,12 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
     }
   };
 
+  const closeModal = (wasSuccessful = false) => {
+    if (typeof onClose === 'function') {
+      onClose(wasSuccessful);
+    }
+  };
+
   const calculateGoalsFromPlan = (data) => {
     // Calculate financial targets
     const grossIncome = data.netIncomeGoal / (1 - (data.taxRate / 100));
@@ -239,7 +245,7 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
       // Add small delay to ensure data is refreshed before closing
       await new Promise(resolve => setTimeout(resolve, 500));
       onPlanSaved?.();
-      onClose();
+      closeModal(true);
     } catch (error) {
       console.error('Error saving plan and goals:', error);
       toast.error('Failed to activate production plan. Please try again.');
@@ -250,9 +256,10 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
 
   const handleSave = async () => {
     setSaving(true);
+    let wasSuccessful = false;
     try {
       const calculatedTargets = calculateGoalsFromPlan(planData);
-      
+
       const payload = {
         ...calculatedTargets,
         planYear: planData.planYear,
@@ -275,12 +282,14 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
 
       toast.success('Production plan saved successfully!');
       await refreshUserData();
+      wasSuccessful = true;
     } catch (error) {
       console.error('Error saving plan:', error);
       toast.error('Failed to save production plan');
     } finally {
       setSaving(false);
     }
+    return wasSuccessful;
   };
 
   if (!isOpen) return null;
@@ -313,7 +322,7 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
             </div>
             <p className="text-center text-sm text-gray-500 mt-1">{stepTitles[currentStep - 1]}</p>
           </div>
-          <button onClick={onClose} className="text-[#475569] hover:text-[#1E293B]">
+          <button onClick={() => closeModal(false)} className="text-[#475569] hover:text-[#1E293B]">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -327,9 +336,11 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
         <div className="bg-zinc-50 pt-4 pr-6 pb-4 pl-6 flex items-center justify-between border-t border-[#E2E8F0] flex-shrink-0">
           <Button
             variant="outline"
-            onClick={() => {
-              handleSave();
-              onClose();
+            onClick={async () => {
+              const saved = await handleSave();
+              if (saved) {
+                closeModal(true);
+              }
             }}
             disabled={saving}
             className="bg-white text-gray-800 px-4 py-2 text-sm font-medium rounded-md"

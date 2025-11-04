@@ -205,9 +205,9 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
                 />
             </div>
 
-            <Button 
-                onClick={handleGenerate} 
-                disabled={isGenerating || !topic.trim() || (!isSubscriber && !userCredits)} 
+            <Button
+                onClick={handleGenerate}
+                disabled={isGenerating || !topic.trim()}
                 className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold h-11"
             >
                 {isGenerating ? (

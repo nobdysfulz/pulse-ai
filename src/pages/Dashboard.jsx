@@ -255,7 +255,7 @@ export default function DashboardPage() {
     // Check if business plan exists
     if (!businessPlan) {
       toast.info("Complete your Production Planner to generate personalized actions.");
-      navigate(createPageUrl('Goals?tab=planner'));
+      navigate(createPageUrl('Goals') + '?tab=planner');
       return;
     }
 
@@ -366,7 +366,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Button
-                onClick={() => navigate(createPageUrl('Goals?tab=planner'))}
+                onClick={() => navigate(createPageUrl('Goals') + '?tab=planner')}
                 className="bg-white text-[#7C3AED] hover:bg-gray-100 font-semibold"
               >
                 Get Started <ArrowRight className="w-4 h-4 ml-2" />

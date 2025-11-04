@@ -109,18 +109,30 @@ Deno.serve(async (req) => {
       return hex.startsWith('#') ? hex.substring(1) : hex;
     };
 
+    const safeJsonParse = (value: string) => {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.warn('Failed to parse JSON value, storing raw string instead:', value);
+        return value;
+      }
+    };
+
+    const columnsToSkip = ['created_by', 'accentcolorhex2', 'action_type'];
+
     // Map columns to database fields and auto-inject system fields
     const mappedRecords = dataRows.map((row: any, index: number) => {
       const mapped: any = {};
-      
+
       // Map each CSV column to DB column using normalized headers and synonyms
       rawHeaders.forEach((header, idx) => {
         const normalizedHeader = normalizeColumnName(header);
         const value = row[idx];
-        
+
         // Find DB column name from mapping or synonyms
         let dbCol = columnMapping[header] || header;
-        
+        const normalizedDbCol = normalizeColumnName(dbCol);
+
         // Check if this header matches a synonym
         for (const [canonicalName, synonyms] of Object.entries(columnSynonyms)) {
           if (synonyms.some(syn => normalizeColumnName(syn) === normalizedHeader)) {
@@ -128,57 +140,71 @@ Deno.serve(async (req) => {
             break;
           }
         }
-        
-        // Skip unsupported columns
-        const columnsToSkip = ['created_by', 'accentcolorhex2', 'action_type'];
-        if (columnsToSkip.includes(normalizeColumnName(dbCol))) {
+
+        // Skip unsupported columns (allow action_type for task templates)
+        if (columnsToSkip.includes(normalizedDbCol) && !(entityType === 'task_templates' && normalizedDbCol === 'action_type')) {
           return;
         }
-        
+
         // Validate integer fields for task_templates BEFORE type conversion
-        if (entityType === 'task_templates' && ['trigger_value', 'priority_weight'].includes(dbCol)) {
-          if (value === 'any' || value === 'Any' || value === 'ANY') {
-            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${dbCol}. Please use numeric values only.`);
+        if (entityType === 'task_templates' && ['trigger_value', 'priority_weight'].includes(normalizedDbCol)) {
+          const rawValue = typeof value === 'number' ? value.toString() : (value || '').toString().trim();
+
+          if (!rawValue) {
+            throw new Error(`Row ${index + 2}: A numeric value is required for ${normalizedDbCol}.`);
           }
-          if (typeof value === 'string' && value.includes('-')) {
-            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${dbCol}. Please use a single numeric value, not a range.`);
+
+          if (rawValue.toLowerCase() === 'any') {
+            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${normalizedDbCol}. Please use numeric values only.`);
           }
+
+          if (/^-?\d+\s*-\s*-?\d+$/.test(rawValue)) {
+            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${normalizedDbCol}. Please use a single numeric value, not a range.`);
+          }
+
+          const numericValue = Number(rawValue);
+          if (!Number.isInteger(numericValue)) {
+            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${normalizedDbCol}.`);
+          }
+
+          mapped[normalizedDbCol] = numericValue;
+          return;
         }
-        
+
         // Handle JSON objects (for storing complex data in jsonb fields)
         if (value && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
           try {
-            mapped[dbCol] = JSON.parse(value);
+            mapped[normalizedDbCol] = JSON.parse(value);
           } catch (e) {
-            mapped[dbCol] = value;
+            mapped[normalizedDbCol] = value;
           }
         }
         // Handle array fields (pipe-separated values or JSON arrays)
         else if (typeof value === 'string' && value.includes('|')) {
-          mapped[dbCol] = value.split('|').map((v: string) => v.trim()).filter(v => v);
-        } 
+          mapped[normalizedDbCol] = value.split('|').map((v: string) => v.trim()).filter(v => v);
+        }
         // Handle boolean conversion
         else if (value === 'true' || value === 'false') {
-          mapped[dbCol] = value === 'true';
-        } 
+          mapped[normalizedDbCol] = value === 'true';
+        }
         // Handle numeric conversions
         else if (value && !isNaN(Number(value)) && (
-          dbCol.includes('score') || 
-          dbCol.includes('weight') || 
-          dbCol.includes('order') ||
-          dbCol.includes('duration') ||
-          dbCol.includes('threshold') ||
-          dbCol.includes('value')
+          normalizedDbCol.includes('score') ||
+          normalizedDbCol.includes('weight') ||
+          normalizedDbCol.includes('order') ||
+          normalizedDbCol.includes('duration') ||
+          normalizedDbCol.includes('threshold') ||
+          normalizedDbCol.includes('value')
         )) {
-          mapped[dbCol] = Number(value);
+          mapped[normalizedDbCol] = Number(value);
         }
         // Handle hex color codes
-        else if (dbCol.includes('color') && typeof value === 'string' && value.match(/^#?[0-9A-Fa-f]{6}$/)) {
-          mapped[dbCol] = normalizeHex(value);
+        else if (normalizedDbCol.includes('color') && typeof value === 'string' && value.match(/^#?[0-9A-Fa-f]{6}$/)) {
+          mapped[normalizedDbCol] = normalizeHex(value);
         }
         // Default: store as-is or null
         else {
-          mapped[dbCol] = value || null;
+          mapped[normalizedDbCol] = value || null;
         }
       });
 
@@ -186,7 +212,7 @@ Deno.serve(async (req) => {
       if (entityType === 'agent_voices') {
         const previewUrlIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'previewaudiourl');
         const isActiveIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'isactive');
-        
+
         if (previewUrlIdx >= 0 || isActiveIdx >= 0) {
           mapped.voice_settings = {
             ...(mapped.voice_settings || {}),
@@ -204,16 +230,25 @@ Deno.serve(async (req) => {
         const transcriptIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'transcript');
         const analysisIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'analysis');
         const formDataIdx = rawHeaders.findIndex(h => normalizeColumnName(h) === 'formdata');
-        
+
         mapped.metadata = {
           ...mapped.metadata,
           conversationId: conversationIdIdx >= 0 ? row[conversationIdIdx] : null,
           callSid: callSidIdx >= 0 ? row[callSidIdx] : null,
-          campaignName: campaignNameIdx >= 0 ? row[campaignNameIdx] : null,
-          transcript: transcriptIdx >= 0 && row[transcriptIdx] ? (typeof row[transcriptIdx] === 'string' ? JSON.parse(row[transcriptIdx]) : row[transcriptIdx]) : null,
-          analysis: analysisIdx >= 0 && row[analysisIdx] ? (typeof row[analysisIdx] === 'string' ? JSON.parse(row[analysisIdx]) : row[analysisIdx]) : null,
-          formData: formDataIdx >= 0 && row[formDataIdx] ? (typeof row[formDataIdx] === 'string' ? JSON.parse(row[formDataIdx]) : row[formDataIdx]) : null
+          campaignName: campaignNameIdx >= 0 ? row[campaignNameIdx] || null : (mapped.campaign_name || mapped.campaignname || null),
+          transcript: transcriptIdx >= 0 && row[transcriptIdx]
+            ? (typeof row[transcriptIdx] === 'string' ? safeJsonParse(row[transcriptIdx]) : row[transcriptIdx])
+            : null,
+          analysis: analysisIdx >= 0 && row[analysisIdx]
+            ? (typeof row[analysisIdx] === 'string' ? safeJsonParse(row[analysisIdx]) : row[analysisIdx])
+            : null,
+          formData: formDataIdx >= 0 && row[formDataIdx]
+            ? (typeof row[formDataIdx] === 'string' ? safeJsonParse(row[formDataIdx]) : row[formDataIdx])
+            : null
         };
+
+        delete mapped.campaign_name;
+        delete mapped.campaignname;
       }
 
       // Auto-inject user_id only for user-specific tables

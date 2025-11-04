@@ -36,22 +36,44 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    const historyMessages = Array.isArray(conversationHistory)
+      ? conversationHistory
+          .filter((msg) => msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string')
+          .slice(-8)
+      : [];
+
+    const formattedGoals = Array.isArray(agentContext?.goals)
+      ? agentContext.goals.slice(0, 5).map((goal: any) => `${goal.title || 'Goal'} (${goal.status || 'unknown'})`).join(', ')
+      : '';
+
+    const formattedRecentActions = Array.isArray(agentContext?.recentActions)
+      ? agentContext.recentActions.slice(0, 5).map((action: any) => `${action.title || 'Action'} - ${action.status || 'pending'}`).join('; ')
+      : '';
+
+    const focusArea = currentTab === 'advisor'
+      ? 'Provide tactical advice, next steps, and encouragement tailored to the agent’s immediate needs.'
+      : 'Offer strategic guidance aligned with the agent’s goals and productivity.';
+
     // Build system prompt based on context
     const systemPrompt = `You are PULSE AI, a professional real estate business advisor.
 You help real estate agents with strategy, market insights, goal planning, and daily productivity.
 
 Agent Context:
-${agentContext?.profile?.full_name ? `- Agent: ${agentContext.profile.full_name}` : ''}
+${agentContext?.profile?.full_name ? `- Agent: ${agentContext.profile.full_name}` : '- Agent: Unknown'}
 ${agentContext?.market?.market_name ? `- Market: ${agentContext.market.market_name}` : ''}
 ${agentContext?.intelligence?.scores ? `- Performance Scores: PULSE ${agentContext.intelligence.scores.pulse || 0}, GANE ${agentContext.intelligence.scores.gane || 0}, MORO ${agentContext.intelligence.scores.moro || 0}` : ''}
-${agentContext?.goals?.length ? `- Active Goals: ${agentContext.goals.length}` : ''}
+${formattedGoals ? `- Active Goals: ${formattedGoals}` : ''}
+${formattedRecentActions ? `- Recent Actions: ${formattedRecentActions}` : ''}
 
-Be helpful, actionable, and concise. Focus on providing specific recommendations the agent can implement today.`;
+Conversation Focus:
+- ${focusArea}
+- When appropriate, suggest measurable next steps tied to their goals and market conditions.
+- Keep responses structured with short paragraphs or bullet points for readability.`;
 
     // Build messages array
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...(conversationHistory || []),
+      ...historyMessages,
       { role: 'user', content: userPrompt }
     ];
 

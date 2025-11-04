@@ -98,8 +98,8 @@ export default function PersonalAdvisorPage() {
 
     try {
         const { data: agentContext, error: contextError } = await supabase.functions.invoke('getAgentContext', { body: {} });
-        if (contextError || !agentContext) {
-            throw new Error(contextError?.message || "Could not retrieve agent context.");
+        if (contextError || agentContext?.error || !agentContext) {
+            throw new Error(agentContext?.error || contextError?.message || "Could not retrieve agent context.");
         }
 
         // Call Copilot with tool use capability
@@ -113,8 +113,8 @@ export default function PersonalAdvisorPage() {
             }
         });
 
-        if (error) {
-            throw new Error(error.message || "The Copilot failed to respond.");
+        if (error || data?.error) {
+            throw new Error(data?.error || error?.message || "The Copilot failed to respond.");
         }
 
         // Set conversation ID if new
