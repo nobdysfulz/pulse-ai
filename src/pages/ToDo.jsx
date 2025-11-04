@@ -958,12 +958,36 @@ function ScheduleView({ allActions }) {
 
 function TasksView({ todaysTasks, completedToday, overdueTasks, onToggle, displayedCount, onLoadMore }) {
   const [activeTaskTab, setActiveTaskTab] = useState('due_today');
+  const [showQuadrants, setShowQuadrants] = useState(true);
 
   const currentTasks = activeTaskTab === 'due_today' ? todaysTasks :
     activeTaskTab === 'completed' ? completedToday : overdueTasks;
 
   const displayedTasks = currentTasks.slice(0, displayedCount);
   const hasMore = displayedTasks.length < currentTasks.length;
+
+  // Group tasks by category for quadrant view
+  const tasksByQuadrant = useMemo(() => {
+    const quadrants = {
+      pulse_based: { label: 'PULSE Tasks', tasks: [], color: 'border-purple-400 bg-purple-50' },
+      power_hour: { label: 'Power Hour', tasks: [], color: 'border-teal-400 bg-teal-50' },
+      build_business: { label: 'Business Building', tasks: [], color: 'border-orange-400 bg-orange-50' },
+      initiative: { label: 'Initiatives', tasks: [], color: 'border-blue-400 bg-blue-50' },
+      goals_planning: { label: 'Goals & Planning', tasks: [], color: 'border-pink-400 bg-pink-50' },
+      build_database: { label: 'Database Building', tasks: [], color: 'border-green-400 bg-green-50' },
+    };
+
+    currentTasks.forEach(task => {
+      const category = task.category || 'pulse_based';
+      if (quadrants[category]) {
+        quadrants[category].tasks.push(task);
+      }
+    });
+
+    return Object.entries(quadrants)
+      .filter(([_, data]) => data.tasks.length > 0)
+      .map(([key, data]) => ({ key, ...data }));
+  }, [currentTasks]);
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -974,34 +998,78 @@ function TasksView({ todaysTasks, completedToday, overdueTasks, onToggle, displa
 
   return (
     <div>
-      <div className="flex gap-4 border-b border-[#E2E8F0] pb-3 mb-4">
-        <button
-          onClick={() => setActiveTaskTab('due_today')}
-          className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTaskTab === 'due_today' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
-          }>
+      <div className="flex justify-between items-center gap-4 border-b border-[#E2E8F0] pb-3 mb-4">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTaskTab('due_today')}
+            className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTaskTab === 'due_today' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
+            }>
 
-          Due Today ({todaysTasks.length})
-        </button>
-        <button
-          onClick={() => setActiveTaskTab('completed')}
-          className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTaskTab === 'completed' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
-          }>
+            Due Today ({todaysTasks.length})
+          </button>
+          <button
+            onClick={() => setActiveTaskTab('completed')}
+            className={`text-sm font-medium pb-2 border-b-2 transition-colors ${activeTaskTab === 'completed' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
+            }>
 
-          Completed ({completedToday.length})
-        </button>
-        <button
-          onClick={() => setActiveTaskTab('overdue')}
-          className={`text-sm font-medium pb-2 border-b-2 transition-colors relative ${activeTaskTab === 'overdue' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
-          }>
+            Completed ({completedToday.length})
+          </button>
+          <button
+            onClick={() => setActiveTaskTab('overdue')}
+            className={`text-sm font-medium pb-2 border-b-2 transition-colors relative ${activeTaskTab === 'overdue' ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-[#64748B] border-transparent'}`
+            }>
 
-          Overdue
-          {overdueTasks.length > 0 &&
-            <span className="ml-1 bg-[#EF4444] text-white text-xs px-1.5 py-0.5 rounded-full">
-              {overdueTasks.length > 99 ? '99+' : overdueTasks.length}
+            Overdue
+            {overdueTasks.length > 0 &&
+              <span className="ml-1 bg-[#EF4444] text-white text-xs px-1.5 py-0.5 rounded-full">
+                {overdueTasks.length > 99 ? '99+' : overdueTasks.length}
             </span>
           }
         </button>
+        </div>
+        {activeTaskTab === 'due_today' && currentTasks.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowQuadrants(!showQuadrants)}
+            className="text-[#6D28D9] hover:text-[#5B21B6]"
+          >
+            {showQuadrants ? 'Hide' : 'Show'} Categories
+          </Button>
+        )}
       </div>
+
+      {/* Quadrant View */}
+      {showQuadrants && activeTaskTab === 'due_today' && tasksByQuadrant.length > 0 && (
+        <div className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {tasksByQuadrant.map(({ key, label, tasks, color }) => (
+              <div key={key} className={`border-2 rounded-lg p-4 ${color}`}>
+                <h4 className="font-semibold text-sm mb-2 text-gray-800">{label}</h4>
+                <p className="text-xs text-gray-600 mb-3">{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</p>
+                <div className="space-y-2">
+                  {tasks.slice(0, 3).map(task => (
+                    <div key={task.id} className="flex items-start gap-2 text-xs">
+                      <Checkbox
+                        id={`quad-${task.id}`}
+                        checked={task.status === 'completed'}
+                        onCheckedChange={(checked) => onToggle(task.id, checked)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor={`quad-${task.id}`} className="flex-1 cursor-pointer">
+                        {task.title}
+                      </label>
+                    </div>
+                  ))}
+                  {tasks.length > 3 && (
+                    <p className="text-xs text-gray-500 italic">+{tasks.length - 3} more</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2" onScroll={handleScroll}>
         {displayedTasks.map((task) =>

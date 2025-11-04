@@ -18,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateDailyTasks } from "../components/actions/taskGeneration";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
 import { generateGoalsReportPdf } from "../components/goals/pdfGenerator";
+import { PageLoader, InlineLoader } from '../components/ui/LoadingStates';
+import { ErrorBanner, EmptyState } from '../components/ui/ErrorStates';
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -593,6 +595,44 @@ export default function GoalsPage() {
   const renderGoalsMainContent = () => {
     return (
       <>
+        {/* CRM Connection Status Banner */}
+        {crmConnected && (
+          <div className="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-teal-500 rounded-full animate-pulse"></div>
+                <div>
+                  <p className="text-sm font-semibold text-teal-900">
+                    {crmConnected.service_name === 'follow_up_boss' ? 'Follow Up Boss' : 'Lofty'} Connected
+                  </p>
+                  <p className="text-xs text-teal-700">
+                    Your goals automatically sync with your CRM data
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleSyncFromCrm}
+                disabled={isSyncingCrm}
+                variant="outline"
+                size="sm"
+                className="border-teal-300 text-teal-700 hover:bg-teal-100"
+              >
+                {isSyncingCrm ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sync Now
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* TOP SECTION — Performance Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-white">
@@ -668,7 +708,17 @@ export default function GoalsPage() {
                 </div>
               )}
               <Button className="w-full mt-4" onClick={handleGenerateActions} disabled={generatingActions}>
-                {generatingActions ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Generate Actions"}
+                {generatingActions ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Target className="w-4 h-4 mr-2" />
+                    Generate Actions
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -717,9 +767,9 @@ export default function GoalsPage() {
     if (loading) {
       return (
         <div className="flex items-center justify-center p-12">
-          <LoadingIndicator text="Loading sidebar..." size="md" />
-        </div>);
-
+          <InlineLoader message="Loading sidebar..." />
+        </div>
+      );
     }
 
     switch (activeTab) {
@@ -930,13 +980,9 @@ export default function GoalsPage() {
               </div>
             </div>
 
-            {loading ?
-              <div className="flex items-center justify-center h-64">
-                <LoadingIndicator text="Loading your goals..." size="lg" />
-              </div> :
-
-              renderGoalsMainContent()
-            }
+            {loading ? (
+              <PageLoader message="Loading your goals..." />
+            ) : renderGoalsMainContent()}
           </div>
         </div>
 
