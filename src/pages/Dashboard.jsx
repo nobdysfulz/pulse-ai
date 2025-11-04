@@ -15,6 +15,8 @@ import LoadingIndicator from "../components/ui/LoadingIndicator";
 import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
 import { calculatePulseScore } from "../components/pulse/pulseScoring";
 import AddActionModal from "../components/actions/AddActionModal";
+import OnboardingReminder from "../components/onboarding/OnboardingReminder";
+import { getOnboardingJourneyState, buildReminderStatus } from "@/components/onboarding/onboardingLogic";
 
 export default function DashboardPage() {
   const {
@@ -38,6 +40,23 @@ export default function DashboardPage() {
   const [lastIntelligenceUpdate, setLastIntelligenceUpdate] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const navigate = useNavigate();
+
+  const onboardingJourney = useMemo(() => {
+    if (!user) return null;
+    return getOnboardingJourneyState({ user, onboarding });
+  }, [user, onboarding]);
+
+  const onboardingReminderStatus = useMemo(() => {
+    if (!onboardingJourney) {
+      return { onboardingRequired: false, completedSteps: [] };
+    }
+
+    return buildReminderStatus(onboardingJourney);
+  }, [onboardingJourney]);
+
+  const handleResumeOnboarding = useCallback(() => {
+    navigate(createPageUrl('Onboarding'));
+  }, [navigate]);
 
   const agentAvatars = [
     {
@@ -384,6 +403,13 @@ export default function DashboardPage() {
   return (
     <div className="bg-[#F8FAFC] p-8">
       <div className="max-w-[1400px] mx-auto space-y-6">
+        {onboardingReminderStatus.onboardingRequired && (
+          <OnboardingReminder
+            onboardingStatus={onboardingReminderStatus}
+            onContinue={handleResumeOnboarding}
+          />
+        )}
+
         {/* Production Planner CTA Banner */}
         {needsProductionPlan && (
           <div className="bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] rounded-xl p-6 shadow-lg mb-6">
