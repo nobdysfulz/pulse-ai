@@ -26,6 +26,8 @@ const LinkedInAuthConfirmation = React.lazy(() => import('./pages/LinkedInAuthCo
 const MicrosoftAuthConfirmation = React.lazy(() => import('./pages/MicrosoftAuthConfirmation'))
 const GoogleWorkspaceAuthConfirmation = React.lazy(() => import('./pages/GoogleWorkspaceAuthConfirmation'))
 const ZoomAuthConfirmation = React.lazy(() => import('./pages/ZoomAuthConfirmation'))
+const Intelligence = React.lazy(() => import('./pages/Intelligence'))
+const Plans = React.lazy(() => import('./pages/Plans'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './pages/Layout'
@@ -99,6 +101,14 @@ function App() {
             }
           />
           <Route
+            path="/intelligence"
+            element={
+              <ProtectedRoute>
+                <Layout><Intelligence /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/contacts"
             element={
               <ProtectedRoute>
@@ -167,6 +177,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><Onboarding /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/plans"
+            element={
+              <ProtectedRoute>
+                <Layout><Plans /></Layout>
               </ProtectedRoute>
             }
           />
