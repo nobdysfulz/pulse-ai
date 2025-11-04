@@ -233,6 +233,194 @@ const createStubEntity = (name) => ({
   }
 });
 
+const sanitizeString = (value) => {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const parseNameParts = (profile = {}, metadata = {}) => {
+  const first = profile.first_name ?? metadata.first_name ?? profile.firstName ?? metadata.firstName;
+  const last = profile.last_name ?? metadata.last_name ?? profile.lastName ?? metadata.lastName;
+
+  if (first || last) {
+    return {
+      firstName: first ? String(first).trim() : '',
+      lastName: last ? String(last).trim() : ''
+    };
+  }
+
+  const full = profile.full_name ?? metadata.full_name ?? '';
+  const parts = String(full).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { firstName: '', lastName: '' };
+  }
+
+  return {
+    firstName: parts[0] ?? '',
+    lastName: parts.slice(1).join(' ') ?? ''
+  };
+};
+
+const deriveAvatar = (profile = {}, metadata = {}) => {
+  return (
+    profile.avatar_url ||
+    profile.avatar ||
+    metadata.avatar_url ||
+    metadata.avatar ||
+    metadata.picture ||
+    null
+  );
+};
+
+const fetchUserRoles = async (userId) => {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.warn('[entities] Failed to load user roles:', error.message);
+    return [];
+  }
+
+  return Array.isArray(data) ? data.map((role) => role.role) : [];
+};
+
+const buildUserObject = (session, profile, roles = []) => {
+  if (!session) return null;
+
+  const metadata = session.user?.user_metadata || {};
+  const nameParts = parseNameParts(profile, metadata);
+  const avatar = deriveAvatar(profile, metadata);
+
+  const licenseStateValue = profile?.license_state ?? profile?.state ?? profile?.specialization ?? null;
+  const brokerageValue = profile?.brokerage ?? profile?.brokerage_name ?? null;
+  const licenseNumberValue = profile?.license_number ?? profile?.licenseNumber ?? null;
+  const yearsExperienceValue = profile?.years_experience ?? profile?.yearsExperience ?? null;
+  const phoneValue = profile?.phone ?? null;
+
+  const normalizedProfile = {
+    ...profile,
+    firstName: nameParts.firstName,
+    lastName: nameParts.lastName,
+    full_name: profile?.full_name ?? [nameParts.firstName, nameParts.lastName].filter(Boolean).join(' '),
+    brokerage: brokerageValue ?? '',
+    brokerage_name: brokerageValue ?? null,
+    licenseNumber: licenseNumberValue ?? '',
+    license_number: licenseNumberValue ?? null,
+    licenseState: licenseStateValue ?? '',
+    phone: phoneValue ?? '',
+    yearsExperience: typeof yearsExperienceValue === 'number' || yearsExperienceValue === null
+      ? yearsExperienceValue
+      : Number(yearsExperienceValue) || null,
+    avatar: avatar,
+    avatar_url: avatar,
+  };
+
+  const isAdmin = roles.includes('admin');
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    role: isAdmin ? 'admin' : 'user',
+    roles,
+    isAdmin,
+    ...normalizedProfile,
+  };
+};
+
+const getActiveSession = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data.session;
+};
+
+const loadProfile = async (userId) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || {};
+};
+
+const normalizeProfileUpdates = (payload, existingProfile = {}) => {
+  const first = sanitizeString(payload.firstName);
+  const last = sanitizeString(payload.lastName);
+  const fullName = sanitizeString(payload.fullName) || [first, last].filter(Boolean).join(' ');
+
+  const updates = {
+    full_name: fullName || null,
+    brokerage_name: sanitizeString(payload.brokerage),
+    phone: sanitizeString(payload.phone),
+    license_number: sanitizeString(payload.licenseNumber),
+    updated_at: new Date().toISOString(),
+  };
+
+  const hasYearsExperience = payload.yearsExperience !== undefined && payload.yearsExperience !== null && String(payload.yearsExperience).trim() !== '';
+  if (hasYearsExperience) {
+    updates.years_experience = Number(payload.yearsExperience);
+  } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'years_experience')) {
+    updates.years_experience = null;
+  }
+
+  const licenseStateValue = sanitizeString(payload.licenseState);
+  if (licenseStateValue !== null) {
+    if (Object.prototype.hasOwnProperty.call(existingProfile, 'license_state')) {
+      updates.license_state = licenseStateValue;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'state')) {
+      updates.state = licenseStateValue;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'specialization')) {
+      updates.specialization = licenseStateValue;
+    } else {
+      // default to specialization to preserve data if schema lacks dedicated field
+      updates.specialization = licenseStateValue;
+    }
+  } else if (licenseStateValue === null) {
+    if (Object.prototype.hasOwnProperty.call(existingProfile, 'license_state')) {
+      updates.license_state = null;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'state')) {
+      updates.state = null;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'specialization')) {
+      updates.specialization = null;
+    }
+  }
+
+  const avatarValue = sanitizeString(payload.avatar);
+  if (avatarValue !== null) {
+    if (Object.prototype.hasOwnProperty.call(existingProfile, 'avatar_url')) {
+      updates.avatar_url = avatarValue;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'avatar')) {
+      updates.avatar = avatarValue;
+    } else {
+      updates.avatar_url = avatarValue;
+    }
+  } else if (avatarValue === null) {
+    if (Object.prototype.hasOwnProperty.call(existingProfile, 'avatar_url')) {
+      updates.avatar_url = null;
+    } else if (Object.prototype.hasOwnProperty.call(existingProfile, 'avatar')) {
+      updates.avatar = null;
+    }
+  }
+
+  const cleaned = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  );
+
+  return cleaned;
+};
+
+const applyProfileUpdate = async (userId, updates) => {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, ...updates }, { onConflict: 'id' });
+
+  if (error) throw error;
+};
+
 // Export real entity connections
 export const Goal = createEntity('goals');
 export const BusinessPlan = createEntity('business_plans');
@@ -274,5 +462,41 @@ export const FeatureFlag = createEntity('feature_flags');
 export const AiAgentConversation = createEntity('ai_agent_conversations');
 export const ExternalServiceConnection = createEntity('external_service_connections');
 
-// User entity remains stub as it references auth.users which is not directly accessible
-export const User = createStubEntity('User');
+// Enhanced User entity with real implementations for current user operations
+const UserStub = createStubEntity('User');
+
+const fetchUserProfileWithSession = async () => {
+  const session = await getActiveSession();
+  if (!session) return null;
+
+  const [profile, roles] = await Promise.all([
+    loadProfile(session.user.id),
+    fetchUserRoles(session.user.id)
+  ]);
+
+  return buildUserObject(session, profile, roles);
+};
+
+export const User = {
+  ...UserStub,
+  me: async () => {
+    const user = await fetchUserProfileWithSession();
+    if (!user) {
+      console.warn('[entities] User.me() called with no active session');
+    }
+    return user;
+  },
+  updateMyUserData: async (payload = {}) => {
+    const session = await getActiveSession();
+    if (!session) {
+      throw new Error('Not authenticated');
+    }
+
+    const profile = await loadProfile(session.user.id);
+    const updates = normalizeProfileUpdates(payload, profile);
+
+    await applyProfileUpdate(session.user.id, updates);
+
+    return await fetchUserProfileWithSession();
+  },
+};
