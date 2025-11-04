@@ -585,39 +585,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-                      <div className="text-xs text-[#64748B]">GANE</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-semibold text-[#1E293B]">
-                        {intelligenceData.moroScore || 0}
-                      </div>
-                      <div className="text-xs text-[#64748B]">MORO</div>
-                    </div>
-                  </div>
-
-                  {intelligenceData.insights?.message && (
-                    <div className="bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
-                      <p className="text-xs text-[#475569] leading-relaxed line-clamp-3">
-                        {intelligenceData.insights.message}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-[#94A3B8] text-center py-8">
-                  Intelligence data will appear here once computed
-                </p>
-              )}
-            </div>
-
-            <Button
-              onClick={() => navigate(createPageUrl('Intelligence'))}
-              variant="outline"
-              className="w-full mt-4"
-            >
-              View Full Intelligence
-            </Button>
-          </div>
         </div>
 
         {/* Secondary Row (Ask Your Advisor, Activities Progress, Goals Progress) */}
