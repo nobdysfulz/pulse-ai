@@ -37,37 +37,70 @@ const createInitialPlanData = () => {
   };
 };
 
-const normalizeExpenseCollection = (defaults, saved) => {
-  const normalized = { ...defaults };
-  Object.entries(defaults).forEach(([key, items]) => {
-    const savedItems = saved?.[key] || items;
-    normalized[key] = savedItems.map((item, index) => ({
-      id: item.id || `${key}-${index}-${Date.now()}`,
-      name: item.name || '',
-      amount: item.amount ?? '',
-      frequency: item.frequency || 'monthly',
-    }));
-  });
-  return normalized;
+const normalizeExpenseCollection = (savedCollection, defaultCollection, mergeWithDefaults = false) => {
+  const result = {};
+  const categories = mergeWithDefaults 
+    ? [...Object.keys(defaultCollection), ...Object.keys(savedCollection || {})]
+    : Object.keys(savedCollection || {});
+  
+  const uniqueCategories = [...new Set(categories)];
+  
+  for (const key of uniqueCategories) {
+    const savedItems = savedCollection?.[key] || [];
+    const defaultItems = defaultCollection?.[key] || [];
+    
+    if (mergeWithDefaults) {
+      // Create a map of saved items by name
+      const savedMap = new Map(savedItems.map(item => [item.name, item]));
+      
+      // Start with default structure, overlay saved values
+      result[key] = defaultItems.map(defaultItem => {
+        const saved = savedMap.get(defaultItem.name);
+        return saved || defaultItem;
+      });
+      
+      // Add any saved items not in defaults (custom items)
+      savedItems.forEach(savedItem => {
+        if (!defaultItems.some(d => d.name === savedItem.name)) {
+          result[key].push(savedItem);
+        }
+      });
+    } else {
+      result[key] = savedItems.length > 0 ? savedItems : defaultItems;
+    }
+  }
+  
+  return result;
 };
 
 const mergeSavedPlan = (savedPlan) => {
   if (!savedPlan) return createInitialPlanData();
 
   const defaults = createInitialPlanData();
-  const merged = {
+  
+  // For expenses, merge intelligently: keep user values but add any new default items
+  const mergedPersonalExpenses = normalizeExpenseCollection(
+    savedPlan.personalExpenses,
+    defaults.personalExpenses,
+    true // mergeWithDefaults flag
+  );
+  
+  const mergedBusinessExpenses = normalizeExpenseCollection(
+    savedPlan.businessExpenses,
+    defaults.businessExpenses,
+    true // mergeWithDefaults flag
+  );
+
+  return {
     ...defaults,
     ...savedPlan,
+    personalExpenses: mergedPersonalExpenses,
+    businessExpenses: mergedBusinessExpenses,
+    conversionRates: {
+      buyer: { ...defaults.conversionRates.buyer, ...(savedPlan.conversionRates?.buyer || {}) },
+      listing: { ...defaults.conversionRates.listing, ...(savedPlan.conversionRates?.listing || {}) },
+    },
   };
-
-  merged.personalExpenses = normalizeExpenseCollection(defaults.personalExpenses, savedPlan.personalExpenses);
-  merged.businessExpenses = normalizeExpenseCollection(defaults.businessExpenses, savedPlan.businessExpenses);
-  merged.conversionRates = {
-    buyer: { ...defaults.conversionRates.buyer, ...(savedPlan.conversionRates?.buyer || {}) },
-    listing: { ...defaults.conversionRates.listing, ...(savedPlan.conversionRates?.listing || {}) },
-  };
-
-  return merged;
 };
 
 export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved }) {
@@ -158,6 +191,9 @@ const closeModal = () => {
       };
 
       const { data, error } = await supabase.functions.invoke('activateProductionPlan', { body: payload });
+
+      console.log('Edge function response:', { data, error });
+      console.log('Goals created:', data?.goalsCreated, 'Goals updated:', data?.goalsUpdated);
 
       if (error) {
         throw error;
