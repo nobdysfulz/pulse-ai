@@ -22,6 +22,24 @@ export const novaTools = [
   {
     type: 'function',
     function: {
+      name: 'sendOutlookEmail',
+      description: 'Send an email via Outlook/Microsoft 365 to specified recipient(s)',
+      parameters: {
+        type: 'object',
+        properties: {
+          to: { type: 'string', description: 'Recipient email address' },
+          subject: { type: 'string', description: 'Email subject line' },
+          body: { type: 'string', description: 'Email body content (can include HTML)' },
+          cc: { type: 'string', description: 'CC email addresses (comma-separated)' },
+          bcc: { type: 'string', description: 'BCC email addresses (comma-separated)' }
+        },
+        required: ['to', 'subject', 'body']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'scheduleGoogleCalendarEvent',
       description: 'Schedule a meeting or event in Google Calendar',
       parameters: {
@@ -41,6 +59,23 @@ export const novaTools = [
   {
     type: 'function',
     function: {
+      name: 'findAvailableTimeSlots',
+      description: 'Find available time slots by checking calendar free/busy status',
+      parameters: {
+        type: 'object',
+        properties: {
+          startDate: { type: 'string', description: 'Start date/time in ISO format' },
+          endDate: { type: 'string', description: 'End date/time in ISO format' },
+          duration: { type: 'number', description: 'Meeting duration in minutes (default: 60)' },
+          attendees: { type: 'string', description: 'Attendee emails to check availability (comma-separated)' }
+        },
+        required: ['startDate', 'endDate']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'createGoogleDriveFolder',
       description: 'Create a new folder in Google Drive',
       parameters: {
@@ -50,6 +85,37 @@ export const novaTools = [
           parentFolderId: { type: 'string', description: 'Parent folder ID (optional, defaults to root)' }
         },
         required: ['folderName']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createGoogleDoc',
+      description: 'Create a new Google Document with optional content',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Document title' },
+          content: { type: 'string', description: 'Initial document content (optional)' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createGoogleSheet',
+      description: 'Create a new Google Spreadsheet with optional data',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Spreadsheet title' },
+          headers: { type: 'array', description: 'Column headers (optional)' },
+          data: { type: 'array', description: 'Initial data rows (optional)' }
+        },
+        required: ['title']
       }
     }
   },
@@ -105,8 +171,38 @@ export const siriusTools = [
   {
     type: 'function',
     function: {
+      name: 'publishLinkedInPost',
+      description: 'Publish a post to LinkedIn profile',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: 'Post content/message' },
+          imageUrl: { type: 'string', description: 'Optional image URL' }
+        },
+        required: ['content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getFacebookPageInsights',
       description: 'Get analytics and insights for Facebook Page',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: { type: 'string', description: 'Time period: "week", "month", or "day"', enum: ['day', 'week', 'month'] },
+          metrics: { type: 'string', description: 'Specific metrics to retrieve (optional)' }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getInstagramInsights',
+      description: 'Get analytics and insights for Instagram Business account',
       parameters: {
         type: 'object',
         properties: {
@@ -180,6 +276,132 @@ export const vegaTools = [
           status: { type: 'string', description: 'New status' },
           expectedCloseDate: { type: 'string', description: 'Updated close date' },
           notes: { type: 'string', description: 'Additional notes' }
+        },
+        required: ['transactionId']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createLoftyTask',
+      description: 'Create a task in Lofty CRM',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Task title' },
+          description: { type: 'string', description: 'Task description' },
+          dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' },
+          contactId: { type: 'string', description: 'Associated contact ID' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createFollowUpBossTask',
+      description: 'Create a task in Follow Up Boss',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Task title' },
+          description: { type: 'string', description: 'Task description' },
+          dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' },
+          personId: { type: 'string', description: 'Associated person ID' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createSkySlopeTransaction',
+      description: 'Create a transaction in SkySlope',
+      parameters: {
+        type: 'object',
+        properties: {
+          propertyAddress: { type: 'string', description: 'Property address' },
+          transactionType: { type: 'string', description: 'Transaction type' },
+          clientName: { type: 'string', description: 'Client name' },
+          expectedCloseDate: { type: 'string', description: 'Expected close date (YYYY-MM-DD)' }
+        },
+        required: ['propertyAddress', 'transactionType']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'uploadSkySlopeDocument',
+      description: 'Upload a document to a SkySlope transaction',
+      parameters: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'string', description: 'SkySlope transaction ID' },
+          documentUrl: { type: 'string', description: 'URL of the document to upload' },
+          documentName: { type: 'string', description: 'Document name' },
+          documentType: { type: 'string', description: 'Document type' }
+        },
+        required: ['transactionId', 'documentUrl']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getSkySlopeTransactionDetails',
+      description: 'Get details of a SkySlope transaction',
+      parameters: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'string', description: 'SkySlope transaction ID' }
+        },
+        required: ['transactionId']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'updateSkySlopeTransaction',
+      description: 'Update a SkySlope transaction',
+      parameters: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'string', description: 'SkySlope transaction ID' },
+          updates: { type: 'object', description: 'Fields to update' }
+        },
+        required: ['transactionId', 'updates']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'listSkySlopeTransactions',
+      description: 'List all SkySlope transactions',
+      parameters: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', description: 'Filter by status' },
+          limit: { type: 'number', description: 'Maximum number to return' }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getSkySlopeChecklistItems',
+      description: 'Get checklist items for a SkySlope transaction',
+      parameters: {
+        type: 'object',
+        properties: {
+          transactionId: { type: 'string', description: 'SkySlope transaction ID' }
         },
         required: ['transactionId']
       }
