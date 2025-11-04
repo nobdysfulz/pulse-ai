@@ -31,6 +31,10 @@ const Intelligence = React.lazy(() => import('./pages/Intelligence'))
 const IntelligenceSurvey = React.lazy(() => import('./pages/IntelligenceSurvey'))
 const Plans = React.lazy(() => import('./pages/Plans'))
 const PlatformMetrics = React.lazy(() => import('./pages/PlatformMetrics'))
+const AdminPlatformImport = React.lazy(() => import('./pages/AdminPlatformImport'))
+const AdminContentConfig = React.lazy(() => import('./pages/AdminContentConfig'))
+const AdminTaskTemplates = React.lazy(() => import('./pages/AdminTaskTemplates'))
+const AdminUserRepair = React.lazy(() => import('./pages/AdminUserRepair'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './pages/Layout'
@@ -212,6 +216,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout><PlatformMetrics /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/platform-import"
+            element={
+              <ProtectedRoute>
+                <Layout><AdminPlatformImport /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/content-config"
+            element={
+              <ProtectedRoute>
+                <Layout><AdminContentConfig /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/task-templates"
+            element={
+              <ProtectedRoute>
+                <Layout><AdminTaskTemplates /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/user-repair"
+            element={
+              <ProtectedRoute>
+                <Layout><AdminUserRepair /></Layout>
               </ProtectedRoute>
             }
           />

@@ -1,157 +1,84 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './Layout';
-import ProtectedRoute from '../components/ProtectedRoute';
+import Login from "./Login";
+import Signup from "./Signup";
+import Dashboard from "./Dashboard";
+import ToDo from "./ToDo";
+import Agents from "./Agents";
+import Goals from "./Goals";
+import Market from "./Market";
+import Contacts from "./Contacts";
+import Settings from "./Settings";
+import GoalPlanner from "./GoalPlanner";
+import ContentStudio from "./ContentStudio";
+import RolePlay from "./RolePlay";
+import RolePlaySession from "./RolePlaySession";
+import SessionResults from "./SessionResults";
+import PersonalAdvisor from "./PersonalAdvisor";
+import Onboarding from "./Onboarding";
+import AgentsOnboarding from "./AgentsOnboarding";
+import FacebookAuthConfirmation from "./FacebookAuthConfirmation";
+import InstagramAuthConfirmation from "./InstagramAuthConfirmation";
+import LinkedInAuthConfirmation from "./LinkedInAuthConfirmation";
+import MicrosoftAuthConfirmation from "./MicrosoftAuthConfirmation";
+import GoogleWorkspaceAuthConfirmation from "./GoogleWorkspaceAuthConfirmation";
+import ZoomAuthConfirmation from "./ZoomAuthConfirmation";
+import GoogleAuthConfirmation from "./GoogleAuthConfirmation";
+import Intelligence from "./Intelligence";
+import IntelligenceSurvey from "./IntelligenceSurvey";
+import Plans from "./Plans";
+import PlatformMetrics from "./PlatformMetrics";
+import KnowledgeBase from "./KnowledgeBase";
+import SsoLogin from "./SsoLogin";
+import UsageDetails from "./UsageDetails";
+import SupportAgent from "./SupportAgent";
+import ContentStudio from "./ContentStudio";
+import AdminPlatformImport from "./AdminPlatformImport";
+import AdminContentConfig from "./AdminContentConfig";
+import AdminTaskTemplates from "./AdminTaskTemplates";
+import AdminUserRepair from "./AdminUserRepair";
+import AllObjections from "./AllObjections";
+import MyMarketPack from "./MyMarketPack";
+import TextToSpeech from "./TextToSpeech";
+import AgentOnboarding from "./AgentOnboarding";
 
-// Lazy load pages for better performance
-const Dashboard = React.lazy(() => import('./Dashboard'));
-const Agents = React.lazy(() => import('./Agents'));
-const Goals = React.lazy(() => import('./Goals'));
-const Market = React.lazy(() => import('./Market'));
-const Contacts = React.lazy(() => import('./Contacts'));
-const Settings = React.lazy(() => import('./Settings'));
-const GoalPlanner = React.lazy(() => import('./GoalPlanner'));
-const ContentStudio = React.lazy(() => import('./ContentStudio'));
-const RolePlay = React.lazy(() => import('./RolePlay'));
-const Onboarding = React.lazy(() => import('./Onboarding'));
-const Login = React.lazy(() => import('./Login'));
-const Signup = React.lazy(() => import('./Signup'));
-const Plans = React.lazy(() => import('./Plans'));
-const ToDo = React.lazy(() => import('./ToDo'));
-const KnowledgeBase = React.lazy(() => import('./KnowledgeBase'));
-const Intelligence = React.lazy(() => import('./Intelligence'));
-
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen bg-background">
-    <div className="text-text-body">Loading...</div>
-  </div>
-);
-
-export default function AppRoutes() {
-  return (
-    <React.Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-
-        {/* Protected routes */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout><Dashboard /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agents"
-          element={
-            <ProtectedRoute>
-              <Layout><Agents /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/goals"
-          element={
-            <ProtectedRoute>
-              <Layout><Goals /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/market"
-          element={
-            <ProtectedRoute>
-              <Layout><Market /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contacts"
-          element={
-            <ProtectedRoute>
-              <Layout><Contacts /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Layout><Settings /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/goal-planner"
-          element={
-            <ProtectedRoute>
-              <Layout><GoalPlanner /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/content-studio"
-          element={
-            <ProtectedRoute>
-              <Layout><ContentStudio /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/role-play"
-          element={
-            <ProtectedRoute>
-              <Layout><RolePlay /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute>
-              <Layout><Onboarding /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/plans"
-          element={
-            <ProtectedRoute>
-              <Layout><Plans /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/to-do"
-          element={
-            <ProtectedRoute>
-              <Layout><ToDo /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/knowledge-base"
-          element={
-            <ProtectedRoute>
-              <Layout><KnowledgeBase /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/intelligence"
-          element={
-            <ProtectedRoute>
-              <Layout><Intelligence /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </React.Suspense>
-  );
-}
+export default {
+  Login,
+  Signup,
+  Dashboard,
+  ToDo,
+  Agents,
+  Goals,
+  Market,
+  Contacts,
+  Settings,
+  GoalPlanner,
+  ContentStudio,
+  RolePlay,
+  RolePlaySession,
+  SessionResults,
+  PersonalAdvisor,
+  Onboarding,
+  AgentsOnboarding,
+  FacebookAuthConfirmation,
+  InstagramAuthConfirmation,
+  LinkedInAuthConfirmation,
+  MicrosoftAuthConfirmation,
+  GoogleWorkspaceAuthConfirmation,
+  ZoomAuthConfirmation,
+  GoogleAuthConfirmation,
+  Intelligence,
+  IntelligenceSurvey,
+  Plans,
+  PlatformMetrics,
+  KnowledgeBase,
+  SsoLogin,
+  UsageDetails,
+  SupportAgent,
+  AdminPlatformImport,
+  AdminContentConfig,
+  AdminTaskTemplates,
+  AdminUserRepair,
+  AllObjections,
+  MyMarketPack,
+  TextToSpeech,
+  AgentOnboarding,
+};
