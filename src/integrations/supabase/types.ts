@@ -1714,43 +1714,64 @@ export type Database = {
       }
       user_preferences: {
         Row: {
+          activity_mode: string | null
           auto_response_enabled: boolean | null
           brand_accent_color: string | null
           brand_primary_color: string | null
           brand_secondary_color: string | null
+          coaching_style: string | null
           communication_style: string | null
           content_themes: string[] | null
           created_at: string | null
+          daily_reminders: boolean | null
           email_categories: string[] | null
+          email_notifications: boolean | null
           id: string
+          market_updates: boolean | null
+          timezone: string | null
           updated_at: string | null
           user_id: string
+          weekly_reports: boolean | null
         }
         Insert: {
+          activity_mode?: string | null
           auto_response_enabled?: boolean | null
           brand_accent_color?: string | null
           brand_primary_color?: string | null
           brand_secondary_color?: string | null
+          coaching_style?: string | null
           communication_style?: string | null
           content_themes?: string[] | null
           created_at?: string | null
+          daily_reminders?: boolean | null
           email_categories?: string[] | null
+          email_notifications?: boolean | null
           id?: string
+          market_updates?: boolean | null
+          timezone?: string | null
           updated_at?: string | null
           user_id: string
+          weekly_reports?: boolean | null
         }
         Update: {
+          activity_mode?: string | null
           auto_response_enabled?: boolean | null
           brand_accent_color?: string | null
           brand_primary_color?: string | null
           brand_secondary_color?: string | null
+          coaching_style?: string | null
           communication_style?: string | null
           content_themes?: string[] | null
           created_at?: string | null
+          daily_reminders?: boolean | null
           email_categories?: string[] | null
+          email_notifications?: boolean | null
           id?: string
+          market_updates?: boolean | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string
+          weekly_reports?: boolean | null
         }
         Relationships: []
       }
