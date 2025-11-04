@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect, useContext, useMemo } from "react";
+import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, RefreshCw, PlusCircle, TrendingUp, Edit, Printer, Download, Lightbulb, Target, Activity, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, PlusCircle, Edit, Printer, Download, Target } from "lucide-react";
 import { toast } from "sonner";
 import ContextualTopNav from "../components/layout/ContextualTopNav";
 import ContextualSidebar from "../components/layout/ContextualSidebar";
@@ -12,12 +12,12 @@ import UpdateProgressModal from "../components/goals/UpdateProgressModal";
 import ProductionPlannerModal from "../components/goal-planner/ProductionPlannerModal";
 import AddGoalModal from "../components/goals/AddGoalModal";
 import { calculateConfidencePercentage } from "../components/goals/confidenceCalculator";
-import { startOfQuarter, endOfQuarter, differenceInDays, startOfYear, endOfYear, getQuarter, format as formatDate, startOfWeek, subWeeks } from 'date-fns';
+import { startOfQuarter, endOfQuarter, differenceInDays, startOfYear, endOfYear, getQuarter, format as formatDate, formatDistanceToNow } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import ReactMarkdown from 'react-markdown';
 import { generateDailyTasks } from "../components/actions/taskGeneration";
 import LoadingIndicator from "../components/ui/LoadingIndicator";
+import { generateGoalsReportPdf } from "../components/goals/pdfGenerator";
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -43,7 +43,7 @@ const normalizeGoalRecord = (goal) => {
 };
 
 export default function GoalsPage() {
-  const { user, goals: contextGoals, businessPlan, refreshUserData, allActions, preferences } = useContext(UserContext);
+  const { user, goals: contextGoals, businessPlan, refreshUserData, preferences } = useContext(UserContext);
   
   // Check URL parameters for tab selection
   const urlParams = new URLSearchParams(window.location.search);
@@ -61,6 +61,15 @@ export default function GoalsPage() {
   const [generatingActions, setGeneratingActions] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsMeta, setInsightsMeta] = useState(null);
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
+
+  const insightsStorageKey = 'pulse-ai-goal-insights';
+  const defaultInsightActions = [
+    'Review your goal progress daily to stay accountable.',
+    'Block time for proactive lead generation activities.',
+    'Update your CRM at the end of each day to keep data current.'
+  ];
 
   const tabs = [
     { id: 'tracking', label: 'Tracking' },
@@ -93,9 +102,22 @@ export default function GoalsPage() {
         };
       });
       setGoals(allGoalsWithConfidence);
-      console.log('Loaded goals:', allGoalsWithConfidence.length);
 
       if (user) {
+        const { data: connections, error: connectionsError } = await supabase
+          .from('external_service_connections')
+          .select('service_name, connection_status')
+          .eq('user_id', user.id)
+          .in('service_name', ['lofty', 'follow_up_boss']);
+
+        if (connectionsError) {
+          console.warn('Failed to load CRM connections', connectionsError);
+          setCrmConnected(null);
+        } else {
+          const activeConnection = (connections || []).find((connection) => connection.connection_status === 'connected');
+          setCrmConnected(activeConnection || null);
+        }
+      } else {
         setCrmConnected(null);
       }
     } catch (error) {
@@ -111,13 +133,41 @@ export default function GoalsPage() {
   }, [user, contextGoals]); // Added contextGoals to dependency array
 
   const handleSyncFromCrm = async () => {
+    if (!crmConnected) {
+      toast.error("No CRM connection found.");
+      return;
+    }
+
     setIsSyncingCrm(true);
     try {
-      // TODO: Implement CRM sync functionality
-      toast.info("CRM sync functionality coming soon!");
+      const provider = crmConnected.service_name;
+      const providerLabel = provider === 'follow_up_boss' ? 'Follow Up Boss' : 'Lofty';
+
+      const { data, error } = await supabase.functions.invoke('syncGoalProgressFromCrm', {
+        body: {
+          provider,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to sync goals from CRM.');
+      }
+
+      if (data.goalsUpdated > 0) {
+        toast.success(`Synced ${data.goalsUpdated} goal(s) from ${providerLabel}.`);
+      } else {
+        toast.info('No updates needed — goals are already current.');
+      }
+
+      await refreshUserData();
     } catch (error) {
       console.error("Failed to sync from CRM:", error);
-      toast.error("Failed to sync goals from CRM");
+      const message = error instanceof Error ? error.message : "Failed to sync goals from CRM";
+      toast.error(message);
     } finally {
       setIsSyncingCrm(false);
     }
@@ -131,9 +181,21 @@ export default function GoalsPage() {
         return;
       }
       const isCompleted = progressData.currentValue >= goalToUpdate.targetValue;
-      const finalData = { 
+      const progressPercentage = goalToUpdate.targetValue > 0
+        ? Math.min(100, Math.round((progressData.currentValue / goalToUpdate.targetValue) * 100))
+        : 0;
+      const trend = isCompleted
+        ? 'completed'
+        : progressPercentage >= 80
+          ? 'on-track'
+          : progressPercentage >= 50
+            ? 'behind'
+            : 'at-risk';
+      const finalData = {
         current_value: progressData.currentValue,
-        status: isCompleted ? 'completed' : 'active' 
+        status: isCompleted ? 'completed' : 'active',
+        progress_percentage: progressPercentage,
+        trend
       };
 
       await supabase
@@ -181,45 +243,42 @@ export default function GoalsPage() {
   const handlePlanSaved = async () => {
     await refreshUserData(); // Refresh user data to get updated goals from context
     setShowPlannerModal(false);
-    toast.success("Production plan saved!");
   };
 
-  const handleDownloadGoals = () => {
+  const handleDownloadGoals = async () => {
     if (goals.length === 0) {
       toast.info("No goals to download.");
       return;
     }
 
-    const headers = ["Title", "Category", "Current Value", "Target Value", "Unit", "Confidence Level", "Deadline"];
-    const csvRows = [];
+    try {
+      let brandHex = '#7C3AED';
+      if (user) {
+        const { data: palette, error: paletteError } = await supabase
+          .from('brand_color_palettes')
+          .select('primary_hex')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    // Add headers to CSV
-    csvRows.push(headers.join(','));
+        if (!paletteError && palette?.primary_hex) {
+          brandHex = palette.primary_hex;
+        }
+      }
 
-    // Add data rows
-    goals.forEach((goal) => {
-      const values = [
-        `"${goal.title ? String(goal.title).replace(/"/g, '""') : ''}"`, // Escape double quotes
-        `"${goal.category ? String(goal.category).replace(/"/g, '""') : ''}"`,
-        goal.currentValue || 0,
-        goal.targetValue || 0,
-        `"${goal.targetUnit ? String(goal.targetUnit).replace(/"/g, '""') : ''}"`,
-        goal.confidenceLevel ? `${goal.confidenceLevel}%` : 'N/A',
-        goal.deadline ? new Date(goal.deadline).toLocaleDateString() : 'N/A'
-      ];
+      generateGoalsReportPdf({
+        summaryData,
+        priorityGoals: priorityGoalsData,
+        activityGoals: activityDriversData,
+        allGoals: goals,
+        planYear: businessPlan?.plan_year || businessPlan?.planYear || new Date().getFullYear(),
+        brandColor: brandHex
+      });
 
-      csvRows.push(values.join(','));
-    });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', 'goals_report.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Goals downloaded successfully!");
+      toast.success("Goals report downloaded as PDF.");
+    } catch (error) {
+      console.error('Error generating goals report PDF:', error);
+      toast.error("Failed to download goals report.");
+    }
   };
 
   const handleGenerateActions = async () => {
@@ -251,7 +310,10 @@ export default function GoalsPage() {
 
   // Filter goals for specific sections AFTER all goals are loaded
   const activeProductionGoals = useMemo(() => goals.filter((g) => g.status === 'active' && g.category === 'production'), [goals]);
-  const activeActivityGoals = useMemo(() => goals.filter((g) => g.status === 'active' && g.category === 'activity'), [goals]);
+  const activeActivityGoals = useMemo(
+    () => goals.filter((g) => g.status === 'active' && ['activity', 'lead-generation'].includes(g.category)),
+    [goals]
+  );
 
 
   // --- NEW DASHBOARD CALCULATIONS ---
@@ -263,122 +325,139 @@ export default function GoalsPage() {
     const quarterStart = startOfQuarter(now);
     const quarterEnd = endOfQuarter(now);
 
-    const totalProductionGoals = activeProductionGoals.length; // Use activeProductionGoals
-    const completedProductionGoals = activeProductionGoals.filter((g) => g.status === 'completed').length; // Use activeProductionGoals
+    const activeGoals = goals.filter((goal) => ['active', 'completed'].includes(goal.status));
+    const totalTarget = activeGoals.reduce((sum, goal) => sum + (goal.targetValue || 0), 0);
+    const totalCurrent = activeGoals.reduce((sum, goal) => sum + (goal.currentValue || 0), 0);
+    const overallProgress = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0;
 
-    // Card 1: Overall Goal Progress (consider active goals for progress)
-    const overallProgress = totalProductionGoals > 0 ? completedProductionGoals / totalProductionGoals * 100 : 0;
-
-    // Card 2: YTD GCI
-    const gciGoal = activeProductionGoals.find((g) => g.title === 'Total GCI'); // Use activeProductionGoals
-    const annualGciTarget = businessPlan?.gciRequired || gciGoal?.targetValue || 0;
+    const gciGoal = activeProductionGoals.find((g) => ['Annual GCI', 'Total GCI'].includes(g.title));
+    const annualGciTarget = gciGoal?.targetValue || businessPlan?.gci_required || businessPlan?.gciRequired || 0;
     const currentGci = gciGoal?.currentValue || 0;
-    const ytdGciProgress = annualGciTarget > 0 ? currentGci / annualGciTarget * 100 : 0;
+    const ytdGciProgress = annualGciTarget > 0 ? Math.round((currentGci / annualGciTarget) * 100) : 0;
 
-    // Card 3: Current Quarter Progress
-    const quarterGoals = activeProductionGoals.filter((g) => { // Use activeProductionGoals
-      const deadline = new Date(g.deadline);
+    const quarterGoals = activeGoals.filter((goal) => {
+      if (!goal.deadline) return false;
+      const deadline = new Date(goal.deadline);
       return deadline >= quarterStart && deadline <= quarterEnd;
     });
-    const completedQuarterGoals = quarterGoals.filter((g) => g.status === 'completed').length;
-    const quarterlyProgress = quarterGoals.length > 0 ? completedQuarterGoals / quarterGoals.length * 100 : 0;
+    const quarterTarget = quarterGoals.reduce((sum, goal) => sum + (goal.targetValue || 0), 0);
+    const quarterCurrent = quarterGoals.reduce((sum, goal) => sum + (goal.currentValue || 0), 0);
+    const quarterlyProgress = quarterTarget > 0 ? Math.round((quarterCurrent / quarterTarget) * 100) : 0;
 
-    // Card 4: Projected Year-End Pace
-    const daysInYear = differenceInDays(yearEnd, yearStart);
-    const elapsedDays = differenceInDays(now, yearStart);
-    const timeElapsedRatio = daysInYear > 0 ? elapsedDays / daysInYear : 0;
-
-    const totalProgressRatio = activeProductionGoals.reduce((acc, goal) => { // Use activeProductionGoals
-      const progress = (goal.currentValue || 0) / goal.targetValue;
-      return acc + (isNaN(progress) ? 0 : progress);
-    }, 0) / (activeProductionGoals.length || 1); // Avoid division by zero
-
-    const projectedPace = timeElapsedRatio > 0 ? totalProgressRatio / timeElapsedRatio * 100 : 0;
-
+    const elapsedDays = Math.max(0, differenceInDays(now, yearStart));
+    const totalDays = Math.max(1, differenceInDays(yearEnd, yearStart));
+    const timeElapsedRatio = elapsedDays / totalDays;
+    const totalProgressRatio = totalTarget > 0 ? totalCurrent / totalTarget : 0;
+    const projectedPace = timeElapsedRatio > 0 ? Math.min(100, Math.round((totalProgressRatio / timeElapsedRatio) * 100)) : 0;
 
     return {
-      overallProgress: Math.round(overallProgress),
+      overallProgress,
       currentGci: formatCurrency(currentGci),
       annualGciTarget: formatCurrency(annualGciTarget),
-      ytdGciProgress: Math.round(ytdGciProgress),
-      quarterlyProgress: Math.round(quarterlyProgress),
+      ytdGciProgress,
+      quarterlyProgress,
       currentQuarter: `Q${getQuarter(now)} ${formatDate(now, 'yyyy')}`,
-      projectedPace: Math.min(100, Math.round(projectedPace))
+      projectedPace,
     };
-  }, [activeProductionGoals, businessPlan]); // Depend on activeProductionGoals
+  }, [goals, activeProductionGoals, businessPlan]);
 
   const priorityGoalsData = useMemo(() => {
-    const mainTitles = ["Total Buyers Closed", "Total Listings Closed", "Total Sales Volume"];
-    return activeProductionGoals.filter((g) => mainTitles.includes(g.title)).map((goal) => { // Use activeProductionGoals
-      const now = new Date();
-      const yearStart = startOfYear(now);
-      const yearEnd = endOfYear(now);
-      const timeElapsedRatio = differenceInDays(yearEnd, yearStart) > 0 ? differenceInDays(now, yearStart) / differenceInDays(yearEnd, yearStart) : 0;
-      const expectedProgress = timeElapsedRatio;
-      const actualProgress = goal.targetValue > 0 ? (goal.currentValue || 0) / goal.targetValue : 0;
+    const now = new Date();
+    const yearStart = startOfYear(now);
+    const yearEnd = endOfYear(now);
+    const elapsedRatio = differenceInDays(yearEnd, yearStart) > 0
+      ? differenceInDays(now, yearStart) / differenceInDays(yearEnd, yearStart)
+      : 0;
 
-      const isCurrency = goal.targetUnit === 'USD';
+    const planBuyerTarget = businessPlan?.buyer_deals ?? businessPlan?.buyerDeals ?? 0;
+    const planListingTarget = businessPlan?.listing_deals ?? businessPlan?.listingDeals ?? 0;
+    const planVolumeTarget = businessPlan?.total_volume ?? businessPlan?.totalVolume ?? 0;
+
+    const definitions = [
+      { title: 'Total Buyers Closed', unit: 'closings', fallback: planBuyerTarget },
+      { title: 'Total Listings Closed', unit: 'closings', fallback: planListingTarget },
+      { title: 'Total Sales Volume', unit: 'USD', fallback: planVolumeTarget },
+    ];
+
+    return definitions.map((definition) => {
+      const goal = activeProductionGoals.find((g) => g.title === definition.title);
+      const targetValue = goal?.targetValue ?? definition.fallback ?? 0;
+      const currentValue = goal?.currentValue ?? 0;
+      const targetUnit = goal?.targetUnit || definition.unit;
+      const actualProgress = targetValue > 0 ? currentValue / targetValue : 0;
+      const isCurrency = targetUnit === 'USD';
 
       let status = 'On Track';
       let statusColor = 'bg-green-100 text-green-800';
-      let nextStep = `You are on track to meet your goal of ${isCurrency ? formatCurrency(goal.targetValue) : goal.targetValue}.`;
+      let nextStep = `You are on track to meet your goal of ${isCurrency ? formatCurrency(targetValue) : targetValue}.`;
 
-      if (actualProgress < expectedProgress * 0.8) {
+      if (actualProgress < elapsedRatio * 0.8) {
         status = 'At Risk';
         statusColor = 'bg-red-100 text-red-800';
-        const needed = Math.ceil(goal.targetValue * expectedProgress - goal.currentValue);
-        const formattedNeeded = isCurrency ? formatCurrency(needed) : needed;
-        nextStep = `You need ${needed > 0 ? formattedNeeded : 'to accelerate'} ${!isCurrency ? goal.targetUnit : ''} to get back on pace.`.trim();
-      } else if (actualProgress < expectedProgress) {
+        const neededRaw = Math.max(0, targetValue * elapsedRatio - currentValue);
+        const neededDisplay = isCurrency ? formatCurrency(neededRaw) : Math.ceil(neededRaw);
+        nextStep = `You need ${neededRaw > 0 ? neededDisplay : 'to accelerate'}${!isCurrency ? ` ${targetUnit}` : ''} to get back on pace.`;
+      } else if (actualProgress < elapsedRatio) {
         status = 'Slightly Behind';
         statusColor = 'bg-yellow-100 text-yellow-800';
-        const needed = Math.ceil(goal.targetValue * expectedProgress - goal.currentValue);
-        const formattedNeeded = isCurrency ? formatCurrency(needed) : needed;
-        nextStep = `You are slightly behind pace. Aim for ${needed > 0 ? formattedNeeded : 'more'} ${!isCurrency ? goal.targetUnit : ''} soon.`.trim();
+        const neededRaw = Math.max(0, targetValue * elapsedRatio - currentValue);
+        const neededDisplay = isCurrency ? formatCurrency(neededRaw) : Math.ceil(neededRaw);
+        nextStep = `You are slightly behind pace. Aim for ${neededRaw > 0 ? neededDisplay : 'a bit more'}${!isCurrency ? ` ${targetUnit}` : ''} soon.`;
       }
 
       return {
-        ...goal,
+        id: goal?.id || definition.title,
+        title: definition.title,
+        targetValue,
+        currentValue,
+        targetUnit,
         progress: Math.round(actualProgress * 100),
         status,
         statusColor,
-        nextStep
+        nextStep,
       };
     });
-  }, [activeProductionGoals]); // Depend on activeProductionGoals
+  }, [activeProductionGoals, businessPlan]);
 
   const activityDriversData = useMemo(() => {
-    return activeActivityGoals.slice(0, 2).map((goal) => { // Use activeActivityGoals
-      const progress = goal.targetValue > 0 ? (goal.currentValue || 0) / goal.targetValue * 100 : 0;
+    const sorted = [...activeActivityGoals].sort((a, b) => (b.targetValue || 0) - (a.targetValue || 0));
+    return sorted.slice(0, 2).map((goal) => {
+      const progress = goal.targetValue > 0 ? Math.round(((goal.currentValue || 0) / goal.targetValue) * 100) : 0;
       return {
         ...goal,
-        progress: Math.round(progress),
-        paceLabel: 'Pace calculation pending'
+        progress,
       };
     });
-  }, [activeActivityGoals]); // Depend on activeActivityGoals
+  }, [activeActivityGoals]);
 
   const forecastData = useMemo(() => {
+    const planYear = businessPlan?.plan_year || businessPlan?.planYear || new Date().getFullYear();
     const months = Array.from({ length: 12 }, (_, i) => ({
-      name: formatDate(new Date(2024, i, 1), 'MMM'),
-      goal: (i + 1) / 12 * 100
+      name: formatDate(new Date(planYear, i, 1), 'MMM'),
+      goal: ((i + 1) / 12) * 100,
     }));
 
-    const currentMonth = new Date().getMonth();
-    const totalProgressRatio = activeProductionGoals.reduce((acc, goal) => { // Use activeProductionGoals
-      const progress = (goal.currentValue || 0) / goal.targetValue;
-      return acc + (isNaN(progress) ? 0 : progress);
-    }, 0) / (activeProductionGoals.length || 1); // Avoid division by zero
+    const totalTarget = activeProductionGoals.reduce((sum, goal) => sum + (goal.targetValue || 0), 0);
+    const totalCurrent = activeProductionGoals.reduce((sum, goal) => sum + (goal.currentValue || 0), 0);
+    const totalProgressRatio = totalTarget > 0 ? totalCurrent / totalTarget : 0;
 
-    months.forEach((month, i) => {
-      if (i <= currentMonth) {
-        month.actual = totalProgressRatio / (currentMonth + 1) * (i + 1) * 100;
-      } else {
-        month.actual = null;
-      }
-    });
-    return months;
-  }, [activeProductionGoals]); // Depend on activeProductionGoals
+    const now = new Date();
+    let currentMonthIndex = 11;
+    if (planYear === now.getFullYear()) {
+      currentMonthIndex = now.getMonth();
+    } else if (planYear > now.getFullYear()) {
+      currentMonthIndex = -1;
+    }
+
+    const progressPerMonth = currentMonthIndex >= 0 ? totalProgressRatio / Math.max(1, currentMonthIndex + 1) : 0;
+
+    return months.map((month, index) => ({
+      ...month,
+      actual: index <= currentMonthIndex && currentMonthIndex >= 0
+        ? Math.min(100, progressPerMonth * (index + 1) * 100)
+        : null,
+    }));
+  }, [activeProductionGoals, businessPlan]);
 
   const performanceDiagnostics = useMemo(() => {
     if (!summaryData || !priorityGoalsData) return null;
@@ -403,95 +482,110 @@ export default function GoalsPage() {
     };
   }, [summaryData, priorityGoalsData]);
 
-  // Generate AI insights for goals
-  useEffect(() => {
-    const generateInsights = async () => {
-      if (!goals || goals.length === 0 || !user || !performanceDiagnostics) return;
+  const buildInsights = useCallback(() => {
+    if (!performanceDiagnostics) {
+      return {
+        performanceAnalysis: 'Keep pushing forward on your goals. Focus on consistent daily action.',
+        recommendedActions: [
+          'Review your goal progress daily',
+          'Focus on your highest priority goal',
+          'Track your key metrics consistently'
+        ],
+        weeklyFocus: 'Maintain consistency and focus on your top priority goals.',
+      };
+    }
 
-      setInsightsLoading(true);
-      try {
-        // Prepare goals data
-        const preparedGoals = goals.map(g => {
-          const matchingPriorityGoal = priorityGoalsData.find(pg => pg.id === g.id);
-          const progressPercentage = matchingPriorityGoal
-            ? matchingPriorityGoal.progress
-            : (g.targetValue > 0 ? Math.round((g.currentValue || 0) / g.targetValue * 100) : 0);
+    const laggingGoal = priorityGoalsData.find((goal) => goal.status === 'At Risk' || goal.status === 'Slightly Behind');
+    const topActivity = activityDriversData[0];
 
-          let trend = 'on-track'; // Default trend
-          if (g.status === 'completed') trend = 'completed';
-          else if (g.confidenceLevel !== null) {
-            if (g.confidenceLevel < 50) trend = 'at-risk';
-            else if (g.confidenceLevel < 80) trend = 'behind';
-            else trend = 'on-track';
-          }
-          // Override with more precise status from priorityGoalsData if available
-          if (matchingPriorityGoal && matchingPriorityGoal.status) {
-            if (matchingPriorityGoal.status === 'At Risk') trend = 'at-risk';
-            else if (matchingPriorityGoal.status === 'Slightly Behind') trend = 'behind';
-            else if (matchingPriorityGoal.status === 'On Track') trend = 'on-track';
-          }
+    const analysisParts = [`Your overall goal progress is ${summaryData.overallProgress}%.`];
+    if (laggingGoal) {
+      analysisParts.push(`A key goal, "${laggingGoal.title}", is currently ${laggingGoal.status}. ${laggingGoal.nextStep}`);
+    } else {
+      analysisParts.push('All priority goals are currently on track.');
+    }
 
-          return {
-            title: g.title,
-            category: g.category,
-            targetValue: g.targetValue,
-            currentValue: g.currentValue,
-            progressPercentage: progressPercentage,
-            trend: trend,
-            deadline: g.deadline
-          };
-        });
+    const recommended = [];
+    if (laggingGoal) {
+      recommended.push(`Focus on ${laggingGoal.title.toLowerCase()} — ${laggingGoal.nextStep}`);
+    }
+    if (topActivity) {
+      recommended.push(`Increase momentum for ${topActivity.title.toLowerCase()} to hit ${topActivity.targetValue}.`);
+    }
+    if (summaryData.projectedPace < 90) {
+      recommended.push('Schedule a mid-week pipeline review to adjust your activity mix.');
+    }
+    recommended.push('Celebrate recent wins and reset your targets for the upcoming week.');
 
-        const goalsData = {
-          totalGoals: preparedGoals.length,
-          onTrack: preparedGoals.filter(g => g.trend === 'on-track').length,
-          behind: preparedGoals.filter(g => g.trend === 'behind').length,
-          atRisk: preparedGoals.filter(g => g.trend === 'at-risk').length,
-          goals: preparedGoals
-        };
+    const weeklyFocus = laggingGoal
+      ? `This week, prioritize ${laggingGoal.title.toLowerCase()}. ${laggingGoal.nextStep}`
+      : topActivity
+        ? `This week, prioritize consistent ${topActivity.title.toLowerCase()} to sustain your pipeline.`
+        : 'This week, stay consistent with your daily lead generation routines.';
 
-        // Prepare activity data (if available)
-        const activityData = {
-          recentActions: allActions?.slice(0, 10).map(a => ({
-            type: a.actionType,
-            status: a.status,
-            date: a.created_date // Use created_date for actionDate if available
-          }))
-        };
-
-        // Get pulse data for diagnostics
-        const pulseData = performanceDiagnostics ? {
-          diagnostics: performanceDiagnostics.diagnostics
-        } : null;
-
-        // TODO: Implement AI insights generation
-        setAiInsights({
-          performanceAnalysis: 'Keep pushing forward on your goals. Focus on consistent daily action.',
-          nextSteps: [
-            'Review your goal progress daily',
-            'Focus on your highest priority goal',
-            'Track your key metrics consistently'
-          ],
-          weeklyFocus: 'Maintain consistency and focus on your top priority goals.'
-        });
-      } catch (error) {
-        console.error('Error generating goals insights:', error);
-        setAiInsights({
-          performanceAnalysis: 'Keep pushing forward on your goals. Focus on consistent daily action.',
-          nextSteps: [
-            'Review your goal progress daily',
-            'Focus on your highest priority goal',
-            'Track your key metrics consistently'
-          ],
-          weeklyFocus: 'Maintain consistency and focus on your top priority goals.'
-        });
-      } finally {
-        setInsightsLoading(false);
-      }
+    return {
+      performanceAnalysis: analysisParts.join(' '),
+      recommendedActions: [...new Set(recommended)].slice(0, 4),
+      weeklyFocus,
     };
+  }, [performanceDiagnostics, priorityGoalsData, activityDriversData, summaryData]);
 
-    generateInsights();
-  }, [goals, user, allActions, performanceDiagnostics, priorityGoalsData]); // Add priorityGoalsData as dependency
+  const loadCachedInsights = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const cachedRaw = window.localStorage.getItem(insightsStorageKey);
+      if (!cachedRaw) return false;
+      const cached = JSON.parse(cachedRaw);
+      const generatedAt = cached?.meta?.generatedAt;
+      if (!generatedAt) return false;
+      const ageMs = Date.now() - new Date(generatedAt).getTime();
+      if (ageMs > 30 * 60 * 1000) return false;
+      setAiInsights(cached.insights);
+      setInsightsMeta(cached.meta);
+      setInsightsLoading(false);
+      return true;
+    } catch (error) {
+      console.warn('Failed to load cached insights', error);
+      return false;
+    }
+  }, [insightsStorageKey]);
+
+  const refreshInsights = useCallback(async (forceRefresh = false) => {
+    if (!goals || goals.length === 0) return;
+
+    if (!forceRefresh && loadCachedInsights()) {
+      return;
+    }
+
+    setInsightsLoading(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const insights = buildInsights();
+      const meta = { generatedAt: new Date().toISOString() };
+      setAiInsights(insights);
+      setInsightsMeta(meta);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(insightsStorageKey, JSON.stringify({ insights, meta }));
+      }
+    } catch (error) {
+      console.error('Error generating goals insights:', error);
+      setAiInsights(buildInsights());
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [buildInsights, goals, loadCachedInsights, insightsStorageKey]);
+
+  useEffect(() => {
+    refreshInsights(false);
+  }, [refreshInsights]);
+
+  const handleRefreshInsights = useCallback(() => {
+    refreshInsights(true);
+  }, [refreshInsights]);
+
+  useEffect(() => {
+    setInsightsExpanded(false);
+  }, [aiInsights]);
 
   // --- END OF NEW CALCULATIONS ---
 
@@ -604,12 +698,9 @@ export default function GoalsPage() {
           <Card className="bg-white">
             <CardHeader><CardTitle>AI Insights Summary</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-start gap-3 bg-gray-50 p-3 rounded-lg">
-                <Lightbulb className="w-5 h-5 text-[#7C3AED] flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold">Check the sidebar for your latest AI-driven insights!</p>
-                  <p className="text-xs text-gray-600">Our AI has analyzed your goals and activities to provide actionable advice.</p>
-                </div>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="text-sm font-semibold text-[#1E293B]">Check the sidebar for your latest AI-driven insights.</p>
+                <p className="text-xs text-gray-600">We refresh your insights whenever your goals update so you always know what to do next.</p>
               </div>
               <Button className="w-full" variant="outline" onClick={() => setActiveTab('insights')}>
                 View All Insights
@@ -636,85 +727,125 @@ export default function GoalsPage() {
         return (
           <div className="space-y-6">
             <h4 className="text-base font-semibold text-[#1E293B]">Activity Goals</h4>
-            {activeActivityGoals.length > 0 ? // Use activeActivityGoals here
+            {activeActivityGoals.length > 0 ? (
               <div className="space-y-4">
                 {activeActivityGoals.map((goal) => {
-                  const progressPercentage = goal.targetValue > 0 ? goal.currentValue / goal.targetValue * 100 : 0;
+                  const progressPercentage = goal.targetValue > 0
+                    ? Math.round(((goal.currentValue || 0) / goal.targetValue) * 100)
+                    : 0;
 
                   return (
-                    <div key={goal.id} className="pb-4 border-b border-[#E2E8F0] last:border-0">
-                      <h5 className="text-[#1E293B] mb-2 text-sm font-medium">{goal.title}</h5>
-                      <p className="text-[#1E293B] mb-1 text-lg font-medium">{goal.currentValue}</p>
-                      <p className="text-xs text-[#64748B] mb-3">of {goal.targetValue}</p>
-                      <Progress value={progressPercentage} indicatorClassName="bg-[#7C3AED]" className="h-2 mb-2" />
-                      <button
-                        onClick={() => {
-                          setSelectedGoal(goal);
-                          setShowUpdateProgress(true);
-                        }}
-                        className="text-sm text-[#7C3AED] font-medium hover:text-[#6D28D9]">
-
-                        Update
-                      </button>
-                    </div>);
-
+                    <div key={goal.id} className="border-b border-[#E2E8F0] pb-4 last:border-0">
+                      <h5 className="mb-1 text-sm font-semibold text-[#1E293B]">{goal.title}</h5>
+                      <p className="text-lg font-semibold text-[#1E293B]">{goal.currentValue}</p>
+                      <p className="mb-2 text-xs text-[#64748B]">of {goal.targetValue}</p>
+                      <Progress value={progressPercentage} indicatorClassName="bg-[#7C3AED]" className="h-2" />
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#64748B]">{progressPercentage}% complete</span>
+                        <button
+                          onClick={() => {
+                            setSelectedGoal(goal);
+                            setShowUpdateProgress(true);
+                          }}
+                          className="text-sm font-medium text-[#7C3AED] hover:text-[#6D28D9]"
+                        >
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  );
                 })}
-              </div> :
-
+              </div>
+            ) : (
               <p className="text-sm text-[#64748B]">No active activity goals set.</p>
-            }
+            )}
 
-            {crmConnected &&
-              <div className="pt-4 border-t border-[#E2E8F0]">
+            {crmConnected && (
+              <div className="border-t border-[#E2E8F0] pt-4">
                 <Button
                   onClick={handleSyncFromCrm}
                   disabled={isSyncingCrm}
                   variant="outline"
-                  className="w-full">
-
-                  {isSyncingCrm ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                  Sync from CRM
+                  className="w-full"
+                >
+                  {isSyncingCrm ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  {isSyncingCrm
+                    ? 'Syncing...'
+                    : `Sync from ${crmConnected.service_name === 'follow_up_boss' ? 'Follow Up Boss' : 'Lofty'}`}
                 </Button>
               </div>
-            }
-          </div>);
+            )}
+          </div>
+        );
 
-      case 'insights': // This case is updated to use the new AI insights
+      case 'insights': {
+        const analysisText = aiInsights?.performanceAnalysis || 'Keep pushing forward on your goals. Focus on consistent daily action.';
+        const shouldTruncate = analysisText.length > 260 && !insightsExpanded;
+        const analysisDisplay = shouldTruncate ? `${analysisText.slice(0, 260)}…` : analysisText;
+        const cacheLabel = insightsMeta?.generatedAt
+          ? `Loaded from recent insights (${formatDistanceToNow(new Date(insightsMeta.generatedAt), { addSuffix: true })})`
+          : null;
+
         return (
           <div className="space-y-6">
-            {/* Performance Analysis */}
-            <div>
-              <h3 className="text-sm font-semibold text-[#1E293B] mb-3 flex items-center gap-2">
-                <img
-                  src="/images/icons/pulse-ai-icon.png"
-                  alt="AI Analysis"
-                  className="w-4 h-4 object-contain"
-                />
-                Performance Analysis
-              </h3>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="flex items-center gap-2 text-base font-semibold text-[#1E293B]">
+                  <img src="/images/icons/pulse-ai-icon.png" alt="PULSE AI" className="h-5 w-5" />
+                  AI Goal Insights
+                </h4>
+                {cacheLabel && (
+                  <span className="mt-2 inline-block rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+                    {cacheLabel}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleRefreshInsights}
+                disabled={insightsLoading}
+                className="rounded-full border border-[#E2E8F0] p-2 text-[#475569] transition-colors hover:bg-[#F8FAFC] hover:text-[#1E293B]"
+                aria-label="Refresh insights"
+              >
+                <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin text-[#7C3AED]' : ''}`} />
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-500 p-5 text-white shadow-lg">
               {insightsLoading ? (
-                <LoadingIndicator text="Analyzing..." size="sm" />
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <img src="/images/icons/pulse-ai-icon.png" alt="Analyzing" className="h-10 w-10 animate-spin" />
+                  <p className="text-sm text-violet-100">Analyzing your goals...</p>
+                </div>
               ) : (
-                <p className="text-sm text-[#475569] leading-relaxed">
-                  {aiInsights?.performanceAnalysis || 'Keep pushing forward on your goals. Focus on consistent daily action.'}
-                </p>
+                <>
+                  <p className="text-sm leading-relaxed text-white/90">{analysisDisplay}</p>
+                  {analysisText.length > 260 && (
+                    <button
+                      type="button"
+                      onClick={() => setInsightsExpanded((prev) => !prev)}
+                      className="mt-3 text-xs font-semibold text-white/80 underline"
+                    >
+                      {insightsExpanded ? 'Show Less' : 'Read More'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Next Steps */}
             <div>
-              <h3 className="text-sm font-semibold text-[#1E293B] mb-3">Next Steps</h3>
+              <h3 className="mb-3 text-sm font-semibold text-[#1E293B]">Recommended Actions</h3>
               {insightsLoading ? (
                 <LoadingIndicator text="Generating steps..." size="sm" />
               ) : (
                 <ul className="space-y-2">
-                  {(aiInsights?.nextSteps || [
-                    'Review your goal progress daily',
-                    'Focus on your highest priority goal',
-                    'Track your key metrics consistently'
-                  ]).map((step, index) => (
-                    <li key={index} className="text-sm text-[#475569] flex items-start gap-2">
-                      <span className="text-[#6D28D9] mt-1">•</span>
+                  {(aiInsights?.recommendedActions?.length ? aiInsights.recommendedActions : defaultInsightActions).map((step, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-[#475569]">
+                      <span className="mt-1 text-[#6D28D9]">•</span>
                       <span>{step}</span>
                     </li>
                   ))}
@@ -722,9 +853,8 @@ export default function GoalsPage() {
               )}
             </div>
 
-            {/* Your Focus This Week */}
-            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-[#1E293B] mb-2">Your Focus This Week</h3>
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <h3 className="mb-2 text-sm font-semibold text-[#1E293B]">Weekly Focus</h3>
               {insightsLoading ? (
                 <LoadingIndicator text="Calculating focus..." size="sm" />
               ) : (
@@ -735,6 +865,7 @@ export default function GoalsPage() {
             </div>
           </div>
         );
+      }
 
 
       case 'planner':
@@ -847,9 +978,9 @@ export default function GoalsPage() {
 
 function getSidebarTitle(tabId) {
   const titles = {
-    tracking: 'Tracking',
-    insights: 'Insights',
-    planner: 'Planning Tools'
+    tracking: 'Activity Goals',
+    insights: 'AI Goal Insights',
+    planner: 'Production Planner'
   };
   return titles[tabId] || 'Details';
 }

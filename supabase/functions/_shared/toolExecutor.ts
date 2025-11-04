@@ -24,20 +24,34 @@ export async function executeTool(
   const toolMap: Record<string, string> = {
     // NOVA tools
     'sendGoogleEmail': 'sendGoogleEmailTool',
+    'sendOutlookEmail': 'sendOutlookEmailTool',
     'scheduleGoogleCalendarEvent': 'scheduleGoogleCalendarEventTool',
+    'findAvailableTimeSlots': 'findAvailableTimeSlotsTool',
     'createGoogleDriveFolder': 'createGoogleDriveFolderTool',
+    'createGoogleDoc': 'createGoogleDocTool',
+    'createGoogleSheet': 'createGoogleSheetTool',
     'researchAndSummarize': 'researchAndSummarizeTool',
     
     // SIRIUS tools
     'publishFacebookPost': 'publishFacebookPostTool',
     'publishInstagramPost': 'publishInstagramPostTool',
+    'publishLinkedInPost': 'publishLinkedInPostTool',
     'getFacebookPageInsights': 'getFacebookPageInsightsTool',
+    'getInstagramInsights': 'getInstagramInsightsTool',
     'generateImage': 'generateImageTool',
     
     // VEGA tools
     'createTransaction': 'createTransactionTool',
     'getTransactions': 'getTransactionsTool',
     'updateTransaction': 'updateTransactionTool',
+    'createLoftyTask': 'createLoftyTaskTool',
+    'createFollowUpBossTask': 'createFollowUpBossTaskTool',
+    'createSkySlopeTransaction': 'createSkySlopeTransactionTool',
+    'uploadSkySlopeDocument': 'uploadSkySlopeDocumentTool',
+    'getSkySlopeTransactionDetails': 'getSkySlopeTransactionDetailsTool',
+    'updateSkySlopeTransaction': 'updateSkySlopeTransactionTool',
+    'listSkySlopeTransactions': 'listSkySlopeTransactionsTool',
+    'getSkySlopeChecklistItems': 'getSkySlopeChecklistItemsTool',
   };
 
   const functionName = toolMap[toolName];
@@ -123,11 +137,23 @@ function getErrorSuggestion(toolName: string, error: any): string {
     if (toolName.includes('Google')) {
       return 'Please connect your Google Workspace account in Settings > Integrations';
     }
+    if (toolName.includes('Outlook') || toolName.includes('Microsoft')) {
+      return 'Please connect your Microsoft 365 account in Settings > Integrations';
+    }
     if (toolName.includes('Facebook') || toolName.includes('Instagram')) {
       return 'Please connect your Facebook/Instagram account in Settings > Integrations';
     }
+    if (toolName.includes('LinkedIn')) {
+      return 'Please connect your LinkedIn account in Settings > Integrations';
+    }
     if (toolName.includes('Lofty')) {
       return 'Please connect your Lofty CRM in Settings > Integrations';
+    }
+    if (toolName.includes('FollowUpBoss')) {
+      return 'Please connect your Follow Up Boss account in Settings > Integrations';
+    }
+    if (toolName.includes('SkySlope')) {
+      return 'Please connect your SkySlope account in Settings > Integrations';
     }
     return 'Please connect the required integration in Settings > Integrations';
   }

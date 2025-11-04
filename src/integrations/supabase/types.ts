@@ -378,42 +378,60 @@ export type Database = {
       }
       call_logs: {
         Row: {
+          analysis: Json | null
+          call_sid: string | null
           call_type: string
           contact_name: string | null
+          conversation_id: string | null
           created_at: string | null
           duration_seconds: number | null
+          ended_at: string | null
+          form_data: Json | null
           id: string
           metadata: Json | null
           notes: string | null
           phone_number: string | null
           recording_url: string | null
           status: string | null
+          transcript: Json | null
           user_id: string
         }
         Insert: {
+          analysis?: Json | null
+          call_sid?: string | null
           call_type: string
           contact_name?: string | null
+          conversation_id?: string | null
           created_at?: string | null
           duration_seconds?: number | null
+          ended_at?: string | null
+          form_data?: Json | null
           id?: string
           metadata?: Json | null
           notes?: string | null
           phone_number?: string | null
           recording_url?: string | null
           status?: string | null
+          transcript?: Json | null
           user_id: string
         }
         Update: {
+          analysis?: Json | null
+          call_sid?: string | null
           call_type?: string
           contact_name?: string | null
+          conversation_id?: string | null
           created_at?: string | null
           duration_seconds?: number | null
+          ended_at?: string | null
+          form_data?: Json | null
           id?: string
           metadata?: Json | null
           notes?: string | null
           phone_number?: string | null
           recording_url?: string | null
           status?: string | null
+          transcript?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -1357,6 +1375,7 @@ export type Database = {
           detailed_feedback: string | null
           id: string
           metrics: Json | null
+          overall_result: string | null
           overall_score: number | null
           session_id: string | null
           strengths: Json | null
@@ -1368,6 +1387,7 @@ export type Database = {
           detailed_feedback?: string | null
           id?: string
           metrics?: Json | null
+          overall_result?: string | null
           overall_score?: number | null
           session_id?: string | null
           strengths?: Json | null
@@ -1379,6 +1399,7 @@ export type Database = {
           detailed_feedback?: string | null
           id?: string
           metrics?: Json | null
+          overall_result?: string | null
           overall_score?: number | null
           session_id?: string | null
           strengths?: Json | null
@@ -1468,8 +1489,13 @@ export type Database = {
       }
       role_play_session_logs: {
         Row: {
+          call_sid: string | null
+          conversation_id: string | null
           created_at: string | null
+          ended_at: string | null
           id: string
+          metadata: Json | null
+          recording_url: string | null
           scenario_id: string | null
           session_duration_seconds: number | null
           status: string | null
@@ -1477,8 +1503,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          call_sid?: string | null
+          conversation_id?: string | null
           created_at?: string | null
+          ended_at?: string | null
           id?: string
+          metadata?: Json | null
+          recording_url?: string | null
           scenario_id?: string | null
           session_duration_seconds?: number | null
           status?: string | null
@@ -1486,8 +1517,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          call_sid?: string | null
+          conversation_id?: string | null
           created_at?: string | null
+          ended_at?: string | null
           id?: string
+          metadata?: Json | null
+          recording_url?: string | null
           scenario_id?: string | null
           session_duration_seconds?: number | null
           status?: string | null
@@ -1644,30 +1680,39 @@ export type Database = {
       user_agent_subscriptions: {
         Row: {
           agent_type: string
+          current_minutes_used: number | null
           created_at: string | null
           expires_at: string | null
           id: string
           is_active: boolean | null
+          minutes_allocated: number | null
+          overage_rate: number | null
           subscription_tier: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           agent_type: string
+          current_minutes_used?: number | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          minutes_allocated?: number | null
+          overage_rate?: number | null
           subscription_tier?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           agent_type?: string
+          current_minutes_used?: number | null
           created_at?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          minutes_allocated?: number | null
+          overage_rate?: number | null
           subscription_tier?: string | null
           updated_at?: string | null
           user_id?: string

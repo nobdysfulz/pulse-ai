@@ -1,303 +1,183 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { UserContext } from '../context/UserContext';
-import { BusinessPlan, Goal } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import Step1AgentInfo from './Step1AgentInfo';
-import Step2Financial from './Step2Financial';
+import Step2Financial, { PERSONAL_EXPENSE_CATEGORIES, BUSINESS_EXPENSE_CATEGORIES } from './Step2Financial';
 import Step3DealStructure from './Step3DealStructure';
 import Step4Activities from './Step4Activities';
 import Step5Summary from './Step5Summary';
+import {
+  calculatePlanTargets,
+  calculateFinancialSummary,
+  getDefaultConversionRates,
+  initializeExpenseCategories,
+} from './calculations';
+import { supabase } from '@/integrations/supabase/client';
 
-const initialPlanData = {
-  planYear: new Date().getFullYear(),
-  netIncomeGoal: 70000,
-  personalExpenses: {},
-  businessExpenses: {},
-  taxRate: 25,
-  avgSalePrice: 450000,
-  commissionRate: 3,
-  buyerSellerSplit: 60,
-  incomeSplit: 60,
-  brokerageSplitBuyers: 20,
-  brokerageSplitSellers: 20,
-  teamSplitBuyers: 0,
-  teamSplitSellers: 0,
-  buyerActivities: { conversions: 16, appointments: 1, met: 1, signed: 2, underContract: 1, closings: 1 },
-  listingActivities: { conversions: 10, appointments: 0, met: 0, signed: 1, underContract: 1, closings: 1 }
+const createInitialPlanData = () => {
+  const currentYear = new Date().getFullYear();
+  return {
+    planYear: currentYear,
+    netIncomeGoal: 70000,
+    personalExpenses: initializeExpenseCategories(PERSONAL_EXPENSE_CATEGORIES),
+    businessExpenses: initializeExpenseCategories(BUSINESS_EXPENSE_CATEGORIES),
+    taxRate: 25,
+    avgSalePrice: 450000,
+    commissionRate: 3,
+    incomeSplit: 60,
+    buyerSellerSplit: 60,
+    brokerageSplitBuyers: 20,
+    brokerageSplitSellers: 20,
+    brokerageCap: 0,
+    teamSplitBuyers: 0,
+    teamSplitSellers: 0,
+    conversionRates: getDefaultConversionRates(),
+  };
+};
+
+const normalizeExpenseCollection = (defaults, saved) => {
+  const normalized = { ...defaults };
+  Object.entries(defaults).forEach(([key, items]) => {
+    const savedItems = saved?.[key] || items;
+    normalized[key] = savedItems.map((item, index) => ({
+      id: item.id || `${key}-${index}-${Date.now()}`,
+      name: item.name || '',
+      amount: item.amount ?? '',
+      frequency: item.frequency || 'monthly',
+    }));
+  });
+  return normalized;
+};
+
+const mergeSavedPlan = (savedPlan) => {
+  if (!savedPlan) return createInitialPlanData();
+
+  const defaults = createInitialPlanData();
+  const merged = {
+    ...defaults,
+    ...savedPlan,
+  };
+
+  merged.personalExpenses = normalizeExpenseCollection(defaults.personalExpenses, savedPlan.personalExpenses);
+  merged.businessExpenses = normalizeExpenseCollection(defaults.businessExpenses, savedPlan.businessExpenses);
+  merged.conversionRates = {
+    buyer: { ...defaults.conversionRates.buyer, ...(savedPlan.conversionRates?.buyer || {}) },
+    listing: { ...defaults.conversionRates.listing, ...(savedPlan.conversionRates?.listing || {}) },
+  };
+
+  return merged;
 };
 
 export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved }) {
   const { user, businessPlan, refreshUserData } = useContext(UserContext);
   const [currentStep, setCurrentStep] = useState(1);
-  const [saving, setSaving] = useState(false);
-  const [planData, setPlanData] = useState(initialPlanData);
+  const [activating, setActivating] = useState(false);
+  const [planData, setPlanData] = useState(createInitialPlanData());
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    setCurrentStep(1);
     if (businessPlan?.detailedPlan) {
       try {
-        const savedPlan = JSON.parse(businessPlan.detailedPlan);
-        setPlanData({ ...initialPlanData, ...savedPlan });
-      } catch (e) {
-        console.error("Failed to parse saved business plan, starting fresh.");
-        setPlanData(initialPlanData);
+        const saved = JSON.parse(businessPlan.detailedPlan);
+        setPlanData(mergeSavedPlan(saved));
+      } catch (error) {
+        console.error('Failed to parse saved production plan', error);
+        setPlanData(createInitialPlanData());
       }
     } else {
-      setPlanData(initialPlanData);
+      setPlanData(createInitialPlanData());
     }
   }, [businessPlan, isOpen]);
 
   const totalSteps = 5;
+  const progressPercent = Math.round((currentStep / totalSteps) * 100);
+
+  const calculatedTargets = useMemo(() => calculatePlanTargets(planData), [planData]);
+  const financialSummary = useMemo(() => calculateFinancialSummary(planData), [planData]);
+
+  const validateStep = useCallback((step) => {
+    if (step === 1) {
+      if (!planData.netIncomeGoal || planData.netIncomeGoal <= 0) {
+        toast.error('Please enter a positive net income goal.');
+        return false;
+      }
+    }
+    if (step === 3) {
+      if (!planData.avgSalePrice || planData.avgSalePrice <= 0) {
+        toast.error('Average sale price must be greater than zero.');
+        return false;
+      }
+      if (!planData.commissionRate || planData.commissionRate <= 0) {
+        toast.error('Commission rate must be greater than zero.');
+        return false;
+      }
+      if (!planData.incomeSplit || planData.incomeSplit <= 0) {
+        toast.error('Income split must be greater than zero.');
+        return false;
+      }
+    }
+    return true;
+  }, [planData]);
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep >= totalSteps) return;
+    if (!validateStep(currentStep)) return;
+    setCurrentStep((step) => Math.min(totalSteps, step + 1));
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    setCurrentStep((step) => Math.max(1, step - 1));
   };
 
-  const closeModal = (wasSuccessful = false) => {
-    if (typeof onClose === 'function') {
-      onClose(wasSuccessful);
-    }
-  };
-
-  const calculateGoalsFromPlan = (data) => {
-    // Calculate financial targets
-    const grossIncome = data.netIncomeGoal / (1 - (data.taxRate / 100));
-    const totalExpenses = Object.values(data.personalExpenses || {}).reduce((a, b) => a + b, 0) + 
-                          Object.values(data.businessExpenses || {}).reduce((a, b) => a + b, 0);
-    const gciRequired = grossIncome + totalExpenses;
-    
-    // Calculate deal breakdown
-    const avgCommission = (data.avgSalePrice * (data.commissionRate / 100));
-    const agentGrossPerDeal = avgCommission * (data.incomeSplit / 100);
-    const totalDealsNeeded = Math.ceil(gciRequired / agentGrossPerDeal);
-    
-    // Calculate buyer/seller split
-    const buyerSplitPercent = data.buyerSellerSplit / 100;
-    const buyerDeals = Math.ceil(totalDealsNeeded * buyerSplitPercent);
-    const listingDeals = Math.ceil(totalDealsNeeded * (1 - buyerSplitPercent));
-    
-    // Calculate activity goals based on conversion ratios
-    const totalConversations = (buyerDeals * (data.buyerActivities?.conversions || 16)) + 
-                               (listingDeals * (data.listingActivities?.conversions || 10));
-    const totalAppointments = (buyerDeals * (data.buyerActivities?.appointments || 1)) + 
-                              (listingDeals * (data.listingActivities?.appointments || 0));
-    const totalAgreements = buyerDeals + listingDeals;
-    
-    return {
-      gciRequired,
-      totalDealsNeeded,
-      buyerDeals,
-      listingDeals,
-      totalConversations,
-      totalAppointments,
-      totalAgreements,
-      totalVolume: totalDealsNeeded * data.avgSalePrice
-    };
-  };
+const closeModal = () => {
+  setCurrentStep(1);
+  onClose?.();
+};
 
   const handleFinishAndActivate = async () => {
-    setSaving(true);
-    try {
-      const calculatedTargets = calculateGoalsFromPlan(planData);
-      
-      // Save Business Plan
-      const planPayload = {
-        ...calculatedTargets,
-        planYear: planData.planYear,
-        netIncomeGoal: planData.netIncomeGoal,
-        taxRate: planData.taxRate / 100,
-        commissionRate: planData.commissionRate / 100,
-        avgSalePrice: planData.avgSalePrice,
-        userId: user.id,
-        isActive: true,
-        detailedPlan: JSON.stringify(planData)
-      };
-
-      const existing = await BusinessPlan.filter({ userId: user.id, planYear: planData.planYear });
-
-      let savedPlan;
-      if (existing.length > 0) {
-        await BusinessPlan.update(existing[0].id, planPayload);
-        savedPlan = { ...existing[0], ...planPayload };
-      } else {
-        savedPlan = await BusinessPlan.create(planPayload);
-      }
-
-      // Create/Update Goals
-      const goalsToCreate = [
-        {
-          title: 'Total Conversations',
-          category: 'lead-generation',
-          type: 'annual',
-          targetValue: calculatedTargets.totalConversations,
-          targetUnit: 'conversations',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Appointments Set',
-          category: 'lead-generation',
-          type: 'annual',
-          targetValue: calculatedTargets.totalAppointments,
-          targetUnit: 'appointments',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Agreements Signed',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.totalAgreements,
-          targetUnit: 'agreements',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Under Contract',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.totalDealsNeeded,
-          targetUnit: 'contracts',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Buyers Closed',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.buyerDeals,
-          targetUnit: 'closings',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Listings Closed',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.listingDeals,
-          targetUnit: 'closings',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total Sales Volume',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.totalVolume,
-          targetUnit: 'USD',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        },
-        {
-          title: 'Total GCI',
-          category: 'production',
-          type: 'annual',
-          targetValue: calculatedTargets.gciRequired,
-          targetUnit: 'USD',
-          deadline: `${planData.planYear}-12-31`,
-          currentValue: 0,
-          status: 'active'
-        }
-      ];
-
-      // Create goals via admin operation
-      for (const goalData of goalsToCreate) {
-        // Check if goal already exists
-        const existingGoals = await Goal.filter({
-          userId: user.id,
-          title: goalData.title,
-          type: 'annual'
-        });
-
-        if (existingGoals.length > 0) {
-          // Update existing goal
-          await Goal.update(existingGoals[0].id, {
-            ...goalData,
-            userId: user.id
-          });
-        } else {
-          // Create new goal
-          await Goal.create({
-            ...goalData,
-            userId: user.id
-          });
-        }
-      }
-
-      toast.success('Your 12-Month Production Plan has been saved and activated!');
-      
-      // Refresh user data to update context
-      await refreshUserData();
-      
-      // Wait for state to propagate before closing
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Notify parent components
-      if (onPlanSaved) {
-        await onPlanSaved();
-      }
-      
-      closeModal(true);
-    } catch (error) {
-      console.error('Error saving plan and goals:', error);
-      toast.error('Failed to activate production plan. Please try again.');
-    } finally {
-      setSaving(false);
+    if (!user) {
+      toast.error('You need to be logged in to activate your plan.');
+      return;
     }
-  };
 
-  const handleSave = async () => {
-    setSaving(true);
-    let wasSuccessful = false;
+    if (!validateStep(3)) {
+      setCurrentStep(3);
+      return;
+    }
+
+    setActivating(true);
     try {
-      const calculatedTargets = calculateGoalsFromPlan(planData);
-
       const payload = {
-        ...calculatedTargets,
-        planYear: planData.planYear,
-        netIncomeGoal: planData.netIncomeGoal,
-        taxRate: planData.taxRate / 100,
-        commissionRate: planData.commissionRate / 100,
-        avgSalePrice: planData.avgSalePrice,
+        planData,
+        calculatedTargets,
         userId: user.id,
-        isActive: true,
-        detailedPlan: JSON.stringify(planData)
       };
 
-      const existing = await BusinessPlan.filter({ userId: user.id, planYear: planData.planYear });
+      const { data, error } = await supabase.functions.invoke('activateProductionPlan', { body: payload });
 
-      if (existing.length > 0) {
-        await BusinessPlan.update(existing[0].id, payload);
-      } else {
-        await BusinessPlan.create(payload);
+      if (error) {
+        throw error;
       }
 
-      toast.success('Production plan saved successfully!');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to activate production plan');
+      }
+
+      toast.success(`Production plan activated! Created ${data.goalsCreated} new goal(s), updated ${data.goalsUpdated} goal(s).`);
       await refreshUserData();
-      wasSuccessful = true;
-    } catch (error) {
-      console.error('Error saving plan:', error);
-      toast.error('Failed to save production plan');
+      await onPlanSaved?.();
+      setCurrentStep(1);
+      onClose?.();
+    } catch (err) {
+      console.error('Error activating production plan', err);
+      toast.error(err.message || 'Failed to activate production plan. Please try again.');
     } finally {
-      setSaving(false);
+      setActivating(false);
     }
-    return wasSuccessful;
   };
 
   if (!isOpen) return null;
@@ -305,75 +185,70 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
   const stepComponents = [
     <Step1AgentInfo planData={planData} setPlanData={setPlanData} />,
     <Step2Financial planData={planData} setPlanData={setPlanData} />,
-    <Step3DealStructure planData={planData} setPlanData={setPlanData} />,
-    <Step4Activities planData={planData} />,
-    <Step5Summary planData={planData} user={user} />
+    <Step3DealStructure planData={planData} setPlanData={setPlanData} financialSummary={financialSummary} />,
+    <Step4Activities
+      planData={planData}
+      setPlanData={setPlanData}
+      activityTargets={calculatedTargets.activityTargets}
+      dealStructure={calculatedTargets.dealStructure}
+    />,
+    <Step5Summary
+      planData={planData}
+      calculatedTargets={calculatedTargets}
+      onEditStep={(step) => setCurrentStep(step)}
+    />,
   ];
 
   const stepTitles = [
-    "Step 1: Agent Information",
-    "Step 2: Financial Planning",
-    "Step 3: Deal Structure",
-    "Step 4: Activity Planning",
-    "Step 5: Business Plan Summary"
+    'Step 1: Agent Information',
+    'Step 2: Financial Planning',
+    'Step 3: Deal Structure',
+    'Step 4: Activity Planning',
+    'Step 5: Business Plan Summary',
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col border border-[#E2E8F0]">
-        {/* Header */}
-        <div className="bg-zinc-50 px-6 py-4 flex-shrink-0 flex items-center justify-between border-b border-[#E2E8F0]">
-          <div>
-            <h2 className="text-xl font-bold text-[#1E293B]">12-Month Production Planner</h2>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-              <div className="bg-violet-700 rounded-full h-2.5" style={{ width: `${(currentStep / totalSteps) * 100}%` }}></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-slate-900">12-Month Production Planner</h2>
+            <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
+              <div className="h-2 rounded-full bg-violet-600" style={{ width: `${progressPercent}%` }} />
             </div>
-            <p className="text-center text-sm text-gray-500 mt-1">{stepTitles[currentStep - 1]}</p>
+            <p className="mt-2 text-sm text-slate-500">{stepTitles[currentStep - 1]}</p>
           </div>
-          <button onClick={() => closeModal(false)} className="text-[#475569] hover:text-[#1E293B]">
-            <X className="w-6 h-6" />
+          <button
+            type="button"
+            className="rounded-full p-2 text-slate-500 transition-colors hover:bg-white hover:text-slate-900"
+            onClick={closeModal}
+            aria-label="Close planner"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Step Content */}
-        <div className="pt-4 pr-6 pb-6 pl-6 flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           {stepComponents[currentStep - 1]}
         </div>
 
-        {/* Footer */}
-        <div className="bg-zinc-50 pt-4 pr-6 pb-4 pl-6 flex items-center justify-between border-t border-[#E2E8F0] flex-shrink-0">
-          <Button
-            variant="outline"
-            onClick={async () => {
-              const saved = await handleSave();
-              if (saved) {
-                closeModal(true);
-              }
-            }}
-            disabled={saving}
-            className="bg-white text-gray-800 px-4 py-2 text-sm font-medium rounded-md"
-          >
-            {saving ? 'Saving...' : 'Save & Exit'}
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <Button variant="outline" onClick={closeModal} disabled={activating}>
+            Cancel
           </Button>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="bg-white text-zinc-500"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleBack} disabled={currentStep === 1 || activating}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-
             {currentStep < totalSteps ? (
-              <Button onClick={handleNext} className="bg-violet-700 text-white hover:bg-[#c026d3]">
+              <Button onClick={handleNext} disabled={activating}>
                 Next
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleFinishAndActivate} disabled={saving} className="bg-violet-700 text-white hover:bg-[#c026d3]">
-                {saving ? 'Activating...' : 'Finish & Activate Plan'}
+              <Button onClick={handleFinishAndActivate} disabled={activating} className="bg-violet-600 text-white hover:bg-violet-700">
+                {activating ? 'Activating…' : 'Finish & Activate Plan'}
               </Button>
             )}
           </div>

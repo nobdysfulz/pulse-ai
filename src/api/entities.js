@@ -253,6 +253,7 @@ export const ContentTopic = createEntity('content_topics');
 export const FeaturedContentPack = createEntity('featured_content_packs');
 export const GeneratedContent = createEntity('generated_content');
 export const AiPromptConfig = createEntity('ai_prompt_configs');
+export const ContentPreference = createEntity('content_preferences');
 export const CampaignTemplate = createEntity('campaign_templates');
 export const Transaction = createEntity('transactions');
 export const UserCredit = createEntity('user_credits');

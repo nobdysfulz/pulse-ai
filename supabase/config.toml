@@ -21,10 +21,22 @@ verify_jwt = false
 [functions.sendGoogleEmailTool]
 verify_jwt = false
 
+[functions.sendOutlookEmailTool]
+verify_jwt = false
+
 [functions.scheduleGoogleCalendarEventTool]
 verify_jwt = false
 
+[functions.findAvailableTimeSlotsTool]
+verify_jwt = false
+
 [functions.createGoogleDriveFolderTool]
+verify_jwt = false
+
+[functions.createGoogleDocTool]
+verify_jwt = false
+
+[functions.createGoogleSheetTool]
 verify_jwt = false
 
 [functions.researchAndSummarizeTool]
@@ -36,10 +48,40 @@ verify_jwt = false
 [functions.publishInstagramPostTool]
 verify_jwt = false
 
+[functions.publishLinkedInPostTool]
+verify_jwt = false
+
 [functions.getFacebookPageInsightsTool]
 verify_jwt = false
 
+[functions.getInstagramInsightsTool]
+verify_jwt = false
+
 [functions.generateImageTool]
+verify_jwt = false
+
+[functions.createLoftyTaskTool]
+verify_jwt = false
+
+[functions.createFollowUpBossTaskTool]
+verify_jwt = false
+
+[functions.createSkySlopeTransactionTool]
+verify_jwt = false
+
+[functions.uploadSkySlopeDocumentTool]
+verify_jwt = false
+
+[functions.getSkySlopeTransactionDetailsTool]
+verify_jwt = false
+
+[functions.updateSkySlopeTransactionTool]
+verify_jwt = false
+
+[functions.listSkySlopeTransactionsTool]
+verify_jwt = false
+
+[functions.getSkySlopeChecklistItemsTool]
 verify_jwt = false
 
 [functions.buildGraphContext]
@@ -149,6 +191,18 @@ verify_jwt = true
 
 [functions.sendContactsToElevenLabs]
 verify_jwt = true
+
+[functions.initElevenLabsRolePlaySession]
+verify_jwt = true
+
+[functions.elevenLabsWebhook]
+verify_jwt = false
+
+[functions.elevenLabsRolePlayWebhook]
+verify_jwt = false
+
+[functions.analyzeRolePlaySession]
+verify_jwt = false
 
 [functions.getUserAutopilotActivity]
 verify_jwt = true
