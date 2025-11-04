@@ -97,9 +97,21 @@ const getUserOnboarding = async (userId) => {
     .select('*')
     .eq('user_id', userId)
     .single();
-  
+
   if (error && error.code !== 'PGRST116') throw error;
   return data;
+};
+
+const normalizeOnboardingProgress = (record) => {
+  if (!record) return null;
+
+  return {
+    ...record,
+    onboardingCompleted: record.onboarding_completed ?? record.onboardingCompleted ?? false,
+    agentOnboardingCompleted: record.agent_onboarding_completed ?? record.agentOnboardingCompleted ?? false,
+    callCenterOnboardingCompleted: record.call_center_onboarding_completed ?? record.callCenterOnboardingCompleted ?? false,
+    completedSteps: record.completed_steps ?? record.completedSteps ?? [],
+  };
 };
 
 function TierAwareOnboarding({ initialPhase = 'core' }) {
@@ -161,7 +173,7 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       try {
         const onboardingData = await getUserOnboarding(user.id);
         if (onboardingData) {
-          progress = onboardingData;
+          progress = normalizeOnboardingProgress(onboardingData);
         }
       } catch (error) {
         console.error('Error fetching onboarding:', error);
@@ -170,28 +182,30 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         }
       }
 
-      if (progress?.completedSteps) {
-        setCompletedSteps(new Set(progress.completedSteps));
+      const normalizedProgress = normalizeOnboardingProgress(progress) || null;
+
+      if (normalizedProgress?.completedSteps) {
+        setCompletedSteps(new Set(normalizedProgress.completedSteps));
       }
 
-      if (progress) {
+      if (normalizedProgress) {
         console.log('🔍 Onboarding progress check:', {
-          onboardingCompleted: progress?.onboardingCompleted,
-          agentOnboardingCompleted: progress?.agentOnboardingCompleted,
-          callCenterOnboardingCompleted: progress?.callCenterOnboardingCompleted,
+          onboardingCompleted: normalizedProgress?.onboardingCompleted,
+          agentOnboardingCompleted: normalizedProgress?.agentOnboardingCompleted,
+          callCenterOnboardingCompleted: normalizedProgress?.callCenterOnboardingCompleted,
           activeModules: activeModules
         });
 
         // Determine where to start based on completion status
-        if (!progress?.onboardingCompleted) {
+        if (!normalizedProgress?.onboardingCompleted) {
           console.log('🚀 Core onboarding not complete - starting at core module');
           setCurrentPhase('core');
           setCurrentStep(0);
-        } else if (activeModules.includes('agents') && !progress?.agentOnboardingCompleted) {
+        } else if (activeModules.includes('agents') && !normalizedProgress?.agentOnboardingCompleted) {
           console.log('🚀 Starting Agents module');
           setCurrentPhase('agents');
           setCurrentStep(0);
-        } else if (activeModules.includes('callcenter') && !progress?.callCenterOnboardingCompleted) {
+        } else if (activeModules.includes('callcenter') && !normalizedProgress?.callCenterOnboardingCompleted) {
           console.log('🚀 Starting Call Center module');
           setCurrentPhase('callcenter');
           setCurrentStep(0);

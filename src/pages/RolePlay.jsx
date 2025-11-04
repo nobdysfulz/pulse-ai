@@ -318,9 +318,17 @@ export default function RolePlayPage() {
 
       if (scenariosError) throw scenariosError;
 
-      const scenarios = scenariosData || [];
+      const scenarios = (scenariosData || []).map((scenario) => ({
+        ...scenario,
+        difficultyLevel: scenario.difficulty_level || scenario.difficultyLevel || 'beginner',
+        avatarImageUrl: scenario.avatar_image_url || scenario.avatarImageUrl || 'https://i.pravatar.cc/150?img=56',
+        estimatedDurationMinutes: scenario.estimated_duration_minutes ?? scenario.estimatedDurationMinutes ?? null,
+        isPopular: Boolean(scenario.is_popular ?? scenario.isPopular),
+        category: scenario.category || scenario.category_slug || 'general'
+      }));
+
       setAllScenarios(scenarios);
-      setFeaturedScenarios(scenarios.filter(s => s.is_popular));
+      setFeaturedScenarios(scenarios.filter(s => s.isPopular));
 
       // Load session logs
       const { data: logsData, error: logsError } = await supabase

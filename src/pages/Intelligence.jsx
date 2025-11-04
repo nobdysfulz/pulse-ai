@@ -1,9 +1,64 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, Brain, Globe, RefreshCw, CheckCircle, Plus, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+
+const cleanJsonText = (value) =>
+  typeof value === 'string' ? value.replace(/```json\s*|```/gi, '').trim() : value;
+
+const normalizeInsights = (insights) => {
+  if (!insights) {
+    return { message: null, highlights: [], actions: [] };
+  }
+
+  let parsed = insights;
+
+  if (typeof insights === 'string') {
+    try {
+      parsed = JSON.parse(cleanJsonText(insights));
+    } catch (error) {
+      return { message: insights, highlights: [], actions: [] };
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return { message: typeof parsed === 'string' ? parsed : JSON.stringify(parsed), highlights: [], actions: [] };
+  }
+
+  const messageParts = [];
+  if (typeof parsed.message === 'string') messageParts.push(parsed.message);
+  if (typeof parsed.summary === 'string') messageParts.push(parsed.summary);
+  if (Array.isArray(parsed.summary)) messageParts.push(...parsed.summary);
+
+  const highlightSources = ['insights', 'highlights', 'key_findings', 'opportunities', 'risks'];
+  const highlights = [];
+  highlightSources.forEach((key) => {
+    const value = parsed[key];
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === 'string') {
+          highlights.push(item);
+        } else if (item) {
+          highlights.push(JSON.stringify(item));
+        }
+      });
+    } else if (typeof value === 'string') {
+      highlights.push(value);
+    }
+  });
+
+  const actions = Array.isArray(parsed.actions)
+    ? parsed.actions.filter(Boolean)
+    : [];
+
+  return {
+    message: messageParts.filter(Boolean).join('\n\n') || null,
+    highlights,
+    actions
+  };
+};
 
 export default function IntelligencePage() {
   const [context, setContext] = useState(null);
@@ -13,6 +68,8 @@ export default function IntelligencePage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const previousScores = useRef(null);
   const debounceTimer = useRef(null);
+
+  const normalizedInsights = useMemo(() => normalizeInsights(context?.insights), [context?.insights]);
 
   const fetchGraphContext = useCallback(async (fresh = false, retryAttempt = 0) => {
     try {
@@ -235,7 +292,7 @@ export default function IntelligencePage() {
         {/* Score Cards - Top Row */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* PULSE Card */}
-          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.pulse)}`}>
+          <Card className={`border shadow-sm ${getScoreBgColor(context.scores.pulse)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -278,7 +335,7 @@ export default function IntelligencePage() {
           </Card>
 
           {/* GANE Card */}
-          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.gane)}`}>
+          <Card className={`border shadow-sm ${getScoreBgColor(context.scores.gane)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -321,7 +378,7 @@ export default function IntelligencePage() {
           </Card>
 
           {/* MORO Card */}
-          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.moro)}`}>
+          <Card className={`border shadow-sm ${getScoreBgColor(context.scores.moro)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -365,7 +422,7 @@ export default function IntelligencePage() {
         </div>
 
         {/* Overall Intelligence Score */}
-        <Card className="border-2 shadow-sm bg-gradient-to-br from-violet-50 to-indigo-50">
+        <Card className="border shadow-sm bg-gradient-to-br from-violet-50 to-indigo-50">
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl text-[#1E293B]">Overall Intelligence Score</CardTitle>
             <CardDescription className="text-base text-[#475569]">
@@ -405,7 +462,7 @@ export default function IntelligencePage() {
         </Card>
 
         {/* AI Insights & Recommendations */}
-        <Card className="border-2 shadow-sm">
+        <Card className="border shadow-sm">
           <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 rounded-t-lg">
             <CardTitle className="text-2xl text-[#1E293B]">AI Insights & Recommendations</CardTitle>
             <CardDescription className="text-base text-[#475569]">
@@ -413,58 +470,34 @@ export default function IntelligencePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            <div className="p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200">
-              {(() => {
-                const insights = context.insights;
-                if (!insights) {
-                  return <p className="text-[#1E293B] leading-relaxed text-base">No insights available at this time.</p>;
-                }
-                
-                // Parse if it's a JSON string
-                let parsedInsights = insights;
-                if (typeof insights === 'string') {
-                  try {
-                    // Remove markdown code blocks if present
-                    const cleaned = insights.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                    parsedInsights = JSON.parse(cleaned);
-                  } catch (e) {
-                    // If not JSON, display as plain text
-                    return <p className="text-[#1E293B] leading-relaxed text-base">{insights}</p>;
-                  }
-                }
-                
-                // Display message if it exists
-                if (parsedInsights.message) {
-                  return <p className="text-[#1E293B] leading-relaxed text-base">{parsedInsights.message}</p>;
-                }
-                
-                return <p className="text-[#1E293B] leading-relaxed text-base">No insights available at this time.</p>;
-              })()}
+            <div className="p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200 space-y-4">
+              {normalizedInsights.message ? (
+                normalizedInsights.message.split(/\n\s*\n/).map((paragraph, idx) => (
+                  <p key={idx} className="text-[#1E293B] leading-relaxed text-base">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="text-[#1E293B] leading-relaxed text-base">No insights available at this time.</p>
+              )}
+
+              {normalizedInsights.highlights.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-semibold text-[#4338CA] tracking-wide uppercase">Key Highlights</h5>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-[#1E293B]">
+                    {normalizedInsights.highlights.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
-            {(() => {
-              const insights = context.insights;
-              if (!insights) return null;
-              
-              // Parse if it's a JSON string
-              let parsedInsights = insights;
-              if (typeof insights === 'string') {
-                try {
-                  const cleaned = insights.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                  parsedInsights = JSON.parse(cleaned);
-                } catch (e) {
-                  return null;
-                }
-              }
-              
-              const actions = parsedInsights.actions;
-              if (!actions || !Array.isArray(actions) || actions.length === 0) return null;
-              
-              return (
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg text-[#1E293B]">Recommended Actions</h4>
-                  <div className="grid gap-4">
-                    {actions.map((action, idx) => (
+            {normalizedInsights.actions.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="font-semibold text-lg text-[#1E293B]">Recommended Actions</h4>
+                <div className="grid gap-4">
+                  {normalizedInsights.actions.map((action, idx) => (
                     <div
                       key={idx}
                       className="flex items-start gap-4 p-5 bg-white border-2 border-[#E2E8F0] rounded-xl hover:border-violet-300 hover:shadow-md transition-all"
@@ -503,11 +536,10 @@ export default function IntelligencePage() {
                         )}
                       </Button>
                     </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              );
-            })()}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

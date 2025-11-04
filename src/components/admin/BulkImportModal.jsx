@@ -140,8 +140,8 @@ export default function BulkImportModal({
           {preview && (
             <div>
               <Label>Preview (first 5 rows)</Label>
-              <div className="mt-2 bg-gray-50 p-3 rounded-md overflow-x-auto max-h-48 overflow-y-auto">
-                <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+              <div className="mt-2 bg-gray-50 p-3 rounded-md overflow-auto max-h-48">
+                <pre className="text-xs font-mono whitespace-pre-wrap break-all text-slate-700">
                   {preview.join('\n')}
                 </pre>
               </div>

@@ -104,9 +104,7 @@ export default function ContentStudioPage() {
       // Set default preferences
       setPreferences({
         defaultTone: 'professional',
-        defaultLength: 'medium',
-        marketFocus: marketConfig?.primaryTerritory || '',
-        targetAudience: 'General audience'
+        defaultLength: 'medium'
       });
 
     } catch (error) {

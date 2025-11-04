@@ -26,6 +26,22 @@ const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0
 }).format(value || 0);
 
+const normalizeGoalRecord = (goal) => {
+  const targetValue = goal.target_value ?? goal.targetValue ?? 0;
+  const currentValue = goal.current_value ?? goal.currentValue ?? 0;
+  const targetUnit = goal.unit ?? goal.target_unit ?? goal.targetUnit ?? '';
+
+  return {
+    ...goal,
+    targetValue,
+    currentValue,
+    targetUnit,
+    createdAt: goal.created_at ?? goal.createdAt ?? null,
+    goalType: goal.goal_type ?? goal.goalType ?? 'custom',
+    userId: goal.user_id ?? goal.userId ?? null
+  };
+};
+
 export default function GoalsPage() {
   const { user, goals: contextGoals, businessPlan, refreshUserData, allActions, preferences } = useContext(UserContext);
   
@@ -57,16 +73,25 @@ export default function GoalsPage() {
     setLoading(true);
     try {
       // Set all goals with confidence levels
-      const allGoalsWithConfidence = (contextGoals || []).map((goal) => ({
-        ...goal,
-        confidenceLevel: (goal.status === 'active' || goal.status === 'at-risk') ? calculateConfidencePercentage(
-          new Date(),
-          new Date(goal.deadline),
-          goal.target_value,
-          goal.current_value || 0,
-          new Date(goal.created_at)
-        ) : null
-      }));
+      const allGoalsWithConfidence = (contextGoals || []).map((goal) => {
+        const normalized = normalizeGoalRecord(goal);
+
+        const createdDate = normalized.createdAt ? new Date(normalized.createdAt) : null;
+        const deadlineDate = normalized.deadline ? new Date(normalized.deadline) : null;
+
+        return {
+          ...normalized,
+          confidenceLevel: (normalized.status === 'active' || normalized.status === 'at-risk') && deadlineDate && createdDate
+            ? calculateConfidencePercentage(
+                new Date(),
+                deadlineDate,
+                normalized.targetValue,
+                normalized.currentValue || 0,
+                createdDate
+              )
+            : null
+        };
+      });
       setGoals(allGoalsWithConfidence);
       console.log('Loaded goals:', allGoalsWithConfidence.length);
 
