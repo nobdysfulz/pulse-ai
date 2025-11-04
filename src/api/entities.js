@@ -429,6 +429,7 @@ export const UserOnboarding = createEntity('user_onboarding');
 export const UserPreferences = createEntity('user_preferences');
 export const UserMarketConfig = createEntity('market_config');
 export const MarketIntelligence = createEntity('market_intelligence');
+export const MarketData = createEntity('market_data');
 export const AgentConfig = createEntity('agent_config');
 export const AgentVoice = createEntity('agent_voices');
 export const UserGuidelines = createEntity('user_guidelines');

@@ -31,14 +31,14 @@ serve(async (req) => {
 
     // Check if referred user signed up
     if (referral.referred_user_id && !referral.reward_granted) {
-      // Grant reward (25 credits)
+      // Grant reward (5 credits per referral)
       const { data: credits } = await supabaseClient
         .from('user_credits')
         .select('credits_available')
         .eq('user_id', referral.referrer_user_id)
         .single();
 
-      const newBalance = (credits?.credits_available || 0) + 25;
+      const newBalance = (credits?.credits_available || 0) + 5;
 
       await supabaseClient
         .from('user_credits')
@@ -50,7 +50,7 @@ serve(async (req) => {
         .from('credit_transactions')
         .insert({
           user_id: referral.referrer_user_id,
-          amount: 25,
+          amount: 5,
           transaction_type: 'earned',
           description: 'Referral reward',
           balance_after: newBalance,
@@ -60,14 +60,15 @@ serve(async (req) => {
       // Update referral status
       await supabaseClient
         .from('referrals')
-        .update({ 
+        .update({
           status: 'completed',
-          reward_granted: true 
+          reward_granted: true,
+          credits_awarded: 5
         })
         .eq('id', referralId);
 
       return new Response(
-        JSON.stringify({ success: true, creditsAwarded: 25 }),
+        JSON.stringify({ success: true, creditsAwarded: 5 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
