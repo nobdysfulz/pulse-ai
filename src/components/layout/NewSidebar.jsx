@@ -166,7 +166,7 @@ export default function NewSidebar({ user, credits, tasksDueTodayCount, onMobile
   const mainMenuItems = useMemo(() => {
     const items = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, path: 'Dashboard' },
-    { id: 'todo', label: 'To-Do', icon: CheckSquare, path: 'PulseIntelligence', badge: tasksDueTodayCount > 0 ? tasksDueTodayCount : undefined },
+    { id: 'todo', label: 'To-Do', icon: CheckSquare, path: 'ToDo', badge: tasksDueTodayCount > 0 ? tasksDueTodayCount : undefined },
     { id: 'goals', label: 'Goals', icon: Target, path: 'Goals' },
     { id: 'content', label: 'Content', icon: Sparkles, path: 'ContentStudio' }];
 

@@ -35,10 +35,11 @@ const PlanCard = ({ plan, onNavigate }) =>
             </CardContent>
         </div>
         <div className="p-6 pt-0">
-            {plan.isComingSoon ?
-                <Button className="w-full" variant="outline" disabled>
+            {plan.isComingSoon ? (
+                <div className="w-full px-4 py-2 text-center text-sm font-semibold text-slate-500 border border-dashed border-slate-300 rounded-lg bg-slate-100">
                     Coming Soon
-                </Button> :
+                </div>
+            ) : (
 
                 <Button
                     className={cn("w-full", !plan.completed && "bg-pink-600 hover:bg-pink-700 text-white")}
@@ -47,7 +48,7 @@ const PlanCard = ({ plan, onNavigate }) =>
 
                     {plan.completed ? 'Edit Plan' : 'New Plan'}
                 </Button>
-            }
+            )}
         </div>
     </Card>;
 
@@ -138,7 +139,6 @@ export default function GoalPlanner() {
         }
 
         if (plan.isComingSoon) {
-            toast.info('This feature is coming soon!');
             return;
         }
 

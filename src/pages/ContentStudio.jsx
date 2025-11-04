@@ -37,6 +37,50 @@ const getCurrentWeekNumber = (date = new Date()) => {
 const sortByCreatedDateDesc = (items = []) =>
   [...items].sort((a, b) => new Date(b.created_date || b.createdAt) - new Date(a.created_date || a.createdAt));
 
+const shareContent = async ({ title, text }) => {
+  const contentToShare = text?.trim();
+
+  if (!contentToShare) {
+    toast.error('No content available to share.');
+    return;
+  }
+
+  const shareTitle = title || 'PULSE AI Content';
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      await navigator.share({ title: shareTitle, text: contentToShare });
+      toast.success('Content shared successfully!');
+      return;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(contentToShare);
+      toast.success('Content copied to clipboard!');
+      return;
+    }
+
+    if (typeof document !== 'undefined') {
+      const textarea = document.createElement('textarea');
+      textarea.value = contentToShare;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      toast.success('Content copied to clipboard!');
+      return;
+    }
+
+    toast.error('Sharing is not supported on this device.');
+  } catch (error) {
+    console.error('Failed to share content:', error);
+    toast.error('Unable to share content right now.');
+  }
+};
+
 const ContentItemCard = ({ title, description }) => {
   const safeDescription = description || '';
 
@@ -67,7 +111,7 @@ const ContentItemCard = ({ title, description }) => {
   };
 
   const handleShare = () => {
-    toast.info('Share functionality coming soon!');
+    shareContent({ title, text: safeDescription });
   };
 
   return (
@@ -456,6 +500,16 @@ export default function ContentStudioPage() {
     }
   };
 
+  const handleSharePost = () => {
+    if (!weeklyTopic) {
+      toast.error('No topic loaded.');
+      return;
+    }
+
+    const textToShare = `${weeklyTopic.socialFeedCaption || ''}\n\n${weeklyTopic.socialHashtags || ''}`.trim();
+    shareContent({ title: weeklyTopic.title || 'Weekly Social Post', text: textToShare });
+  };
+
   const handleContentClick = (content) => {
     setSelectedContent(content);
     setShowContentDetail(true);
@@ -556,7 +610,7 @@ export default function ContentStudioPage() {
                           <Button onClick={handleDownloadPostImage} variant="ghost" size="icon" className="h-9 w-9">
                             <Download className="w-4 h-4 text-[#64748B]" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => toast.info('Share coming soon!')}>
+                          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSharePost}>
                             <Share2 className="w-4 h-4 text-[#64748B]" />
                           </Button>
                         </div>

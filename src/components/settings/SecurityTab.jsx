@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function SecurityTab() {
-    const { user } = useContext(UserContext);
+    const { user, setSupportChatOpen } = useContext(UserContext);
 
     const handleSignOut = async () => {
         try {
@@ -19,9 +19,8 @@ export default function SecurityTab() {
     };
 
     const handleDeleteAccount = () => {
-        // For safety, we should not allow users to delete their own accounts directly.
-        // This should be a support request.
-        toast.info("To delete your account, please contact support through the chat widget.");
+        setSupportChatOpen(true);
+        toast.info("A support specialist will help you confirm your deletion request.");
     };
 
     return (
@@ -56,9 +55,15 @@ export default function SecurityTab() {
                 <CardHeader>
                     <CardTitle className="text-red-600">Delete Account</CardTitle>
                 </CardHeader>
-                <CardContent>
-                     <p className="text-sm text-slate-600 mb-4">Permanently delete your account and all associated data. This action is irreversible.</p>
-                     <Button variant="destructive" onClick={handleDeleteAccount}>Request Account Deletion</Button>
+                <CardContent className="space-y-4">
+                     <p className="text-sm text-slate-600">Permanently delete your account and all associated data. This action is irreversible.</p>
+                     <p className="text-xs text-slate-500">Start a support conversation so our team can verify your identity and complete the deletion.</p>
+                     <div className="flex flex-col sm:flex-row gap-2">
+                        <Button variant="destructive" className="flex-1" onClick={handleDeleteAccount}>Chat with Support</Button>
+                        <Button variant="outline" className="flex-1" asChild>
+                            <a href="mailto:support@pwru.app">Email Support</a>
+                        </Button>
+                     </div>
                 </CardContent>
             </Card>
         </div>
