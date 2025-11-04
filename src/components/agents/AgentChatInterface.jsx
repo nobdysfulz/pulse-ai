@@ -165,67 +165,19 @@ export default function AgentChatInterface({ agentType }) {
 
     try {
       const functionName = `${agentType}Chat`;
+      // Only send user/assistant messages to backend, not system messages
       const conversationHistory = messages.filter(m => m.role !== 'system');
-      
-      console.log(`[AgentChat] Calling ${functionName}...`);
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
-          userPrompt: messageText,
+          message: messageText,
           conversationId: conversationId,
           conversationHistory: conversationHistory
         }
       });
 
       if (error) {
-        console.error(`[AgentChat] Error from ${functionName}:`, {
-          error,
-          agentType,
-          timestamp: new Date().toISOString()
-        });
-
-        // Handle specific error types
-        if (error.message?.includes('RATE_LIMIT_EXCEEDED')) {
-          toast.error('Too many requests. Please wait a moment and try again.');
-          setMessages(prev => prev.slice(0, -1));
-          return;
-        } else if (error.message?.includes('PAYMENT_REQUIRED')) {
-          toast.error('AI credits exhausted. Please add credits to continue.');
-          setMessages(prev => prev.slice(0, -1));
-          return;
-        } else if (error.message?.includes('not found') || error.message?.includes('FunctionsRelayError')) {
-          console.warn(`[AgentChat] Function ${functionName} not found, falling back to copilotChat`);
-          
-          // Fallback to generic copilotChat
-          const fallbackResult = await supabase.functions.invoke('copilotChat', {
-            body: {
-              userPrompt: messageText,
-              conversationId: conversationId,
-              agentContext: { 
-                agentType, 
-                agentName: agentNames[agentType] 
-              },
-              conversationHistory: conversationHistory
-            }
-          });
-
-          if (fallbackResult.error) {
-            throw new Error(`Both ${functionName} and copilotChat failed`);
-          }
-
-          const assistantMessage = { 
-            role: 'assistant', 
-            content: fallbackResult.data.response,
-            isTyping: true
-          };
-          
-          const finalMessages = [...updatedMessages, assistantMessage];
-          setMessages(finalMessages);
-          await saveConversation(finalMessages);
-          return;
-        }
-        
-        throw error;
+        throw new Error(error.message || "The agent failed to respond.");
       }
 
       const assistantMessage = { 
@@ -237,19 +189,17 @@ export default function AgentChatInterface({ agentType }) {
       const finalMessages = [...updatedMessages, assistantMessage];
       setMessages(finalMessages);
       
+      // Save conversation after getting response
       await saveConversation(finalMessages);
 
     } catch (error) {
-      console.error('[AgentChat] Unexpected error:', {
-        error: error.message,
-        stack: error.stack,
-        agentType,
-        functionName: `${agentType}Chat`,
-        timestamp: new Date().toISOString()
-      });
-      
-      toast.error('Unable to connect to AI agent. Please try again later.');
-      setMessages(prev => prev.slice(0, -1));
+      console.error('Error getting agent response:', error);
+      toast.error(error.message || "Failed to get response from agent.");
+      const errorMessage = { 
+        role: 'assistant', 
+        content: "I apologize, but I'm having trouble responding right now. Please try again." 
+      };
+      setMessages([...updatedMessages, errorMessage]);
     } finally {
       setLoading(false);
     }

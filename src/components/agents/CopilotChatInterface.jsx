@@ -92,99 +92,64 @@ export default function CopilotChatInterface({
     setInputMessage('');
     setLoading(true);
 
-    let retryCount = 0;
-    const maxRetries = 2;
-
-    while (retryCount <= maxRetries) {
-      try {
-        console.log('[CopilotChat] Sending message, attempt:', retryCount + 1);
-        
-        const agentContext = {
-          marketConfig: marketConfig,
-          goals: goals,
-          actions: actions,
-          performanceAnalysis: {
-            overallPulseScore: 75
-          }
-        };
-
-        const { data, error } = await supabase.functions.invoke('copilotChat', {
-          body: {
-            userPrompt: messageText,
-            conversationId: internalConversationId,
-            agentContext: agentContext,
-            conversationHistory: messages.filter(m => !m.isGreeting),
-            currentTab: currentTab
-          }
-        });
-
-        if (error) {
-          console.error('[CopilotChat] Error response:', {
-            error,
-            attempt: retryCount + 1,
-            timestamp: new Date().toISOString()
-          });
-
-          if (error.message?.includes('RATE_LIMIT_EXCEEDED')) {
-            toast.error('Too many requests. Please wait a moment and try again.');
-            setMessages((prev) => prev.slice(0, -1));
-            return;
-          } else if (error.message?.includes('PAYMENT_REQUIRED')) {
-            toast.error('AI credits exhausted. Please add credits to continue.');
-            setMessages((prev) => prev.slice(0, -1));
-            return;
-          }
-          
-          throw error;
+    try {
+      const agentContext = {
+        marketConfig: marketConfig,
+        goals: goals,
+        actions: actions,
+        performanceAnalysis: {
+          overallPulseScore: 75
         }
+      };
 
-        console.log('[CopilotChat] Response received successfully');
-
-        if (data.conversationId && data.conversationId !== internalConversationId) {
-          setInternalConversationId(data.conversationId);
-          if (onConversationCreated) {
-            onConversationCreated(data.conversationId);
-          }
+      const { data, error } = await supabase.functions.invoke('copilotChat', {
+        body: {
+          userPrompt: messageText,
+          conversationId: internalConversationId,
+          agentContext: agentContext,
+          conversationHistory: messages.filter(m => !m.isGreeting),
+          currentTab: currentTab
         }
+      });
 
-        const assistantMessage = {
-          role: 'assistant',
-          content: data.response,
-          isTyping: true,
-          toolCalls: data.toolCalls || []
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+      if (error) {
+        throw new Error(error.message || "The Copilot failed to respond.");
+      }
 
-        if (data.toolCalls && data.toolCalls.length > 0) {
-          data.toolCalls.forEach(tool => {
-            if (tool.name === 'scheduleAppointmentTool') {
-              queryClient.invalidateQueries(['appointments']);
-              queryClient.invalidateQueries(['dailyActions']);
-            }
-            if (tool.name === 'sendEmailTool') {
-              queryClient.invalidateQueries(['sentEmails']);
-            }
-          });
-        }
-
-        return; // Success
-        
-      } catch (error) {
-        console.error('[CopilotChat] Error attempt', retryCount + 1, ':', error);
-        
-        if (retryCount === maxRetries) {
-          toast.error('Unable to connect to AI. Please check your connection and try again.');
-          setMessages((prev) => prev.slice(0, -1));
-          return;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        retryCount++;
-      } finally {
-        if (retryCount === maxRetries || retryCount === 0) {
-          setLoading(false);
+      if (data.conversationId && data.conversationId !== internalConversationId) {
+        setInternalConversationId(data.conversationId);
+        if (onConversationCreated) {
+          onConversationCreated(data.conversationId);
         }
       }
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.response,
+        isTyping: true,
+        toolCalls: data.toolCalls || []
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (data.toolCalls && data.toolCalls.length > 0) {
+        data.toolCalls.forEach(tool => {
+          if (tool.name === 'scheduleAppointmentTool') {
+            queryClient.invalidateQueries(['appointments']);
+            queryClient.invalidateQueries(['dailyActions']);
+          }
+          if (tool.name === 'sendEmailTool') {
+            queryClient.invalidateQueries(['sentEmails']);
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Error getting Copilot response:', error);
+      toast.error(error.message || "Failed to get response from Copilot.");
+      const errorMessage = { role: 'assistant', content: "I apologize, but I'm having trouble responding right now. Please try again." };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
     }
   };
 

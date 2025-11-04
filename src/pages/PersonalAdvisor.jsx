@@ -85,7 +85,7 @@ export default function PersonalAdvisorPage() {
     if (e) e.preventDefault();
 
     const messageText = initialQuery || inputMessage.trim();
-    if (!messageText || loading) return;
+    if (!messageText) return;
 
     if (initialQuery) {
         setInputMessage(messageText);
@@ -96,116 +96,80 @@ export default function PersonalAdvisorPage() {
     setInputMessage('');
     setLoading(true);
 
-    let retryCount = 0;
-    const maxRetries = 2;
-
-    while (retryCount <= maxRetries) {
-      try {
-        console.log('[PersonalAdvisor] Fetching context, attempt:', retryCount + 1);
-        
+    try {
         const { data: agentContext, error: contextError } = await supabase.functions.invoke('getAgentContext', { body: {} });
         if (contextError || agentContext?.error || !agentContext) {
-          console.error('[PersonalAdvisor] Context error:', contextError || agentContext?.error);
-          throw new Error(agentContext?.error || contextError?.message || "Could not retrieve agent context.");
+            throw new Error(agentContext?.error || contextError?.message || "Could not retrieve agent context.");
         }
 
-        console.log('[PersonalAdvisor] Calling copilotChat...');
-
+        // Call Copilot with tool use capability
         const { data, error } = await supabase.functions.invoke('copilotChat', {
-          body: {
-            userPrompt: messageText,
-            conversationId: conversationId,
-            agentContext: agentContext,
-            conversationHistory: messages,
-            currentTab: 'advisor'
-          }
+            body: {
+                userPrompt: messageText,
+                conversationId: conversationId,
+                agentContext: agentContext,
+                conversationHistory: messages,
+                currentTab: 'advisor'
+            }
         });
 
         if (error || data?.error) {
-          console.error('[PersonalAdvisor] Copilot error:', {
-            error: error || data?.error,
-            attempt: retryCount + 1,
-            timestamp: new Date().toISOString()
-          });
-
-          const errorMsg = data?.error || error?.message || "The Copilot failed to respond.";
-          
-          if (errorMsg.includes('RATE_LIMIT_EXCEEDED') || errorMsg.includes('429')) {
-            toast.error('Too many requests. Please wait a moment and try again.');
-            setMessages((prev) => prev.slice(0, -1));
-            return;
-          } else if (errorMsg.includes('PAYMENT_REQUIRED') || errorMsg.includes('402')) {
-            toast.error('AI credits exhausted. Please add credits to continue.');
-            setMessages((prev) => prev.slice(0, -1));
-            return;
-          } else if (errorMsg.includes('LOVABLE_API_KEY') || errorMsg.includes('API key')) {
-            toast.error('AI service configuration error. Please contact support.');
-            setMessages((prev) => prev.slice(0, -1));
-            return;
-          }
-          
-          throw new Error(errorMsg);
+            throw new Error(data?.error || error?.message || "The Copilot failed to respond.");
         }
 
-        console.log('[PersonalAdvisor] Response received successfully');
-
+        // Set conversation ID if new
         if (data.conversationId && !conversationId) {
-          setConversationId(data.conversationId);
+            setConversationId(data.conversationId);
         }
 
         const assistantMessage = { 
-          role: 'assistant', 
-          content: data.response, 
-          isTyping: true,
-          toolCalls: data.toolCalls || []
+            role: 'assistant', 
+            content: data.response, 
+            isTyping: true,
+            toolCalls: data.toolCalls || []
         };
         setMessages((prev) => [...prev, assistantMessage]);
 
+        // Invalidate queries based on tool calls
         if (data.toolCalls && data.toolCalls.length > 0) {
-          data.toolCalls.forEach(tool => {
-            if (tool.name === 'scheduleAppointmentTool') {
-              queryClient.invalidateQueries(['appointments']);
-              queryClient.invalidateQueries(['dailyActions']);
-            }
-            if (tool.name === 'sendEmailTool') {
-              queryClient.invalidateQueries(['sentEmails']);
-            }
-          });
+            data.toolCalls.forEach(tool => {
+                if (tool.name === 'scheduleAppointmentTool') {
+                    queryClient.invalidateQueries(['appointments']);
+                    queryClient.invalidateQueries(['dailyActions']);
+                }
+                if (tool.name === 'sendEmailTool') {
+                    queryClient.invalidateQueries(['sentEmails']);
+                }
+            });
         }
 
-        return; // Success
-        
-      } catch (error) {
-        console.error('[PersonalAdvisor] Error attempt', retryCount + 1, ':', {
-          message: error.message,
-          stack: error.stack,
-          userPrompt: messageText,
-          conversationId: conversationId,
-          timestamp: new Date().toISOString()
-        });
-        
-        if (retryCount === maxRetries) {
-          let errorMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
-          
-          if (error.message?.includes('getAgentContext') || error.message?.includes('context')) {
-            errorMessage = "Unable to load your profile context. Please check your connection and try again.";
-          } else if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-            errorMessage = "Network connection issue. Please check your internet connection and try again.";
-          }
-          
-          toast.error("Failed to get response from advisor");
-          const errorMsg = { role: 'assistant', content: errorMessage };
-          setMessages((prev) => [...prev, errorMsg]);
-          return;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
-        retryCount++;
-      } finally {
-        if (retryCount === maxRetries || retryCount === 0) {
-          setLoading(false);
-        }
+    } catch (error) {
+      console.error('Detailed Advisor Error:', {
+        message: error.message,
+        stack: error.stack,
+        context: error.context,
+        userPrompt: messageText,
+        conversationId: conversationId
+      });
+      
+      let errorMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
+      
+      // Provide specific error messages based on error type
+      if (error.message?.includes('getAgentContext') || error.message?.includes('context')) {
+        errorMessage = "Unable to load your profile context. Please check your connection and try again.";
+      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        errorMessage = "AI service is busy at the moment. Please wait a moment and try again.";
+      } else if (error.message?.includes('LOVABLE_API_KEY') || error.message?.includes('API key') || error.message?.includes('auth')) {
+        errorMessage = "AI service configuration issue detected. Please contact support.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+        errorMessage = "Network connection issue. Please check your internet connection and try again.";
       }
+      
+      toast.error("Failed to get response from advisor");
+      const errorMsg = { role: 'assistant', content: errorMessage };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setLoading(false);
     }
   };
 
