@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, TrendingUp, BarChart3, DollarSign, Check } from 'lucide-react';
+import { TrendingUp, BarChart3, DollarSign, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,16 +99,6 @@ export default function GoalPlanner() {
     };
 
     const planCards = [
-        {
-            name: 'SuccessIndex Assessment',
-            description: 'Discover your strengths and opportunities for growth.',
-            icon: Target,
-            page: 'SuccessIndex',
-            completed: false, // Assuming SuccessIndex is not 'completed' in the same way as a business plan
-            isComingSoon: false,
-            bgColor: 'bg-purple-100',
-            iconColor: 'text-purple-600'
-        },
         {
             name: '12-Month Production Plan', // Updated name from outline
             description: 'Design your annual production goals and breakdown', // Updated description from outline

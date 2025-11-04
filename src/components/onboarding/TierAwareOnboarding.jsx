@@ -7,6 +7,11 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
 import OnboardingSidebar from './OnboardingSidebar';
+import {
+  buildActiveModules,
+  determineInitialPhase,
+  normalizeOnboardingProgress
+} from './onboardingLogic';
 
 // Core Module Components
 import WelcomeStep from './modules/core/WelcomeStep';
@@ -41,7 +46,7 @@ const MODULES = {
   agents: {
     title: 'AI Agents',
     steps: [
-      { id: 'ai-team-intro', component: () => import('./modules/agents/AITeamIntro').then(m => m.default), title: 'Meet Your Team' },
+      { id: 'ai-team-intro', component: AITeamIntro, title: 'Meet Your Team' },
       { id: 'integrations', component: IntegrationsSetup, title: 'Connect Services' },
       { id: 'customization', component: AgentCustomization, title: 'Customize' },
       { id: 'test', component: AgentTestMode, title: 'Test Mode' }
@@ -105,18 +110,6 @@ const getUserOnboarding = async (userId) => {
   return data;
 };
 
-const normalizeOnboardingProgress = (record) => {
-  if (!record) return null;
-
-  return {
-    ...record,
-    onboardingCompleted: record.onboarding_completed ?? record.onboardingCompleted ?? false,
-    agentOnboardingCompleted: record.agent_onboarding_completed ?? record.agentOnboardingCompleted ?? false,
-    callCenterOnboardingCompleted: record.call_center_onboarding_completed ?? record.callCenterOnboardingCompleted ?? false,
-    completedSteps: record.completed_steps ?? record.completedSteps ?? [],
-  };
-};
-
 function TierAwareOnboarding({ initialPhase = 'core' }) {
   const { user, onboarding: onboardingContext, refreshUserData } = useContext(UserContext);
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
@@ -141,16 +134,10 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
 
   useEffect(() => {
     if (user?.id) {
-      const modules = ['core'];
-      
-      if (userTier === 'Subscriber' || userTier === 'Admin') {
-        modules.push('agents');
-      }
-      
-      if (hasCallCenter || userTier === 'Admin') {
-        modules.push('callcenter');
-      }
-      
+      const modules = buildActiveModules({
+        subscriptionTier: userTier,
+        hasCallCenterAddon: hasCallCenter
+      });
       console.log('🔄 Setting active modules:', modules);
       setActiveModules(modules);
     }
@@ -191,33 +178,17 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         setCompletedSteps(new Set(normalizedProgress.completedSteps));
       }
 
-      if (normalizedProgress) {
-        console.log('🔍 Onboarding progress check:', {
-          onboardingCompleted: normalizedProgress?.onboardingCompleted,
-          agentOnboardingCompleted: normalizedProgress?.agentOnboardingCompleted,
-          callCenterOnboardingCompleted: normalizedProgress?.callCenterOnboardingCompleted,
-          activeModules: activeModules
-        });
+      const { phase } = determineInitialPhase(normalizedProgress, activeModules);
 
-        // Determine where to start based on completion status
-        if (!normalizedProgress?.onboardingCompleted) {
-          console.log('🚀 Core onboarding not complete - starting at core module');
-          setCurrentPhase('core');
-          setCurrentStep(0);
-        } else if (activeModules.includes('agents') && !normalizedProgress?.agentOnboardingCompleted) {
-          console.log('🚀 Starting Agents module');
-          setCurrentPhase('agents');
-          setCurrentStep(0);
-        } else if (activeModules.includes('callcenter') && !normalizedProgress?.callCenterOnboardingCompleted) {
-          console.log('🚀 Starting Call Center module');
-          setCurrentPhase('callcenter');
-          setCurrentStep(0);
-        } else {
-          console.log('🎉 All required onboarding modules completed - redirecting to dashboard');
-          toast.success('Onboarding complete! Welcome to PULSE AI.');
-          navigate(createPageUrl('Dashboard'));
-          return;
-        }
+      if (phase) {
+        console.log(`🚀 Starting ${phase} module`);
+        setCurrentPhase(phase);
+        setCurrentStep(0);
+      } else if (normalizedProgress) {
+        console.log('🎉 All required onboarding modules completed - redirecting to dashboard');
+        toast.success('Onboarding complete! Welcome to PULSE AI.');
+        navigate(createPageUrl('Dashboard'));
+        return;
       } else {
         console.log('🆕 No onboarding record - starting fresh at core');
         setCurrentPhase('core');

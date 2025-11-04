@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle2, Circle, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { deriveSetupGroups } from '@/components/onboarding/onboardingLogic';
 import { createPageUrl } from '@/utils';
 
 const SetupStepItem = ({ step, status, onClick }) => {
@@ -69,132 +70,8 @@ export default function SetupProgressTab() {
   const navigate = useNavigate();
 
   const setupSteps = useMemo(() => {
-    if (!user || !onboarding) return { core: [], agents: [], callcenter: [] };
-
-    const completedSteps = new Set(onboarding.completedSteps || []);
-    const isSubscriber = user.subscriptionTier === 'Subscriber' || user.subscriptionTier === 'Admin';
-    const hasCallCenter = user.hasCallCenterAddon || false;
-
-    // Core Setup Steps (for all users)
-    const coreSteps = [
-      {
-        id: 'welcome',
-        title: 'Welcome',
-        description: 'Get started with PULSE AI',
-        path: createPageUrl('Onboarding') + '?phase=core',
-        completed: completedSteps.has('welcome')
-      },
-      {
-        id: 'market',
-        title: 'Business & Market Setup',
-        description: 'Configure your market territory and business info',
-        path: createPageUrl('Onboarding') + '?phase=core',
-        completed: completedSteps.has('market')
-      },
-      {
-        id: 'preferences',
-        title: 'Brand & Preferences',
-        description: 'Set your brand colors and AI preferences',
-        path: createPageUrl('Onboarding') + '?phase=core',
-        completed: completedSteps.has('preferences')
-      },
-      {
-        id: 'intelligence-survey',
-        title: 'Intelligence Survey',
-        description: 'Complete your agent intelligence profile',
-        path: createPageUrl('IntelligenceSurvey'),
-        completed: onboarding.agentIntelligenceCompleted || false
-      },
-      {
-        id: 'core-confirm',
-        title: 'Core Setup Complete',
-        description: 'Finalize your basic setup',
-        path: createPageUrl('Onboarding') + '?phase=core',
-        completed: onboarding.onboardingCompleted || false
-      }
-    ];
-
-    // AI Agent Setup Steps (for Accelerator/Subscriber users)
-    const agentSteps = isSubscriber ? [
-      {
-        id: 'ai-team-intro',
-        title: 'Meet Your AI Team',
-        description: 'Introduction to NOVA, SIRIUS, VEGA, and PHOENIX',
-        path: createPageUrl('Onboarding') + '?phase=agents',
-        completed: completedSteps.has('ai-team-intro'),
-        locked: !onboarding.onboardingCompleted
-      },
-      {
-        id: 'integrations',
-        title: 'Connect Services',
-        description: 'Link Google Workspace, CRM, and social media',
-        path: createPageUrl('Onboarding') + '?phase=agents',
-        completed: completedSteps.has('integrations'),
-        locked: !onboarding.onboardingCompleted
-      },
-      {
-        id: 'customization',
-        title: 'Customize AI Agents',
-        description: 'Set guidelines for email, content, and transactions',
-        path: createPageUrl('AgentsOnboarding'),
-        completed: completedSteps.has('customization'),
-        locked: !onboarding.onboardingCompleted
-      },
-      {
-        id: 'test',
-        title: 'Test Your AI Agents',
-        description: 'Try out your configured AI agents',
-        path: createPageUrl('Onboarding') + '?phase=agents',
-        completed: onboarding.agentOnboardingCompleted || false,
-        locked: !onboarding.onboardingCompleted
-      }
-    ] : [];
-
-    // AI Calling Setup Steps (for AI Appointment Setter add-on users)
-    const callcenterSteps = hasCallCenter ? [
-      {
-        id: 'phone',
-        title: 'Phone Number Setup',
-        description: 'Select and configure your Twilio number',
-        path: createPageUrl('Onboarding') + '?phase=callcenter',
-        completed: completedSteps.has('phone'),
-        locked: !onboarding.agentOnboardingCompleted
-      },
-      {
-        id: 'voice',
-        title: 'Voice Selection',
-        description: 'Choose your AI calling agent voice',
-        path: createPageUrl('Onboarding') + '?phase=callcenter',
-        completed: completedSteps.has('voice'),
-        locked: !onboarding.agentOnboardingCompleted
-      },
-      {
-        id: 'identity',
-        title: 'Caller Identity',
-        description: 'Configure caller ID and call settings',
-        path: createPageUrl('Onboarding') + '?phase=callcenter',
-        completed: completedSteps.has('identity'),
-        locked: !onboarding.agentOnboardingCompleted
-      },
-      {
-        id: 'workspace',
-        title: 'Google Workspace Setup',
-        description: 'Connect Google Calendar for appointments',
-        path: createPageUrl('Onboarding') + '?phase=callcenter',
-        completed: completedSteps.has('workspace'),
-        locked: !onboarding.agentOnboardingCompleted
-      },
-      {
-        id: 'call-confirm',
-        title: 'Call Center Complete',
-        description: 'Finalize AI calling setup',
-        path: createPageUrl('Onboarding') + '?phase=callcenter',
-        completed: onboarding.callCenterOnboardingCompleted || false,
-        locked: !onboarding.agentOnboardingCompleted
-      }
-    ] : [];
-
-    return { core: coreSteps, agents: agentSteps, callcenter: callcenterSteps };
+    if (!user || !onboarding) return { core: [], agents: [], callcenter: [], journey: null };
+    return deriveSetupGroups({ user, onboarding });
   }, [user, onboarding]);
 
   const getStepStatus = (step, moduleSteps) => {
