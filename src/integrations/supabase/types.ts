@@ -498,6 +498,7 @@ export type Database = {
           is_premium: boolean | null
           pack_key: string
           pack_name: string
+          topic_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -510,6 +511,7 @@ export type Database = {
           is_premium?: boolean | null
           pack_key: string
           pack_name: string
+          topic_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -522,9 +524,18 @@ export type Database = {
           is_premium?: boolean | null
           pack_key?: string
           pack_name?: string
+          topic_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "content_packs_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "content_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_topics: {
         Row: {
@@ -533,10 +544,18 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          outreach_call_script: string | null
+          outreach_dm_template: string | null
+          outreach_email: string | null
+          outreach_email_subject: string | null
           prompts: Json | null
+          social_feed_caption: string | null
+          social_feed_graphic_url: string | null
+          social_hashtags: string | null
           topic_key: string
           topic_name: string
           updated_at: string | null
+          week_number: number | null
         }
         Insert: {
           category: string
@@ -544,10 +563,18 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          outreach_call_script?: string | null
+          outreach_dm_template?: string | null
+          outreach_email?: string | null
+          outreach_email_subject?: string | null
           prompts?: Json | null
+          social_feed_caption?: string | null
+          social_feed_graphic_url?: string | null
+          social_hashtags?: string | null
           topic_key: string
           topic_name: string
           updated_at?: string | null
+          week_number?: number | null
         }
         Update: {
           category?: string
@@ -555,10 +582,18 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          outreach_call_script?: string | null
+          outreach_dm_template?: string | null
+          outreach_email?: string | null
+          outreach_email_subject?: string | null
           prompts?: Json | null
+          social_feed_caption?: string | null
+          social_feed_graphic_url?: string | null
+          social_hashtags?: string | null
           topic_key?: string
           topic_name?: string
           updated_at?: string | null
+          week_number?: number | null
         }
         Relationships: []
       }
