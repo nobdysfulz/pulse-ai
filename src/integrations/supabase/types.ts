@@ -251,6 +251,53 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_tool_usage: {
+        Row: {
+          agent_type: string | null
+          created_at: string
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          success: boolean
+          tool_args: Json | null
+          tool_name: string
+          tool_result: Json | null
+          user_id: string
+        }
+        Insert: {
+          agent_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          success?: boolean
+          tool_args?: Json | null
+          tool_name: string
+          tool_result?: Json | null
+          user_id: string
+        }
+        Update: {
+          agent_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          success?: boolean
+          tool_args?: Json | null
+          tool_name?: string
+          tool_result?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tool_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_color_palettes: {
         Row: {
           accent_color: string | null
