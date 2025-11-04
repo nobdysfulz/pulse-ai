@@ -17,8 +17,8 @@ const escapeHtml = (value: string) =>
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace("'", '&#39;')
-    .replace(\"", '&quot;');
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;');
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
