@@ -1,138 +1,323 @@
-import React from 'react';
+import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Trash2, PlusCircle } from 'lucide-react';
+import { calculateFinancialSummary, sumExpenseCategory } from './calculations';
 
-const personalExpenseFields = [
-"Mortgage/Rent", "Car Payment", "Car Gas/Electricity", "Car Insurance", "Car Maintenance", "Utilities: Electricity", "Utilities: Gas", "Internet", "Mobile Phone", "Water", "Streaming Apps", "Food / Entertainment", "Travel", "Child Care", "Savings", "Health Insurance", "Credit Cards", "Shopping & Clothing", "Other 1", "Other 2", "Other 3", "Other 4", "Other 5"];
+export const PERSONAL_EXPENSE_CATEGORIES = [
+  {
+    key: 'housingUtilities',
+    label: 'Housing & Utilities',
+    defaultItems: ['Mortgage / Rent', 'Utilities', 'Internet', 'Mobile Phone'],
+  },
+  {
+    key: 'transportation',
+    label: 'Transportation',
+    defaultItems: ['Car Payment', 'Fuel / Charging', 'Insurance'],
+  },
+  {
+    key: 'foodGroceries',
+    label: 'Food & Groceries',
+    defaultItems: ['Groceries', 'Dining & Entertainment'],
+  },
+  {
+    key: 'healthcare',
+    label: 'Healthcare',
+    defaultItems: ['Health Insurance', 'Prescriptions', 'Medical'],
+  },
+  {
+    key: 'personalFamily',
+    label: 'Personal & Family',
+    defaultItems: ['Child Care', 'Education', 'Family Activities'],
+  },
+  {
+    key: 'savingsInvestments',
+    label: 'Savings & Investments',
+    defaultItems: ['Emergency Fund', 'Investments'],
+  },
+];
 
+export const BUSINESS_EXPENSE_CATEGORIES = [
+  {
+    key: 'marketingAdvertising',
+    label: 'Marketing & Advertising',
+    defaultItems: ['Digital Ads', 'Print Marketing', 'Events'],
+  },
+  {
+    key: 'technologyTools',
+    label: 'Technology & Tools',
+    defaultItems: ['CRM', 'Website', 'Productivity Tools'],
+  },
+  {
+    key: 'professionalDevelopment',
+    label: 'Professional Development',
+    defaultItems: ['Coaching', 'Training', 'Certifications'],
+  },
+  {
+    key: 'officeOperations',
+    label: 'Office & Operations',
+    defaultItems: ['Office Rent', 'Supplies', 'Insurance'],
+  },
+  {
+    key: 'licensesFees',
+    label: 'Licenses & Fees',
+    defaultItems: ['MLS Fees', 'Association Dues'],
+  },
+];
 
-const businessExpenseFields = [
-"Association Dues/Fees", "RPAC Contributions", "MLS Fees", "MLS Application", "Office Desk Fees", "License Renewals / Applications", "E&O Insurance", "CE Credits / Certifications", "Marketing & Advertising", "Keycard & Lockbox", "Additional Brokerage Fees", "Coaching / Training Fees", "Printing & Signage", "Mail & Postage", "Payroll / Employees", "Software Subscriptions", "Client Gifts / Events", "Other"];
+const frequencyOptions = [
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Annually', value: 'annually' },
+];
 
-
-const ExpenseInput = ({ name, value, frequency, onValueChange, onFrequencyChange }) =>
-<div className="flex items-center gap-2">
-        <Label className="w-1/2 text-sm">{name}</Label>
-        <Input type="number" value={value} onChange={onValueChange} placeholder="0" className="bg-white text-[#1E293B] pt-2 pr-3 pb-2 pl-3 text-sm rounded-lg flex h-10 w-full border border-[#E2E8F0] placeholder:text-[#94A3B8] focus:outline-none focus:ring-0 focus:border-[#7C3AED] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#F8FAFC] flex-1" />
-        <Select value={frequency} onValueChange={onFrequencyChange}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="annually">Annually</SelectItem>
-            </SelectContent>
+const ExpenseRow = ({ expense, onChange, onRemove }) => {
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 bg-white/40 rounded-lg border border-slate-200 p-3">
+      <div className="flex-1 space-y-1">
+        <Label className="text-xs uppercase tracking-wide text-slate-500">Name</Label>
+        <Input
+          value={expense.name}
+          onChange={(e) => onChange('name', e.target.value)}
+          placeholder="Expense name"
+        />
+      </div>
+      <div className="flex-1 space-y-1">
+        <Label className="text-xs uppercase tracking-wide text-slate-500">Amount</Label>
+        <Input
+          type="number"
+          min="0"
+          value={expense.amount}
+          onChange={(e) => onChange('amount', e.target.value)}
+          placeholder="0"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs uppercase tracking-wide text-slate-500">Frequency</Label>
+        <Select value={expense.frequency} onValueChange={(value) => onChange('frequency', value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {frequencyOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
-    </div>;
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="self-start rounded-lg border border-transparent p-2 text-slate-500 transition-colors hover:border-red-200 hover:text-red-600"
+        aria-label="Remove expense"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+};
 
-
-export default function Step2Financial({ planData, setPlanData }) {
-  const handleExpenseChange = (type, name, field, value) => {
-    setPlanData((prev) => ({
-      ...prev,
-      [`${type}Expenses`]: {
-        ...prev[`${type}Expenses`],
-        [name]: {
-          ...prev[`${type}Expenses`][name],
-          [field]: value
-        }
-      }
-    }));
-  };
-
-  const calculateTotal = (expenses) => {
-    return Object.values(expenses).reduce((total, item) => {
-      const amount = parseFloat(item?.amount) || 0;
-      if (item?.frequency === 'monthly') {
-        return total + amount * 12;
-      }
-      return total + amount;
-    }, 0);
-  };
-
-  const totalPersonal = calculateTotal(planData.personalExpenses);
-  const totalBusiness = calculateTotal(planData.businessExpenses);
-  const taxReserve = (planData.netIncomeGoal + totalPersonal) / (1 - planData.taxRate / 100) - (planData.netIncomeGoal + totalPersonal);
-  const totalIncomeNeeded = planData.netIncomeGoal + totalPersonal + totalBusiness + taxReserve;
+const ExpenseCategory = ({
+  type,
+  category,
+  expenses,
+  onAdd,
+  onChange,
+  onRemove,
+}) => {
+  const annualTotal = sumExpenseCategory(expenses);
 
   return (
-    <div className="space-y-8">
-            <div className="text-center">
-                <h2 className="text-2xl font-bold">Financial Planning</h2>
-                <p className="text-gray-500">Estimate your personal and business expenses for the year.</p>
+    <AccordionItem value={`${type}-${category.key}`}>
+      <AccordionTrigger className="text-left text-base font-semibold text-slate-800">
+        <div className="flex w-full items-center justify-between">
+          <span>{category.label}</span>
+          <span className="text-sm font-medium text-slate-500">
+            ${annualTotal.toLocaleString()} / yr
+          </span>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="space-y-3">
+          {(expenses || []).map((expense) => (
+            <ExpenseRow
+              key={expense.id}
+              expense={expense}
+              onChange={(field, value) => onChange(expense.id, field, value)}
+              onRemove={() => onRemove(expense.id)}
+            />
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-center gap-2"
+            onClick={onAdd}
+          >
+            <PlusCircle className="h-4 w-4" />
+            Add Expense
+          </Button>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+};
+
+export default function Step2Financial({ planData, setPlanData }) {
+  const financialSummary = useMemo(() => calculateFinancialSummary(planData), [
+    planData.personalExpenses,
+    planData.businessExpenses,
+    planData.netIncomeGoal,
+    planData.taxRate,
+  ]);
+
+  const handleAddExpense = (type, categoryKey) => {
+    setPlanData((prev) => {
+      const nextExpenses = { ...(prev[`${type}Expenses`] || {}) };
+      const categoryExpenses = [...(nextExpenses[categoryKey] || [])];
+      categoryExpenses.push({
+        id: `${categoryKey}-${Date.now()}`,
+        name: '',
+        amount: '',
+        frequency: 'monthly',
+      });
+      nextExpenses[categoryKey] = categoryExpenses;
+      return { ...prev, [`${type}Expenses`]: nextExpenses };
+    });
+  };
+
+  const handleChangeExpense = (type, categoryKey, expenseId, field, value) => {
+    setPlanData((prev) => {
+      const nextExpenses = { ...(prev[`${type}Expenses`] || {}) };
+      const updated = (nextExpenses[categoryKey] || []).map((expense) =>
+        expense.id === expenseId ? { ...expense, [field]: value } : expense,
+      );
+      nextExpenses[categoryKey] = updated;
+      return { ...prev, [`${type}Expenses`]: nextExpenses };
+    });
+  };
+
+  const handleRemoveExpense = (type, categoryKey, expenseId) => {
+    setPlanData((prev) => {
+      const nextExpenses = { ...(prev[`${type}Expenses`] || {}) };
+      nextExpenses[categoryKey] = (nextExpenses[categoryKey] || []).filter((expense) => expense.id !== expenseId);
+      return { ...prev, [`${type}Expenses`]: nextExpenses };
+    });
+  };
+
+  const handleTaxRateChange = (value) => {
+    setPlanData((prev) => ({ ...prev, taxRate: Array.isArray(value) ? value[0] : value }));
+  };
+
+  return (
+    <div className="space-y-10">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-slate-900">Financial Planning</h2>
+        <p className="text-sm text-slate-500">
+          Estimate your annual personal and business expenses so we can calculate the income you need to support your lifestyle.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-slate-800">Personal Expenses</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Accordion type="multiple" defaultValue={PERSONAL_EXPENSE_CATEGORIES.map((c) => `personal-${c.key}`)}>
+              {PERSONAL_EXPENSE_CATEGORIES.map((category) => (
+                <ExpenseCategory
+                  key={category.key}
+                  type="personal"
+                  category={category}
+                  expenses={(planData.personalExpenses || {})[category.key] || []}
+                  onAdd={() => handleAddExpense('personal', category.key)}
+                  onChange={(expenseId, field, value) =>
+                    handleChangeExpense('personal', category.key, expenseId, field, value)
+                  }
+                  onRemove={(expenseId) => handleRemoveExpense('personal', category.key, expenseId)}
+                />
+              ))}
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-slate-800">Business Expenses</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Accordion type="multiple" defaultValue={BUSINESS_EXPENSE_CATEGORIES.map((c) => `business-${c.key}`)}>
+              {BUSINESS_EXPENSE_CATEGORIES.map((category) => (
+                <ExpenseCategory
+                  key={category.key}
+                  type="business"
+                  category={category}
+                  expenses={(planData.businessExpenses || {})[category.key] || []}
+                  onAdd={() => handleAddExpense('business', category.key)}
+                  onChange={(expenseId, field, value) =>
+                    handleChangeExpense('business', category.key, expenseId, field, value)
+                  }
+                  onRemove={(expenseId) => handleRemoveExpense('business', category.key, expenseId)}
+                />
+              ))}
+            </Accordion>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-slate-200 bg-slate-50">
+          <CardContent className="space-y-4 p-6">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Total Personal Expenses</p>
+              <p className="text-2xl font-bold text-slate-900">${financialSummary.personalExpenses.toLocaleString()}</p>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Personal Expenses */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Personal Expenses</h3>
-                    <div className="space-y-3">
-                        {personalExpenseFields.map((field) =>
-            <ExpenseInput
-              key={field}
-              name={field}
-              value={planData.personalExpenses[field]?.amount || ''}
-              frequency={planData.personalExpenses[field]?.frequency || 'monthly'}
-              onValueChange={(e) => handleExpenseChange('personal', field, 'amount', e.target.value)}
-              onFrequencyChange={(val) => handleExpenseChange('personal', field, 'frequency', val)} />
-
-            )}
-                    </div>
-                </div>
-
-                {/* Business Expenses */}
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Business Expenses</h3>
-                     <div className="space-y-3">
-                        {businessExpenseFields.map((field) =>
-            <ExpenseInput
-              key={field}
-              name={field}
-              value={planData.businessExpenses[field]?.amount || ''}
-              frequency={planData.businessExpenses[field]?.frequency || 'annually'}
-              onValueChange={(e) => handleExpenseChange('business', field, 'amount', e.target.value)}
-              onFrequencyChange={(val) => handleExpenseChange('business', field, 'frequency', val)} />
-
-            )}
-                    </div>
-                </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Total Business Expenses</p>
+              <p className="text-2xl font-bold text-slate-900">${financialSummary.businessExpenses.toLocaleString()}</p>
             </div>
-            
-             {/* Totals and Tax Planning */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-2">Total Annual Personal Expenses:</h3>
-                    <p className="text-2xl font-bold">${totalPersonal.toLocaleString()}</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-2">Total Annual Business Expenses:</h3>
-                    <p className="text-2xl font-bold">${totalBusiness.toLocaleString()}</p>
-                </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Total Annual Expenses</p>
+              <p className="text-2xl font-bold text-violet-700">${financialSummary.totalExpenses.toLocaleString()}</p>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="lg:w-1/2 mx-auto pt-8">
-                <h3 className="text-lg font-semibold text-center mb-4">Tax Planning</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="taxRate" className="w-1/2 text-sm">Estimated Tax Rate (%)</Label>
-                        <Input
-              id="taxRate"
-              type="number"
-              value={planData.taxRate}
-              onChange={(e) => setPlanData({ ...planData, taxRate: parseFloat(e.target.value) || 0 })}
-              className="flex-1" />
-
-                    </div>
-                    <div className="bg-gray-100 p-4 rounded-lg text-center space-y-4">
-                        <div>
-                            <p className="text-sm">Tax Reserve:</p>
-                            <p className="font-bold text-lg">${Math.round(taxReserve).toLocaleString()}</p>
-                        </div>
-                        <div>
-                            <p className="text-gray-950 text-sm">Total Income Needed:</p>
-                            <p className="text-violet-900 text-2xl font-bold">${Math.round(totalIncomeNeeded).toLocaleString()}</p>
-                        </div>
-                    </div>
-                </div>
+        <Card className="border-slate-200">
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Estimated Tax Rate</p>
+                <p className="text-xs text-slate-500">Adjust your expected effective tax rate.</p>
+              </div>
+              <span className="text-lg font-semibold text-violet-700">{Math.round(planData.taxRate)}%</span>
             </div>
-        </div>);
-
+            <Slider
+              value={[Number(planData.taxRate) || 0]}
+              min={0}
+              max={60}
+              step={1}
+              onValueChange={handleTaxRateChange}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg bg-slate-50 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Taxes to Reserve</p>
+                <p className="text-lg font-semibold text-slate-900">${Math.round(financialSummary.taxAmount).toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-violet-50 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-violet-700">Gross Income Needed</p>
+                <p className="text-lg font-semibold text-violet-900">${Math.round(financialSummary.grossIncome).toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
