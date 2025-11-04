@@ -14,10 +14,15 @@ const contentTypeColors = {
 };
 
 const contentTypeLabels = {
-  social_post: 'Social Post',
+  social_post: 'Social Media Post',
   video_script: 'Video Script',
   ad_campaign: 'Ad Campaign',
-  market_report: 'Market Report'
+  market_report: 'Market Report',
+  blog_article: 'Blog Article',
+  property_description: 'Property Description',
+  lead_follow_up: 'Lead Follow Up Email',
+  client_email: 'Client Email',
+  presentation_text: 'Presentation Text',
 };
 
 export default function RecentGenerated({ content, onItemClick, highlightId, onHighlightComplete }) {

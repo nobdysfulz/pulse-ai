@@ -141,7 +141,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
     // Properly format the user message using the template from AiPromptConfig
     let finalUserPrompt = selectedPromptConfig.userMessageTemplate
-      .replace(/\(\(platform\)\)/gi, platform)
+      .replace(/\(\(platform\)\)/gi, platformDisplay)
       .replace(/\(\(topic\)\)/gi, topic)
       .replace(/\(\(marketArea\)\)/gi, marketArea);
 
@@ -171,10 +171,12 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
           title: topic,
           body: data.message,
           type: contentType,
-          credits: currentCredits
+          credits: currentCredits,
+          platform: platformDisplay,
+          promptId: selectedPromptConfig.promptId,
+          source: 'creator',
         });
         setTopic('');
-        toast.success('Content generated successfully!');
       } else {
         throw new Error("Received an empty response from AI.");
       }
@@ -188,6 +190,10 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
   const selectedContentTypeLabel = contentTypes.find(t => t.value === contentType)?.label || 'Select type';
   const selectedPlatformLabel = (platforms[contentType] || []).find(p => p.toLowerCase().replace(/ /g, '_') === platform) || 'Select platform';
+  const platformDisplay =
+    selectedPlatformLabel && selectedPlatformLabel !== 'Select platform'
+      ? selectedPlatformLabel
+      : (platform ? platform.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : 'Social Media');
 
   return (
     <div className="space-y-6">
