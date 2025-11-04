@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserContext } from './UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/api/entities';
+import { useUser } from '@clerk/clerk-react';
 
 export default function UserProvider({ children }) {
+    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
     const [user, setUser] = useState(null);
     const [marketConfig, setMarketConfig] = useState(null);
     const [agentProfile, setAgentProfile] = useState(null);
@@ -22,19 +22,33 @@ export default function UserProvider({ children }) {
     const [isSupportChatOpen, setSupportChatOpen] = useState(false);
 
     const fetchUserData = useCallback(async () => {
+        if (!isClerkLoaded || !clerkUser) {
+            setLoading(false);
+            return;
+        }
+
         console.log('[UserProvider] Starting fetchUserData');
         setLoading(true);
         setError(null);
         
         try {
-            console.log('[UserProvider] Fetching authenticated user...');
-            const userData = await User.me();
+            console.log('[UserProvider] Fetching user profile from Supabase...');
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', clerkUser.id)
+                .single();
 
-            if (!userData) {
-                console.log('[UserProvider] No active session');
-                setLoading(false);
-                return;
+            if (profileError && profileError.code !== 'PGRST116') {
+                throw profileError;
             }
+
+            const userData = profileData || {
+                id: clerkUser.id,
+                email: clerkUser.primaryEmailAddress?.emailAddress,
+                full_name: clerkUser.fullName,
+                avatar_url: clerkUser.imageUrl,
+            };
 
             console.log('[UserProvider] User loaded:', userData.email);
             setUser(userData);
@@ -86,7 +100,7 @@ export default function UserProvider({ children }) {
                     completedSteps: []
                 },
                 marketConfig: marketConfigResult.data || null,
-                agentProfile: null, // This is not a table, keeping as null
+                agentProfile: null,
                 preferences: preferencesResult.data || {
                     userId: userData.id,
                     coachingStyle: 'balanced',
@@ -99,21 +113,14 @@ export default function UserProvider({ children }) {
                 },
                 actions: actionsResult.data || [],
                 agentConfig: agentConfigResult.data || null,
-                userAgentSubscription: null, // This is not a table, keeping as null
+                userAgentSubscription: null,
                 goals: goalsResult.data || [],
                 businessPlan: businessPlanResult.data || null,
                 pulseHistory: pulseHistoryResult.data || [],
                 pulseConfig: pulseConfigResult.data?.[0] || null
             };
 
-            console.log('[UserProvider] Context loaded successfully:', {
-                hasMarketConfig: !!agentContext.marketConfig,
-                hasPreferences: !!agentContext.preferences,
-                actionsCount: agentContext.actions.length,
-                goalsCount: agentContext.goals.length,
-                hasBusinessPlan: !!agentContext.businessPlan,
-                pulseHistoryCount: agentContext.pulseHistory.length
-            });
+            console.log('[UserProvider] Context loaded successfully');
 
             // Set all context data
             setOnboarding(agentContext.onboarding);
@@ -136,7 +143,7 @@ export default function UserProvider({ children }) {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [clerkUser, isClerkLoaded]);
 
     useEffect(() => {
         fetchUserData();

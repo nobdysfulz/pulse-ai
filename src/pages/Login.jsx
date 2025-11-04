@@ -1,79 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/use-toast';
+import { SignIn, useUser } from '@clerk/clerk-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
-    // Check if already logged in
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Check onboarding status before redirecting
-        const { data: onboardingData } = await supabase
-          .from('user_onboarding')
-          .select('agent_onboarding_completed')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (!onboardingData?.agent_onboarding_completed) {
-          navigate('/onboarding');
-        } else {
-          navigate('/dashboard');
-        }
-      }
-    };
-    checkAuth();
-  }, [navigate]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Check onboarding status before redirecting
-      const { data: onboardingData } = await supabase
-        .from('user_onboarding')
-        .select('agent_onboarding_completed')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-
-      toast({
-        title: "Welcome back!",
-        description: "Successfully logged in.",
-      });
-
-      if (!onboardingData?.agent_onboarding_completed) {
-        navigate('/onboarding');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid email or password.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (isLoaded && isSignedIn) {
+      navigate('/dashboard');
     }
-  };
+  }, [isSignedIn, isLoaded, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -84,37 +21,18 @@ export default function Login() {
             <p className="text-text-body">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
+          <SignIn 
+            routing="path" 
+            path="/login"
+            signUpUrl="/signup"
+            afterSignInUrl="/dashboard"
+            appearance={{
+              elements: {
+                rootBox: "mx-auto",
+                card: "shadow-none bg-transparent"
+              }
+            }}
+          />
 
           <div className="mt-6 text-center">
             <p className="text-sm text-text-body">
