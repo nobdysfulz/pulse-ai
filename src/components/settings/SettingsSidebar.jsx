@@ -19,6 +19,7 @@ export default function SettingsSidebar({ activeTab, onTabChange }) {
   ];
 
   const adminSubItems = [
+    { id: 'data-import', label: 'Data Import' },
     { id: 'admin-monitoring', label: 'System Monitoring' },
     { id: 'admin-errors', label: 'System Errors' },
     { id: 'admin-integrations', label: 'Integration Health' },
@@ -40,7 +41,7 @@ export default function SettingsSidebar({ activeTab, onTabChange }) {
     { id: 'admin-disclosures', label: 'Legal Documents' },
   ];
 
-  const isAdminTabActive = activeTab.startsWith('admin-');
+  const isAdminTabActive = activeTab.startsWith('admin-') || activeTab === 'data-import';
 
   React.useEffect(() => {
     if (isAdminTabActive) {

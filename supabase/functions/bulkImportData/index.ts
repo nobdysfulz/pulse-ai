@@ -16,6 +16,18 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Get authenticated user
+    const authHeader = req.headers.get('Authorization')!;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { entityType, csvData, columnMapping } = await req.json();
 
     if (!entityType || !csvData || !columnMapping) {
@@ -28,18 +40,52 @@ Deno.serve(async (req) => {
     // Parse CSV
     const records = parse(csvData, { skipFirstRow: true });
     
-    // Map columns to database fields
-    const mappedRecords = records.map((row: any) => {
+    // Map columns to database fields and auto-inject system fields
+    const mappedRecords = records.map((row: any, index: number) => {
       const mapped: any = {};
+      
       Object.entries(columnMapping).forEach(([csvCol, dbCol]) => {
         const value = row[csvCol];
+        const dbColStr = dbCol as string;
+        
         // Handle array fields (pipe-separated values)
         if (typeof value === 'string' && value.includes('|')) {
-          mapped[dbCol as string] = value.split('|').map((v: string) => v.trim());
+          mapped[dbColStr] = value.split('|').map((v: string) => v.trim());
+        } else if (value === 'true' || value === 'false') {
+          // Handle boolean conversion
+          mapped[dbColStr] = value === 'true';
+        } else if (value && !isNaN(Number(value)) && dbColStr.includes('score')) {
+          // Handle numeric conversions for scores
+          mapped[dbColStr] = Number(value);
         } else {
-          mapped[dbCol as string] = value;
+          mapped[dbColStr] = value || null;
         }
       });
+
+      // Auto-inject user_id if table has this field
+      if (!mapped.user_id && entityType !== 'profiles') {
+        mapped.user_id = user.id;
+      }
+
+      // Auto-inject id if table has this field and it's not provided
+      if (!mapped.id && entityType !== 'profiles') {
+        mapped.id = crypto.randomUUID();
+      }
+
+      // For profiles table, use user_id as id
+      if (entityType === 'profiles' && !mapped.id) {
+        mapped.id = user.id;
+      }
+
+      // Auto-set timestamps
+      const now = new Date().toISOString();
+      if (!mapped.created_at) {
+        mapped.created_at = now;
+      }
+      if (!mapped.updated_at) {
+        mapped.updated_at = now;
+      }
+
       return mapped;
     });
 

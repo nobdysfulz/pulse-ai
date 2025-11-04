@@ -32,7 +32,8 @@ import SystemMonitoringDashboard from '../components/settings/SystemMonitoringDa
 import SystemErrorsManager from '../components/settings/SystemErrorsManager';
 import FeatureFlagsManager from '../components/settings/FeatureFlagsManager';
 import IntegrationHealthMonitor from '../components/settings/IntegrationHealthMonitor';
-import AutopilotMonitoring from '../components/settings/AutopilotMonitoring'; // New import for AutopilotMonitoring
+import AutopilotMonitoring from '../components/settings/AutopilotMonitoring';
+import DataImportManager from '../components/settings/DataImportManager';
 
 export default function SettingsPage() {
   const { user, loading } = useContext(UserContext);
@@ -67,6 +68,8 @@ export default function SettingsPage() {
         return <SecurityTab />;
       
       // Admin Tabs
+      case 'data-import':
+        return user?.role === 'admin' ? <DataImportManager /> : <AccessDenied />;
       case 'admin-users':
         return user?.role === 'admin' ? <UserManagementTab /> : <AccessDenied />;
       case 'admin-subscriptions':
