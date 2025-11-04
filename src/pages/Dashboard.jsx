@@ -477,6 +477,42 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Quick Access Buttons */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <Button
+            onClick={() => navigate(createPageUrl('RolePlay'))}
+            className="h-20 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 border-2 border-[#E2E8F0] hover:border-[#6D28D9] text-[#1E293B] flex flex-col items-center justify-center gap-2 transition-all"
+            variant="outline"
+          >
+            <Sparkles className="w-6 h-6 text-[#6D28D9]" />
+            <span className="font-semibold">Role Play</span>
+          </Button>
+          <Button
+            onClick={() => navigate(createPageUrl('ContentStudio'))}
+            className="h-20 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 border-2 border-[#E2E8F0] hover:border-[#6D28D9] text-[#1E293B] flex flex-col items-center justify-center gap-2 transition-all"
+            variant="outline"
+          >
+            <Sparkles className="w-6 h-6 text-[#15AABF]" />
+            <span className="font-semibold">Content Studio</span>
+          </Button>
+          <Button
+            onClick={() => navigate(createPageUrl('Market'))}
+            className="h-20 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 border-2 border-[#E2E8F0] hover:border-[#6D28D9] text-[#1E293B] flex flex-col items-center justify-center gap-2 transition-all"
+            variant="outline"
+          >
+            <Target className="w-6 h-6 text-[#10B981]" />
+            <span className="font-semibold">My Market</span>
+          </Button>
+          <Button
+            onClick={handleMyAITeamClick}
+            className="h-20 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 border-2 border-[#E2E8F0] hover:border-[#6D28D9] text-[#1E293B] flex flex-col items-center justify-center gap-2 transition-all"
+            variant="outline"
+          >
+            <Sparkles className="w-6 h-6 text-[#7C3AED]" />
+            <span className="font-semibold">My AI Team</span>
+          </Button>
+        </div>
+
         {/* Main Grid (Top row with Pulse, Today's Focus, Intelligence) */}
         <div className="grid grid-cols-3 gap-6">
           {/* Today's Pulse */}

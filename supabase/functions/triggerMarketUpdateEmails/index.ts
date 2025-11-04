@@ -10,11 +10,11 @@ import {
 import { fetchRapidApiMarketData } from '../_shared/marketUtils.ts';
 
 const summarizeMarketMetrics = (rawData: Record<string, unknown>) => {
-  const metrics = rawData?.metrics ?? rawData ?? {};
-  const medianPrice = metrics?.median_sale_price ?? metrics?.medianPrice ?? 'N/A';
-  const inventory = metrics?.inventory ?? metrics?.inventory_level ?? 'N/A';
-  const dom = metrics?.days_on_market ?? metrics?.dom ?? 'N/A';
-  const trend = metrics?.price_trend ?? metrics?.priceTrend ?? 'flat';
+  const metrics = (rawData?.metrics ?? rawData ?? {}) as Record<string, unknown>;
+  const medianPrice = (metrics?.median_sale_price ?? metrics?.medianPrice ?? 'N/A') as string;
+  const inventory = (metrics?.inventory ?? metrics?.inventory_level ?? 'N/A') as string;
+  const dom = (metrics?.days_on_market ?? metrics?.dom ?? 'N/A') as string;
+  const trend = (metrics?.price_trend ?? metrics?.priceTrend ?? 'flat') as string;
   return { medianPrice, inventory, dom, trend };
 };
 

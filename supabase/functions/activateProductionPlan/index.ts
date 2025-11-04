@@ -128,6 +128,8 @@ serve(async (req) => {
       { title: 'Total Sales Volume', category: 'production', unit: 'USD', target: calculatedTargets.totalSalesVolume },
       { title: 'Total Conversations', category: 'activity', unit: 'conversations', target: calculatedTargets.totalConversations },
       { title: 'Total Appointments', category: 'activity', unit: 'appointments', target: calculatedTargets.totalAppointments },
+      { title: 'Total Agreements', category: 'activity', unit: 'agreements', target: calculatedTargets.totalAgreements },
+      { title: 'Total Contracts', category: 'activity', unit: 'contracts', target: calculatedTargets.totalContracts },
     ];
 
     let goalsCreated = 0;
