@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, Brain, Globe, RefreshCw, CheckCircle, Plus, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { UserContext } from '@/components/context/UserContext';
+import { DailyAction } from '@/api/entities';
 
 const cleanJsonText = (value) =>
   typeof value === 'string' ? value.replace(/```json\s*|```/gi, '').trim() : value;
@@ -194,12 +196,19 @@ export default function IntelligencePage() {
     return 'Critical';
   };
 
+  const { user: currentUser, refreshUserData } = useContext(UserContext);
+
   const handleAddActionToTodo = async (action, index) => {
     try {
       setProcessingActions(prev => new Set(prev).add(index));
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+
+      let userId = currentUser?.id;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id;
+      }
+
+      if (!userId) throw new Error('Not authenticated');
 
       const categoryMap = {
         'database': 'data_management',
@@ -212,24 +221,24 @@ export default function IntelligencePage() {
 
       const category = categoryMap[action.type] || 'other';
 
-      const { error: insertError } = await supabase
-        .from('daily_actions')
-        .insert({
-          user_id: user.id,
-          title: action.title,
-          description: `AI-recommended action from Pulse Intelligence Core`,
-          category: category,
-          priority: action.priority || 'medium',
-          due_date: new Date().toISOString().split('T')[0],
-          status: 'pending'
-        });
+      const today = new Date().toISOString().split('T')[0];
 
-      if (insertError) throw insertError;
+      await DailyAction.create({
+        userId,
+        title: action.title,
+        description: 'AI-recommended action from Pulse Intelligence Core',
+        category,
+        priority: action.priority || 'medium',
+        status: 'not_started',
+        actionDate: today,
+        dueDate: today,
+        actionType: action.type || 'general'
+      });
 
       const { error: logError } = await supabase
         .from('ai_actions_log')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           action_type: 'recommendation_accepted',
           status: 'completed',
           action_data: {
@@ -245,6 +254,10 @@ export default function IntelligencePage() {
       toast.success('Action added to your To-Do list', {
         description: action.title
       });
+
+      if (typeof refreshUserData === 'function') {
+        await refreshUserData();
+      }
     } catch (error) {
       console.error('Error adding action to todo:', error);
       toast.error('Failed to add action to To-Do list');
