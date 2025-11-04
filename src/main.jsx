@@ -8,15 +8,15 @@ import { ClerkProvider } from '@clerk/clerk-react'
 
 const queryClient = new QueryClient()
 
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
-if (!CLERK_PUBLISHABLE_KEY) {
+if (!PUBLISHABLE_KEY) {
   throw new Error('Missing Clerk Publishable Key')
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
