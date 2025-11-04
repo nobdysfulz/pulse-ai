@@ -1,5 +1,23 @@
 project_id = "gzdzmqpkbgvkuulykjml"
 
+[functions.executive_assistantChat]
+verify_jwt = true
+
+[functions.content_agentChat]
+verify_jwt = true
+
+[functions.transaction_coordinatorChat]
+verify_jwt = true
+
+[functions.createTransactionTool]
+verify_jwt = false
+
+[functions.getTransactionsTool]
+verify_jwt = false
+
+[functions.updateTransactionTool]
+verify_jwt = false
+
 [functions.buildGraphContext]
 verify_jwt = true
 
