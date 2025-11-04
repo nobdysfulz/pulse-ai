@@ -40,6 +40,24 @@ Deno.serve(async (req) => {
     // Parse CSV
     const records = parse(csvData, { skipFirstRow: true });
     
+    // Define admin tables that don't have user_id
+    const adminTables = [
+      'task_templates',
+      'objection_scripts', 
+      'role_play_scenarios',
+      'email_templates',
+      'content_topics',
+      'client_personas',
+      'ai_prompt_configs',
+      'featured_content_packs',
+      'content_packs',
+      'campaign_templates',
+      'legal_documents',
+      'feature_flags',
+    ];
+    
+    const isAdminTable = adminTables.includes(entityType);
+
     // Map columns to database fields and auto-inject system fields
     const mappedRecords = records.map((row: any, index: number) => {
       const mapped: any = {};
@@ -54,16 +72,16 @@ Deno.serve(async (req) => {
         } else if (value === 'true' || value === 'false') {
           // Handle boolean conversion
           mapped[dbColStr] = value === 'true';
-        } else if (value && !isNaN(Number(value)) && dbColStr.includes('score')) {
-          // Handle numeric conversions for scores
+        } else if (value && !isNaN(Number(value)) && (dbColStr.includes('score') || dbColStr.includes('weight') || dbColStr.includes('order'))) {
+          // Handle numeric conversions for scores, weights, and order fields
           mapped[dbColStr] = Number(value);
         } else {
           mapped[dbColStr] = value || null;
         }
       });
 
-      // Auto-inject user_id if table has this field
-      if (!mapped.user_id && entityType !== 'profiles') {
+      // Auto-inject user_id only for user-specific tables
+      if (!isAdminTable && !mapped.user_id && entityType !== 'profiles') {
         mapped.user_id = user.id;
       }
 

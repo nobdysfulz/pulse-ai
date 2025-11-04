@@ -232,6 +232,200 @@ export const importConfigs = {
     ],
     requiredFields: ['service_name'],
   },
+
+  // ============= ADMIN-MANAGED TABLES =============
+  // These tables are global and don't have user_id columns
+
+  task_templates: {
+    label: 'Task Templates (Admin)',
+    tableName: 'task_templates',
+    description: 'Import system-wide task templates for intelligent action generation',
+    columnMapping: {
+      'Title': 'title',
+      'Description': 'description',
+      'Category': 'category',
+      'Action Type': 'action_type',
+      'Trigger Type': 'trigger_type',
+      'Trigger Value': 'trigger_value',
+      'Priority': 'priority',
+      'Priority Weight': 'priority_weight',
+      'Display Category': 'display_category',
+      'Impact Area': 'impact_area',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Title', 'Description', 'Category', 'Action Type', 'Trigger Type', 'Trigger Value', 'Priority', 'Priority Weight', 'Display Category', 'Impact Area', 'Is Active'],
+      ['Follow up with hot lead', 'Contact lead within 24 hours', 'follow_up', 'call', 'pulse_score', '85', 'high', '5', 'Lead Generation', 'pipeline', 'true'],
+      ['Schedule property showing', 'Set up showing for interested buyer', 'showing', 'calendar', 'transaction_stage', '2', 'medium', '3', 'Client Services', 'production', 'true'],
+    ],
+    requiredFields: ['title', 'category', 'action_type', 'trigger_type'],
+  },
+
+  objection_scripts: {
+    label: 'Objection Scripts (Admin)',
+    tableName: 'objection_scripts',
+    description: 'Import roleplay objection handling scripts and responses',
+    columnMapping: {
+      'Title': 'title',
+      'Category': 'category',
+      'Situation': 'situation',
+      'Difficulty': 'difficulty',
+      'Response': 'response',
+      'Tips': 'tips',
+      'Is Free': 'is_free',
+      'Is Active': 'is_active',
+      'Is Popular': 'is_popular',
+      'Sort Order': 'sort_order',
+    },
+    sampleCsvData: [
+      ['Title', 'Category', 'Situation', 'Difficulty', 'Response', 'Tips', 'Is Free', 'Is Active', 'Is Popular', 'Sort Order'],
+      ['Price Too High', 'pricing', 'Client says your listing price is too high', 'medium', 'I understand your concern. Let me show you the comparable sales data...', 'Stay calm|Use data|Acknowledge concerns', 'true', 'true', 'true', '1'],
+      ['Not Ready Yet', 'timing', 'Client is not ready to commit', 'easy', 'I completely understand. What timeline works best for you?', 'Be patient|Ask questions|Offer value', 'true', 'true', 'false', '2'],
+    ],
+    requiredFields: ['title', 'category', 'situation', 'difficulty', 'response'],
+  },
+
+  role_play_scenarios: {
+    label: 'Role Play Scenarios (Admin)',
+    tableName: 'role_play_scenarios',
+    description: 'Import AI-powered roleplay training scenarios',
+    columnMapping: {
+      'Name': 'name',
+      'Description': 'description',
+      'Category': 'category',
+      'Difficulty Level': 'difficulty_level',
+      'Client Persona': 'client_persona',
+      'Initial Context': 'initial_context',
+      'Learning Objectives': 'learning_objectives',
+      'Success Criteria': 'success_criteria',
+      'Average Duration Minutes': 'average_duration_minutes',
+      'Passing Threshold': 'passing_threshold',
+      'Is Premium': 'is_premium',
+      'Is Popular': 'is_popular',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Name', 'Description', 'Category', 'Difficulty Level', 'Client Persona', 'Initial Context', 'Learning Objectives', 'Success Criteria', 'Average Duration Minutes', 'Passing Threshold', 'Is Premium', 'Is Popular', 'Is Active'],
+      ['First Time Buyer Consultation', 'Handle initial consultation with nervous first-time buyer', 'buyer', 'beginner', 'first_time_buyer', 'Client just reached out about buying their first home', 'Build rapport|Explain process|Address concerns', 'Active listening|Clear explanations|Confidence building', '15', '70', 'false', 'true', 'true'],
+    ],
+    requiredFields: ['name', 'category', 'difficulty_level', 'client_persona', 'initial_context'],
+  },
+
+  email_templates: {
+    label: 'Email Templates (Admin)',
+    tableName: 'email_templates',
+    description: 'Import system-wide email templates for campaigns',
+    columnMapping: {
+      'Template Name': 'template_name',
+      'Template Key': 'template_key',
+      'Category': 'category',
+      'Subject': 'subject',
+      'Body HTML': 'body_html',
+      'Body Text': 'body_text',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Template Name', 'Template Key', 'Category', 'Subject', 'Body HTML', 'Body Text', 'Is Active'],
+      ['New Listing Announcement', 'new_listing', 'marketing', 'Just Listed: {{property_address}}', '<h1>New Listing</h1><p>Check out this amazing property!</p>', 'New Listing - Check out this amazing property!', 'true'],
+    ],
+    requiredFields: ['template_name', 'template_key', 'category', 'subject', 'body_html'],
+  },
+
+  content_topics: {
+    label: 'Content Topics (Admin)',
+    tableName: 'content_topics',
+    description: 'Import content generation topics and prompts',
+    columnMapping: {
+      'Topic Name': 'topic_name',
+      'Topic Key': 'topic_key',
+      'Category': 'category',
+      'Description': 'description',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Topic Name', 'Topic Key', 'Category', 'Description', 'Is Active'],
+      ['Market Update', 'market_update', 'market_intelligence', 'Monthly market trends and statistics', 'true'],
+      ['Home Buying Tips', 'buyer_tips', 'education', 'Helpful tips for homebuyers', 'true'],
+    ],
+    requiredFields: ['topic_name', 'topic_key', 'category'],
+  },
+
+  client_personas: {
+    label: 'Client Personas (Admin)',
+    tableName: 'client_personas',
+    description: 'Import AI training client personality types',
+    columnMapping: {
+      'Persona Name': 'persona_name',
+      'Persona Key': 'persona_key',
+      'Description': 'description',
+      'Personality Traits': 'personality_traits',
+      'Decision Making Style': 'decision_making_style',
+      'Communication Style': 'communication_style',
+      'Objection Patterns': 'objection_patterns',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Persona Name', 'Persona Key', 'Description', 'Personality Traits', 'Decision Making Style', 'Communication Style', 'Objection Patterns', 'Is Active'],
+      ['First Time Buyer', 'first_time_buyer', 'Young, nervous, needs guidance', 'anxious|eager|detail-oriented', 'analytical', 'asks many questions', 'price concerns|timeline worries', 'true'],
+    ],
+    requiredFields: ['persona_name', 'persona_key'],
+  },
+
+  ai_prompt_configs: {
+    label: 'AI Prompt Configs (Admin)',
+    tableName: 'ai_prompt_configs',
+    description: 'Import system AI prompt templates',
+    columnMapping: {
+      'Prompt Name': 'prompt_name',
+      'Prompt Key': 'prompt_key',
+      'Category': 'category',
+      'Prompt Template': 'prompt_template',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Prompt Name', 'Prompt Key', 'Category', 'Prompt Template', 'Is Active'],
+      ['Social Post Generator', 'social_post', 'content', 'Generate an engaging social media post about {{topic}}', 'true'],
+    ],
+    requiredFields: ['prompt_name', 'prompt_key', 'category', 'prompt_template'],
+  },
+
+  featured_content_packs: {
+    label: 'Featured Content Packs (Admin)',
+    tableName: 'featured_content_packs',
+    description: 'Import featured content pack collections',
+    columnMapping: {
+      'Title': 'title',
+      'Category': 'category',
+      'Description': 'description',
+      'Icon': 'icon',
+      'Sort Order': 'sort_order',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Title', 'Category', 'Description', 'Icon', 'Sort Order', 'Is Active'],
+      ['Spring Market Pack', 'seasonal', 'Complete spring marketing content bundle', 'sun', '1', 'true'],
+    ],
+    requiredFields: ['title', 'category'],
+  },
+
+  content_packs: {
+    label: 'Content Packs (Admin)',
+    tableName: 'content_packs',
+    description: 'Import content pack templates',
+    columnMapping: {
+      'Pack Name': 'pack_name',
+      'Pack Key': 'pack_key',
+      'Category': 'category',
+      'Description': 'description',
+      'Is Premium': 'is_premium',
+      'Is Active': 'is_active',
+    },
+    sampleCsvData: [
+      ['Pack Name', 'Pack Key', 'Category', 'Description', 'Is Premium', 'Is Active'],
+      ['Listing Launch Kit', 'listing_launch', 'marketing', '7-day listing promotion content', 'true', 'true'],
+    ],
+    requiredFields: ['pack_name', 'pack_key', 'category'],
+  },
 };
 
 export const getEntityOptions = () => {
