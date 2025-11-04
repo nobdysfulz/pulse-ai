@@ -114,7 +114,7 @@ serve(async (req) => {
 
         const transcript = payload.transcript ?? (payload.data?.transcript as unknown) ?? [];
         const meta = payload.metadata || (payload.data?.metadata as Record<string, unknown> | undefined) || {};
-        const durationSeconds = meta.call_duration_secs ?? 0;
+        const durationSeconds = (meta.call_duration_secs as number | undefined) ?? 0;
         const durationMinutes = durationSeconds > 0 ? Math.max(1, Math.ceil(durationSeconds / 60)) : 0;
         const appointmentSet = meta.appointment_set === true;
         const analysis = meta.analysis ?? safeGet(callLog.metadata, 'analysis');
