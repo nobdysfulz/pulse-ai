@@ -144,17 +144,25 @@ export default function PersonalAdvisorPage() {
         }
 
     } catch (error) {
-      console.error('Error getting Copilot response:', error);
+      console.error('Detailed Advisor Error:', {
+        message: error.message,
+        stack: error.stack,
+        context: error.context,
+        userPrompt: messageText,
+        conversationId: conversationId
+      });
       
-      // Provide more specific error messages
-      let errorMessage = "I apologize, but I'm having trouble responding right now.";
+      let errorMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
       
-      if (error.message?.includes('fetch') || error.message?.includes('network')) {
-        errorMessage = "I'm having trouble connecting. Please check your internet and try again.";
-      } else if (error.message?.includes('context')) {
-        errorMessage = "I need a moment to gather your business context. Please try again in a few seconds.";
-      } else if (error.message?.includes('429') || error.message?.includes('rate limit')) {
-        errorMessage = "I'm receiving too many requests right now. Please wait a moment and try again.";
+      // Provide specific error messages based on error type
+      if (error.message?.includes('getAgentContext') || error.message?.includes('context')) {
+        errorMessage = "Unable to load your profile context. Please check your connection and try again.";
+      } else if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+        errorMessage = "AI service is busy at the moment. Please wait a moment and try again.";
+      } else if (error.message?.includes('LOVABLE_API_KEY') || error.message?.includes('API key') || error.message?.includes('auth')) {
+        errorMessage = "AI service configuration issue detected. Please contact support.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
+        errorMessage = "Network connection issue. Please check your internet connection and try again.";
       }
       
       toast.error("Failed to get response from advisor");

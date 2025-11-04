@@ -240,11 +240,19 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
         }
       }
 
-      toast.success('Production plan and goals activated successfully!');
+      toast.success('Your 12-Month Production Plan has been saved and activated!');
+      
+      // Refresh user data to update context
       await refreshUserData();
-      // Add small delay to ensure data is refreshed before closing
-      await new Promise(resolve => setTimeout(resolve, 500));
-      onPlanSaved?.();
+      
+      // Wait for state to propagate before closing
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Notify parent components
+      if (onPlanSaved) {
+        await onPlanSaved();
+      }
+      
       closeModal(true);
     } catch (error) {
       console.error('Error saving plan and goals:', error);

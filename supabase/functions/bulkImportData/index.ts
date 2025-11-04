@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    const columnsToSkip = ['created_by', 'accentcolorhex2', 'action_type'];
+    const columnsToSkip = ['created_by', 'accentcolorhex2', 'action_type', 'campaignname'];
 
     // Map columns to database fields and auto-inject system fields
     const mappedRecords = dataRows.map((row: any, index: number) => {

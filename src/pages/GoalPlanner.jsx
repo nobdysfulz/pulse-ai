@@ -92,9 +92,10 @@ export default function GoalPlanner() {
         }
     }, [user]);
 
-    const handleProductionPlannerClose = () => {
+    const handleProductionPlannerClose = async () => {
         setShowProductionPlanner(false);
-        loadActivePlan(); // Single call to refresh active plan status
+        await loadActivePlan();
+        await refreshUserData(); // Refresh user context to update goals
     };
 
     const planCards = [

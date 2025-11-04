@@ -19,19 +19,32 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
     frequency: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onCreateAction(formData);
-    setFormData({
-      title: '',
-      description: '',
-      actionType: 'lead_generation',
-      priority: 'medium',
-      category: 'power_hour',
-      actionDate: new Date().toISOString().split('T')[0],
-      dueDate: '',
-      frequency: ''
-    });
+    
+    if (!formData.title || formData.title.trim() === '') {
+      toast.error('Please enter a task title');
+      return;
+    }
+    
+    try {
+      await onCreateAction(formData);
+      onClose(); // Close modal on success
+      // Reset form after successful creation
+      setFormData({
+        title: '',
+        description: '',
+        actionType: 'lead_generation',
+        priority: 'medium',
+        category: 'power_hour',
+        actionDate: new Date().toISOString().split('T')[0],
+        dueDate: '',
+        frequency: ''
+      });
+    } catch (error) {
+      console.error('Error creating action:', error);
+      toast.error('Failed to create task. Please try again.');
+    }
   };
 
   if (!isOpen) return null;

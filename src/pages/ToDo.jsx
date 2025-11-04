@@ -38,6 +38,15 @@ export default function ToDoPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const tabFromUrl = urlParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'schedule');
+
+  // Listen for URL changes to update active tab
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [window.location.search]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);

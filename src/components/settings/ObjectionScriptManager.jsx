@@ -66,13 +66,21 @@ export default function ObjectionScriptManager() {
     }
 
     try {
+      const scriptData = {
+        ...formData,
+        is_active: true, // Explicitly set to true for new scripts
+        is_free: formData.isFree !== false, // Default to true
+        sort_order: formData.sortOrder || 0
+      };
+
       if (editing?.id) {
-        await ObjectionScript.update(editing.id, formData);
-        toast.success('Script updated');
+        await ObjectionScript.update(editing.id, scriptData);
+        toast.success('Script updated successfully');
       } else {
-        await ObjectionScript.create(formData);
-        toast.success('Script created');
+        await ObjectionScript.create(scriptData);
+        toast.success('Script created successfully');
       }
+      
       await loadScripts();
       setEditing(null);
       setFormData({
@@ -89,7 +97,7 @@ export default function ObjectionScriptManager() {
       });
     } catch (error) {
       console.error('Error saving script:', error);
-      toast.error('Failed to save script');
+      toast.error(`Failed to save script: ${error.message}`);
     }
   };
 

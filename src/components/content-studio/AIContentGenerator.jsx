@@ -80,10 +80,19 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
       toast.error('Please enter a topic for your content.');
       return;
     }
-    if (!isSubscriber && (!userCredits || creditsRemaining < currentCredits)) {
-      if (onCreditError) onCreditError(currentCredits);
-      return;
+
+    const currentCredits = selectedPromptConfig?.creditsCost || 5;
+
+    // Check credits for free users BEFORE generation
+    if (!isSubscriber) {
+      const hasCredits = userCredits && userCredits.creditsRemaining >= currentCredits;
+      if (!hasCredits) {
+        toast.error(`Insufficient credits. This action requires ${currentCredits} credits.`);
+        if (onCreditError) onCreditError(currentCredits);
+        return;
+      }
     }
+    
     if (!selectedPromptConfig) {
       toast.error("The configuration for this content type is missing. Please contact support.");
       return;
