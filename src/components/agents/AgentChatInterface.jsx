@@ -180,21 +180,55 @@ export default function AgentChatInterface({ agentType }) {
         throw new Error(error.message || "The agent failed to respond.");
       }
 
+      // Display tool execution feedback if tools were called
+      let messagesWithTools = [...updatedMessages];
+      if (data.toolCalls && data.toolCalls.length > 0) {
+        const toolSummary = data.toolCalls.map(tc => {
+          const toolName = tc.name.replace(/Tool$/, '').replace(/([A-Z])/g, ' $1').trim();
+          return `🔧 ${toolName}`;
+        }).join(', ');
+        
+        // Add a system message showing tool execution
+        messagesWithTools = [
+          ...messagesWithTools, 
+          { 
+            role: 'system', 
+            content: `Executed: ${toolSummary}`,
+            isToolExecution: true
+          }
+        ];
+      }
+
       const assistantMessage = { 
         role: 'assistant', 
         content: data.response, 
-        isTyping: true
+        isTyping: true,
+        toolCalls: data.toolCalls || []
       };
       
-      const finalMessages = [...updatedMessages, assistantMessage];
+      const finalMessages = [...messagesWithTools, assistantMessage];
       setMessages(finalMessages);
+      
+      // Update conversation ID if provided
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
       
       // Save conversation after getting response
       await saveConversation(finalMessages);
 
     } catch (error) {
       console.error('Error getting agent response:', error);
-      toast.error(error.message || "Failed to get response from agent.");
+      
+      // Check for specific error types
+      if (error.message?.includes('not connected')) {
+        toast.error(`Please connect the required integration in Settings > Integrations`);
+      } else if (error.message?.includes('Rate limit')) {
+        toast.error('Rate limit reached. Please wait a moment and try again.');
+      } else {
+        toast.error(error.message || "Failed to get response from agent.");
+      }
+      
       const errorMessage = { 
         role: 'assistant', 
         content: "I apologize, but I'm having trouble responding right now. Please try again." 
@@ -227,33 +261,49 @@ export default function AgentChatInterface({ agentType }) {
     <div className="h-full flex flex-col bg-white border border-[#E2E8F0] rounded-lg">
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          {messages.filter(msg => msg.role !== 'system').map((message, index) => (
-            <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {message.role === 'assistant' && (
-                <img 
-                  src={agentAvatar} 
-                  alt={agentName}
-                  className="w-8 h-8 rounded-full flex-shrink-0"
-                />
-              )}
-              <div className={`max-w-[85%] ${message.role === 'user' ? 'bg-[#7C3AED] text-white' : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#1E293B]'} rounded-lg p-4`}>
-                {message.isTyping ? (
-                  <TypingBubble text={message.content} onTypingComplete={() => handleTypingComplete(index)} />
-                ) : (
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+          {messages.map((message, index) => {
+            // Skip system messages unless they're tool execution messages
+            if (message.role === 'system' && !message.isToolExecution) return null;
+
+            // Show tool execution as a badge
+            if (message.isToolExecution) {
+              return (
+                <div key={index} className="flex justify-center">
+                  <div className="bg-[#F1F5F9] text-[#64748B] text-xs px-3 py-1 rounded-full border border-[#CBD5E1]">
+                    {message.content}
                   </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {message.role === 'assistant' && (
+                  <img 
+                    src={agentAvatar} 
+                    alt={agentName}
+                    className="w-8 h-8 rounded-full flex-shrink-0"
+                  />
+                )}
+                <div className={`max-w-[85%] ${message.role === 'user' ? 'bg-[#7C3AED] text-white' : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#1E293B]'} rounded-lg p-4`}>
+                  {message.isTyping ? (
+                    <TypingBubble text={message.content} onTypingComplete={() => handleTypingComplete(index)} />
+                  ) : (
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap prose prose-sm max-w-none">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+                {message.role === 'user' && (
+                  <img 
+                    src={userAvatar} 
+                    alt="You"
+                    className="w-8 h-8 rounded-full flex-shrink-0"
+                  />
                 )}
               </div>
-              {message.role === 'user' && (
-                <img 
-                  src={userAvatar} 
-                  alt="You"
-                  className="w-8 h-8 rounded-full flex-shrink-0"
-                />
-              )}
-            </div>
-          ))}
+            );
+          })}
           {loading && (
             <AITypingIndicator agentName={agentName} />
           )}

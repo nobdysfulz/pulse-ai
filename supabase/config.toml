@@ -18,6 +18,30 @@ verify_jwt = false
 [functions.updateTransactionTool]
 verify_jwt = false
 
+[functions.sendGoogleEmailTool]
+verify_jwt = false
+
+[functions.scheduleGoogleCalendarEventTool]
+verify_jwt = false
+
+[functions.createGoogleDriveFolderTool]
+verify_jwt = false
+
+[functions.researchAndSummarizeTool]
+verify_jwt = false
+
+[functions.publishFacebookPostTool]
+verify_jwt = false
+
+[functions.publishInstagramPostTool]
+verify_jwt = false
+
+[functions.getFacebookPageInsightsTool]
+verify_jwt = false
+
+[functions.generateImageTool]
+verify_jwt = false
+
 [functions.buildGraphContext]
 verify_jwt = true
 
