@@ -496,7 +496,7 @@ export default function IntelligencePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            <div className="p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200 space-y-4">
+            <div className="p-6 bg-white rounded-xl border border-violet-200 space-y-4">
               {normalizedInsights.message ? (
                 normalizedInsights.message.split(/\n\s*\n/).map((paragraph, idx) => (
                   <p key={idx} className="text-[#1E293B] leading-relaxed text-base">
