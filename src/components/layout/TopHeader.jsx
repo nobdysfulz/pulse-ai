@@ -24,6 +24,10 @@ export default function TopHeader() {
     }
   };
 
+  const handleNotificationsClick = () => {
+    navigate(createPageUrl('Settings?tab=notifications'));
+  };
+
   return (
     <header className="bg-[#232323] text-white pt-10 pr-6 pb-10 pl-6 h-14 flex-shrink-0 flex items-center justify-between shadow-[2px_2px_20px_0px_#707070AD]">
       {/* Left side with logo and name */}
@@ -50,7 +54,7 @@ export default function TopHeader() {
           TRAINING CENTER
         </a>
 
-        <button className="hover:text-gray-200 transition-colors">
+        <button onClick={handleNotificationsClick} className="hover:text-gray-200 transition-colors">
           <Bell className="w-5 h-5" />
         </button>
         

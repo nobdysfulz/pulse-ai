@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import LoadingIndicator from "../components/ui/LoadingIndicator";
 import { InlineLoadingIndicator } from "../components/ui/LoadingIndicator";
 import MarketConfigForm from '../components/market/MarketConfigForm';
+import { UserMarketConfig } from '@/api/entities';
 
 
 // --- NEW COMPONENT FOR FORMATTING JSON ANALYSIS ---
@@ -133,6 +134,7 @@ export default function MarketPage() {
   const [advisorQuery, setAdvisorQuery] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
   const [generatingReport, setGeneratingReport] = useState(false);
 
   const parsedAnalysis = useMemo(() => {
@@ -433,21 +435,55 @@ export default function MarketPage() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!advisorQuery.trim()) return;
+    const messageText = advisorQuery.trim();
+    if (!messageText) return;
 
-    const userMessage = { role: 'user', content: advisorQuery };
-    setChatMessages((prev) => [...prev, userMessage]);
+    const userMessage = { role: 'user', content: messageText };
+    const updatedHistory = [...chatMessages, userMessage];
+
+    setChatMessages(updatedHistory);
     setAdvisorQuery('');
     setSendingMessage(true);
 
     try {
-      // TODO: Implement market advisor query
-      const assistantMessage = { role: 'assistant', content: "Market advisor functionality coming soon! This will provide AI-powered insights about your market." };
+      const { data: agentContext, error: contextError } = await supabase.functions.invoke('getAgentContext', { body: {} });
+      if (contextError || agentContext?.error || !agentContext) {
+        throw new Error(agentContext?.error || contextError?.message || 'Could not retrieve agent context.');
+      }
+
+      const { data, error } = await supabase.functions.invoke('copilotChat', {
+        body: {
+          userPrompt: messageText,
+          conversationId,
+          agentContext,
+          conversationHistory: updatedHistory,
+          currentTab: 'market'
+        }
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || 'The advisor failed to respond.');
+      }
+
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+
+      const assistantMessage = { role: 'assistant', content: data.response };
       setChatMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error getting response:', error);
-      const errorMessage = { role: 'assistant', content: "I apologize, but I'm having trouble responding right now. Please try again." };
-      setChatMessages((prev) => [...prev, errorMessage]);
+      console.error('Market advisor error:', error);
+      let fallbackMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
+
+      if (error.message?.toLowerCase().includes('context')) {
+        fallbackMessage = 'Unable to load your market context. Please refresh and try again.';
+      } else if (error.message?.includes('429') || error.message?.toLowerCase().includes('rate limit')) {
+        fallbackMessage = 'The advisor is busy right now. Please wait a moment and try again.';
+      } else if (error.message?.toLowerCase().includes('lovable') || error.message?.toLowerCase().includes('auth')) {
+        fallbackMessage = 'The advisor is unavailable due to a configuration issue. Please contact support.';
+      }
+
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: fallbackMessage }]);
       toast.error('Failed to get response from advisor');
     } finally {
       setSendingMessage(false);

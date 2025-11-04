@@ -597,20 +597,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsFubConnecting(true);
     try {
-      // TODO: Implement followUpBossAuth edge function
-      toast.info("Follow Up Boss integration coming soon");
-      setIsFubConnecting(false);
-      return;
-      
-      /* Future implementation:
-      const { data } = await supabase.functions.invoke('followUpBossAuth', {
+      const { data, error } = await supabase.functions.invoke('followUpBossAuth', {
         body: {
           action: 'connect',
           apiKey: fubApiKey
         }
       });
 
-      if (data.success) {
+      if (error) {
+        toast.error("Failed to connect to Follow Up Boss", { description: error.message });
+        return;
+      }
+
+      if (data?.success) {
         setIsFubConnected(true);
         setShowFubForm(false);
         setFubApiKey('');
@@ -621,14 +620,15 @@ export default function IntegrationsTab({ onUpdate, user }) {
           .select('*')
           .eq('provider', 'follow_up_boss')
           .eq('user_id', user.id);
-        
+
         if (connections && connections.length > 0) {
           setFubConnection(connections[0]);
         }
+
+        if (onUpdate) await onUpdate();
       } else {
-        toast.error(data.error || "Failed to connect to Follow Up Boss");
+        toast.error(data?.error || "Failed to connect to Follow Up Boss");
       }
-      */
     } catch (e) {
       console.error("Follow Up Boss connection error:", e);
       toast.error("Could not connect to Follow Up Boss. Please check your API key.");
@@ -640,19 +640,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
   const handleDisconnectFub = async () => {
     setIsFubDisconnecting(true);
     try {
-      // TODO: Implement followUpBossAuth edge function
-      toast.info("Follow Up Boss integration coming soon");
-      setIsFubDisconnecting(false);
-      return;
-      
-      /* Future implementation:
-      await supabase.functions.invoke('followUpBossAuth', { 
-        body: { action: 'disconnect' } 
+      const { data, error } = await supabase.functions.invoke('followUpBossAuth', {
+        body: { action: 'disconnect' }
       });
+
+      if (error) {
+        throw error;
+      }
+
       setIsFubConnected(false);
       setFubConnection(null);
-      toast.success("Follow Up Boss has been disconnected.");
-      */
+      toast.success(data?.message || "Follow Up Boss has been disconnected.");
+
+      if (onUpdate) await onUpdate();
     } catch (e) {
       toast.error("Failed to disconnect Follow Up Boss.");
     } finally {

@@ -20,6 +20,7 @@ const RolePlaySession = React.lazy(() => import('./pages/RolePlaySession'))
 const SessionResults = React.lazy(() => import('./pages/SessionResults'))
 const PersonalAdvisor = React.lazy(() => import('./pages/PersonalAdvisor'))
 const Onboarding = React.lazy(() => import('./pages/Onboarding'))
+const AgentsOnboarding = React.lazy(() => import('./pages/AgentsOnboarding'))
 const FacebookAuthConfirmation = React.lazy(() => import('./pages/FacebookAuthConfirmation'))
 const InstagramAuthConfirmation = React.lazy(() => import('./pages/InstagramAuthConfirmation'))
 const LinkedInAuthConfirmation = React.lazy(() => import('./pages/LinkedInAuthConfirmation'))
@@ -27,7 +28,9 @@ const MicrosoftAuthConfirmation = React.lazy(() => import('./pages/MicrosoftAuth
 const GoogleWorkspaceAuthConfirmation = React.lazy(() => import('./pages/GoogleWorkspaceAuthConfirmation'))
 const ZoomAuthConfirmation = React.lazy(() => import('./pages/ZoomAuthConfirmation'))
 const Intelligence = React.lazy(() => import('./pages/Intelligence'))
+const IntelligenceSurvey = React.lazy(() => import('./pages/IntelligenceSurvey'))
 const Plans = React.lazy(() => import('./pages/Plans'))
+const PlatformMetrics = React.lazy(() => import('./pages/PlatformMetrics'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './pages/Layout'
@@ -181,10 +184,34 @@ function App() {
             }
           />
           <Route
+            path="/agents-onboarding"
+            element={
+              <ProtectedRoute>
+                <Layout><AgentsOnboarding /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/intelligence-survey"
+            element={
+              <ProtectedRoute>
+                <Layout><IntelligenceSurvey /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/plans"
             element={
               <ProtectedRoute>
                 <Layout><Plans /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/platform-metrics"
+            element={
+              <ProtectedRoute>
+                <Layout><PlatformMetrics /></Layout>
               </ProtectedRoute>
             }
           />

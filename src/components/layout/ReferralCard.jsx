@@ -27,7 +27,7 @@ export default function ReferralCard() {
                         Invite colleagues and earn 5 bonus credits for each person who joins!
                     </p>
                     <Button asChild size="sm" className="w-full bg-purple-600 hover:bg-purple-700">
-                        <Link to={createPageUrl('Settings?tab=referral')}>
+                        <Link to={createPageUrl('Settings?tab=referrals')}>
                             Start Referring
                         </Link>
                     </Button>
