@@ -5,6 +5,7 @@ export const normalizeOnboardingProgress = (record) => {
     return {
       onboardingCompleted: false,
       agentOnboardingCompleted: false,
+      agentIntelligenceCompleted: false,
       callCenterOnboardingCompleted: false,
       completedSteps: []
     };
@@ -21,6 +22,7 @@ export const normalizeOnboardingProgress = (record) => {
     ...record,
     onboardingCompleted: !!record.onboarding_completion_date,
     agentOnboardingCompleted: record.agent_onboarding_completed ?? false,
+    agentIntelligenceCompleted: record.agent_intelligence_completed ?? false,
     callCenterOnboardingCompleted: hasAllCallCenterSteps,
     completedSteps: completedSteps
   };

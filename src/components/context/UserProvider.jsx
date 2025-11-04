@@ -115,6 +115,7 @@ export default function UserProvider({ children }) {
                     userId: userData.id,
                     onboardingCompleted: false,
                     agentOnboardingCompleted: false,
+                    agentIntelligenceCompleted: false,
                     completedSteps: []
                 },
                 marketConfig: marketConfigResult.data || null,

@@ -28,14 +28,12 @@ export default function CoreConfirmation({ data, onNext, allData }) {
         });
       }
 
-      // Core completion is handled by TierAwareOnboarding's completeModule
-      // which sets onboarding_completion_date
-      toast.success('Onboarding completed successfully!');
+      toast.success('Core setup completed!');
       
-      // Navigate to dashboard
-      setTimeout(() => {
-        navigate(createPageUrl('Dashboard'));
-      }, 500);
+      // Call onNext to trigger proper flow orchestration
+      if (onNext) {
+        await onNext({});
+      }
     } catch (error) {
       console.error('[CoreConfirmation] Error completing:', error);
       toast.error('Failed to complete onboarding. Please try again.');

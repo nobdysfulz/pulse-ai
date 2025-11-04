@@ -53,6 +53,66 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_intelligence_profiles: {
+        Row: {
+          average_price_point: string | null
+          biggest_challenges: string[] | null
+          business_consistency: string | null
+          business_structure: string | null
+          created_at: string | null
+          database_size: string | null
+          experience_level: string | null
+          growth_timeline: string | null
+          id: string
+          learning_preference: string | null
+          previous_year_transactions: number | null
+          previous_year_volume: number | null
+          sphere_warmth: string | null
+          survey_completed_at: string | null
+          updated_at: string | null
+          user_id: string
+          work_commitment: string | null
+        }
+        Insert: {
+          average_price_point?: string | null
+          biggest_challenges?: string[] | null
+          business_consistency?: string | null
+          business_structure?: string | null
+          created_at?: string | null
+          database_size?: string | null
+          experience_level?: string | null
+          growth_timeline?: string | null
+          id?: string
+          learning_preference?: string | null
+          previous_year_transactions?: number | null
+          previous_year_volume?: number | null
+          sphere_warmth?: string | null
+          survey_completed_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          work_commitment?: string | null
+        }
+        Update: {
+          average_price_point?: string | null
+          biggest_challenges?: string[] | null
+          business_consistency?: string | null
+          business_structure?: string | null
+          created_at?: string | null
+          database_size?: string | null
+          experience_level?: string | null
+          growth_timeline?: string | null
+          id?: string
+          learning_preference?: string | null
+          previous_year_transactions?: number | null
+          previous_year_volume?: number | null
+          sphere_warmth?: string | null
+          survey_completed_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          work_commitment?: string | null
+        }
+        Relationships: []
+      }
       agent_voices: {
         Row: {
           agent_type: string
@@ -1676,6 +1736,8 @@ export type Database = {
       }
       user_onboarding: {
         Row: {
+          agent_intelligence_completed: boolean | null
+          agent_intelligence_completion_date: string | null
           agent_onboarding_completed: boolean | null
           completed_steps: string[] | null
           created_at: string | null
@@ -1685,6 +1747,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_intelligence_completed?: boolean | null
+          agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
           completed_steps?: string[] | null
           created_at?: string | null
@@ -1694,6 +1758,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_intelligence_completed?: boolean | null
+          agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
           completed_steps?: string[] | null
           created_at?: string | null
