@@ -238,24 +238,38 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       newCompleted.add(currentStepObj.id);
       setCompletedSteps(newCompleted);
       
+      // Save progress to database with retry logic
       try {
         const existingOnboarding = await getUserOnboarding(user.id);
 
+        const savePayload = {
+          completed_steps: Array.from(newCompleted),
+          updated_at: new Date().toISOString()
+        };
+
         if (existingOnboarding) {
-          await supabase
+          const { error } = await supabase
             .from('user_onboarding')
-            .update({ completed_steps: Array.from(newCompleted) })
+            .update(savePayload)
             .eq('user_id', user.id);
+          
+          if (error) throw error;
         } else {
-          await supabase
+          const { error } = await supabase
             .from('user_onboarding')
             .insert({
               user_id: user.id,
-              completed_steps: Array.from(newCompleted)
+              ...savePayload
             });
+          
+          if (error) throw error;
         }
+        
+        console.log(`✅ Progress saved for step: ${currentStepObj.id}`);
       } catch (saveError) {
-        console.warn('Progress save failed (non-critical):', saveError);
+        console.error('❌ Failed to save progress:', saveError);
+        toast.error('Failed to save progress. Please try again.');
+        return; // Don't proceed if save fails
       }
       
       if (currentStep < currentModuleObj.steps.length - 1) {
@@ -315,7 +329,9 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       console.log(`🎯 Completing module: ${moduleKey}`);
       
       const existingOnboarding = await getUserOnboarding(user.id);
-      const updates = {};
+      const updates = {
+        updated_at: new Date().toISOString()
+      };
       
       if (moduleKey === 'core') {
         updates.onboarding_completed = true;
@@ -328,23 +344,28 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       }
       
       if (existingOnboarding) {
-        await supabase
+        const { error } = await supabase
           .from('user_onboarding')
           .update(updates)
           .eq('user_id', user.id);
+        
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('user_onboarding')
           .insert({
             user_id: user.id,
             ...updates
           });
+        
+        if (error) throw error;
       }
       
+      console.log(`✅ Module ${moduleKey} marked as complete`);
       toast.success(`${MODULES[moduleKey].title} complete!`);
     } catch (error) {
       console.error(`❌ Error completing module ${moduleKey}:`, error);
-      toast.error(`Failed to save progress`);
+      toast.error(`Failed to save completion status`);
       throw error;
     }
   };

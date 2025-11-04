@@ -207,7 +207,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
             <Button 
                 onClick={handleGenerate} 
-                disabled={isGenerating || loadingPrompts || !topic.trim() || (!isSubscriber && !userCredits)} 
+                disabled={isGenerating || !topic.trim() || (!isSubscriber && !userCredits)} 
                 className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold h-11"
             >
                 {isGenerating ? (

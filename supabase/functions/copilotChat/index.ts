@@ -29,29 +29,31 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    const { messages, context } = await req.json();
+    const { userPrompt, conversationId, agentContext, conversationHistory, currentTab } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Fetch user's graph context for personalization
-    const { data: graphContext } = await supabaseClient
-      .from('graph_context_cache')
-      .select('context')
-      .eq('user_id', user.id)
-      .single();
+    // Build system prompt based on context
+    const systemPrompt = `You are PULSE AI, a professional real estate business advisor.
+You help real estate agents with strategy, market insights, goal planning, and daily productivity.
 
-    const systemPrompt = `You are a professional real estate AI copilot assistant.
-You help agents with their daily tasks, provide insights, and answer questions.
-${graphContext ? `
-User Context:
-- Current Performance: ${graphContext.context.pulse?.score || 0}/100
-- Intelligence Score: ${graphContext.context.gane?.score || 0}/100
-- Market Score: ${graphContext.context.moro?.score || 0}/100
-` : ''}
-Be helpful, concise, and action-oriented. Focus on helping the agent be more productive.`;
+Agent Context:
+${agentContext?.profile?.full_name ? `- Agent: ${agentContext.profile.full_name}` : ''}
+${agentContext?.market?.market_name ? `- Market: ${agentContext.market.market_name}` : ''}
+${agentContext?.intelligence?.scores ? `- Performance Scores: PULSE ${agentContext.intelligence.scores.pulse || 0}, GANE ${agentContext.intelligence.scores.gane || 0}, MORO ${agentContext.intelligence.scores.moro || 0}` : ''}
+${agentContext?.goals?.length ? `- Active Goals: ${agentContext.goals.length}` : ''}
+
+Be helpful, actionable, and concise. Focus on providing specific recommendations the agent can implement today.`;
+
+    // Build messages array
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(conversationHistory || []),
+      { role: 'user', content: userPrompt }
+    ];
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -61,24 +63,43 @@ Be helpful, concise, and action-oriented. Focus on helping the agent be more pro
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
+        messages,
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Payment required. Please add credits to continue using AI features.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('Lovable AI error:', response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedText = data.choices[0].message.content;
+    const responseText = data.choices[0].message.content;
+
+    // Save conversation if conversationId is provided
+    let finalConversationId = conversationId;
+    if (!finalConversationId) {
+      finalConversationId = crypto.randomUUID();
+    }
 
     return new Response(
-      JSON.stringify({ generatedText }),
+      JSON.stringify({ 
+        response: responseText,
+        conversationId: finalConversationId,
+        toolCalls: [] // No tool calls for now
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

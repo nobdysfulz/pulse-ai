@@ -34,7 +34,10 @@ export default function ToDoPage() {
     refreshUserData
   } = useContext(UserContext);
 
-  const [activeTab, setActiveTab] = useState('schedule');
+  // Check URL params for tab
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabFromUrl = urlParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'schedule');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);

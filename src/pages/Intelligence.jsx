@@ -235,7 +235,7 @@ export default function IntelligencePage() {
         {/* Score Cards - Top Row */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* PULSE Card */}
-          <Card className={`border-2 shadow-lg ${getScoreBgColor(context.scores.pulse)}`}>
+          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.pulse)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -278,7 +278,7 @@ export default function IntelligencePage() {
           </Card>
 
           {/* GANE Card */}
-          <Card className={`border-2 shadow-lg ${getScoreBgColor(context.scores.gane)}`}>
+          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.gane)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -321,7 +321,7 @@ export default function IntelligencePage() {
           </Card>
 
           {/* MORO Card */}
-          <Card className={`border-2 shadow-lg ${getScoreBgColor(context.scores.moro)}`}>
+          <Card className={`border-2 shadow-sm ${getScoreBgColor(context.scores.moro)}`}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="p-3 bg-white rounded-lg shadow-sm">
@@ -365,7 +365,7 @@ export default function IntelligencePage() {
         </div>
 
         {/* Overall Intelligence Score */}
-        <Card className="border-2 shadow-xl bg-gradient-to-br from-violet-50 to-indigo-50">
+        <Card className="border-2 shadow-sm bg-gradient-to-br from-violet-50 to-indigo-50">
           <CardHeader className="pb-6">
             <CardTitle className="text-2xl text-[#1E293B]">Overall Intelligence Score</CardTitle>
             <CardDescription className="text-base text-[#475569]">
@@ -405,7 +405,7 @@ export default function IntelligencePage() {
         </Card>
 
         {/* AI Insights & Recommendations */}
-        <Card className="border-2 shadow-xl">
+        <Card className="border-2 shadow-sm">
           <CardHeader className="bg-gradient-to-r from-violet-50 to-blue-50 rounded-t-lg">
             <CardTitle className="text-2xl text-[#1E293B]">AI Insights & Recommendations</CardTitle>
             <CardDescription className="text-base text-[#475569]">
@@ -414,14 +414,57 @@ export default function IntelligencePage() {
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             <div className="p-6 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-200">
-              <p className="text-[#1E293B] leading-relaxed text-base">{context.insights?.message || 'No insights available at this time.'}</p>
+              {(() => {
+                const insights = context.insights;
+                if (!insights) {
+                  return <p className="text-[#1E293B] leading-relaxed text-base">No insights available at this time.</p>;
+                }
+                
+                // Parse if it's a JSON string
+                let parsedInsights = insights;
+                if (typeof insights === 'string') {
+                  try {
+                    // Remove markdown code blocks if present
+                    const cleaned = insights.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    parsedInsights = JSON.parse(cleaned);
+                  } catch (e) {
+                    // If not JSON, display as plain text
+                    return <p className="text-[#1E293B] leading-relaxed text-base">{insights}</p>;
+                  }
+                }
+                
+                // Display message if it exists
+                if (parsedInsights.message) {
+                  return <p className="text-[#1E293B] leading-relaxed text-base">{parsedInsights.message}</p>;
+                }
+                
+                return <p className="text-[#1E293B] leading-relaxed text-base">No insights available at this time.</p>;
+              })()}
             </div>
 
-            {context.insights?.actions && context.insights.actions.length > 0 && (
-              <div className="space-y-4">
-                <h4 className="font-semibold text-lg text-[#1E293B]">Recommended Actions</h4>
-                <div className="grid gap-4">
-                  {context.insights.actions.map((action, idx) => (
+            {(() => {
+              const insights = context.insights;
+              if (!insights) return null;
+              
+              // Parse if it's a JSON string
+              let parsedInsights = insights;
+              if (typeof insights === 'string') {
+                try {
+                  const cleaned = insights.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                  parsedInsights = JSON.parse(cleaned);
+                } catch (e) {
+                  return null;
+                }
+              }
+              
+              const actions = parsedInsights.actions;
+              if (!actions || !Array.isArray(actions) || actions.length === 0) return null;
+              
+              return (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg text-[#1E293B]">Recommended Actions</h4>
+                  <div className="grid gap-4">
+                    {actions.map((action, idx) => (
                     <div
                       key={idx}
                       className="flex items-start gap-4 p-5 bg-white border-2 border-[#E2E8F0] rounded-xl hover:border-violet-300 hover:shadow-md transition-all"
@@ -460,10 +503,11 @@ export default function IntelligencePage() {
                         )}
                       </Button>
                     </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
       </div>

@@ -236,6 +236,8 @@ export default function ProductionPlannerModal({ isOpen, onClose, onPlanSaved })
 
       toast.success('Production plan and goals activated successfully!');
       await refreshUserData();
+      // Add small delay to ensure data is refreshed before closing
+      await new Promise(resolve => setTimeout(resolve, 500));
       onPlanSaved?.();
       onClose();
     } catch (error) {

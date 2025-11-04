@@ -309,11 +309,41 @@ export default function RolePlayPage() {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      // TODO: Implement role-play scenarios and sessions loading
-      setAllScenarios([]);
-      setFeaturedScenarios([]);
-      setUserProgress({ total_sessions: 0, total_time: 0 });
-      setSessionLogs([]);
+      // Load role-play scenarios
+      const { data: scenariosData, error: scenariosError } = await supabase
+        .from('role_play_scenarios')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (scenariosError) throw scenariosError;
+
+      const scenarios = scenariosData || [];
+      setAllScenarios(scenarios);
+      setFeaturedScenarios(scenarios.filter(s => s.is_popular));
+
+      // Load session logs
+      const { data: logsData, error: logsError } = await supabase
+        .from('role_play_session_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (logsError) throw logsError;
+      setSessionLogs(logsData || []);
+
+      // Load user progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('role_play_user_progress')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (progressError) throw progressError;
+
+      const totalSessions = logsData?.length || 0;
+      const totalTime = logsData?.reduce((sum, log) => sum + (log.session_duration_seconds || 0), 0) || 0;
+
+      setUserProgress({ total_sessions: totalSessions, total_time: totalTime });
     } catch (error) {
       console.error('Error loading role-play data:', error);
       toast.error('Failed to load scenarios');

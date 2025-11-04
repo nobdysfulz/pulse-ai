@@ -42,6 +42,9 @@ verify_jwt = false
 [functions.copilotChat]
 verify_jwt = true
 
+[functions.getAgentContext]
+verify_jwt = true
+
 [functions.processReferral]
 verify_jwt = false
 

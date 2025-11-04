@@ -56,22 +56,21 @@ export default function GoalsPage() {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      // Set all goals first, then filter for display as needed
-      // Add confidence level to all active goals here, as it's a common derived property
+      // Set all goals with confidence levels
       const allGoalsWithConfidence = (contextGoals || []).map((goal) => ({
         ...goal,
         confidenceLevel: (goal.status === 'active' || goal.status === 'at-risk') ? calculateConfidencePercentage(
           new Date(),
           new Date(goal.deadline),
-          goal.targetValue,
-          goal.currentValue || 0,
-          new Date(goal.created_date)
+          goal.target_value,
+          goal.current_value || 0,
+          new Date(goal.created_at)
         ) : null
       }));
-      setGoals(allGoalsWithConfidence); // Set all goals from context
+      setGoals(allGoalsWithConfidence);
+      console.log('Loaded goals:', allGoalsWithConfidence.length);
 
       if (user) {
-        // TODO: Implement CRM connections checking
         setCrmConnected(null);
       }
     } catch (error) {

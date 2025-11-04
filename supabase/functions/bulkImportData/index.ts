@@ -129,6 +129,22 @@ Deno.serve(async (req) => {
           }
         }
         
+        // Skip unsupported columns
+        const columnsToSkip = ['created_by', 'accentcolorhex2', 'action_type'];
+        if (columnsToSkip.includes(normalizeColumnName(dbCol))) {
+          return;
+        }
+        
+        // Validate integer fields for task_templates BEFORE type conversion
+        if (entityType === 'task_templates' && ['trigger_value', 'priority_weight'].includes(dbCol)) {
+          if (value === 'any' || value === 'Any' || value === 'ANY') {
+            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${dbCol}. Please use numeric values only.`);
+          }
+          if (typeof value === 'string' && value.includes('-')) {
+            throw new Error(`Row ${index + 2}: "${value}" is not a valid integer for ${dbCol}. Please use a single numeric value, not a range.`);
+          }
+        }
+        
         // Handle JSON objects (for storing complex data in jsonb fields)
         if (value && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
           try {

@@ -455,16 +455,6 @@ export default function ContentStudioPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className="text-sm font-medium text-[#1E293B]">Target Audience</Label>
-                <p className="text-xs text-gray-500 mb-2">This will be updated from your Agent Profile soon.</p>
-                <Input disabled value={preferences.targetAudience || ''} />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-[#1E293B]">Market Focus</Label>
-                <p className="text-xs text-gray-500 mb-2">This is linked to your primary territory in Market settings.</p>
-                <Input disabled value={preferences.marketFocus || ''} />
-              </div>
             </div>
             <Button onClick={handleUpdatePreferences} disabled={isUpdatingPrefs} className="w-full">
               {isUpdatingPrefs ? <InlineLoadingIndicator className="w-4 h-4" /> : 'Save Preferences'}

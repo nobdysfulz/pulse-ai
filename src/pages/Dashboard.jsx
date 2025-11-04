@@ -443,7 +443,7 @@ export default function DashboardPage() {
             </div>
 
             <Button
-              onClick={() => navigate(createPageUrl('ToDo?tab=scores'))}
+              onClick={() => navigate(createPageUrl('ToDo') + '?tab=scores')}
               className="bg-[#ffffff] text-violet-700 px-4 py-2 text-sm font-semibold rounded-md w-full h-10 hover:bg-[#eeeeee] mt-auto"
             >
               VIEW MORE
@@ -520,7 +520,7 @@ export default function DashboardPage() {
             </div>
 
             <Button
-              onClick={() => navigate(createPageUrl('ToDo'))}
+              onClick={() => navigate(createPageUrl('ToDo') + '?tab=tasks')}
               className="w-full h-10 bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-md text-sm font-semibold mt-auto"
             >
               VIEW ALL
