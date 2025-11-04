@@ -99,15 +99,7 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
         })
         .eq('id', user.id);
 
-      // Update onboarding progress
-      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
-      if (onboardingRecords.length > 0) {
-        await UserOnboarding.update(onboardingRecords[0].id, {
-          marketSetupCompleted: true,
-          agentIntelligenceCompleted: true
-        });
-      }
-
+      // Progress is tracked via completed_steps in TierAwareOnboarding
       await onNext(formData);
     } catch (error) {
       console.error('[MarketBusinessSetup] Error saving:', error);

@@ -71,14 +71,7 @@ export default function BrandPreferencesSetup({ data, onNext, allData }) {
         await UserPreferences.create(preferencesData);
       }
 
-      // Update onboarding progress
-      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
-      if (onboardingRecords.length > 0) {
-        await UserOnboarding.update(onboardingRecords[0].id, {
-          preferencesCompleted: true
-        });
-      }
-
+      // Progress is tracked via completed_steps in TierAwareOnboarding
       await onNext(formData);
     } catch (error) {
       console.error('[BrandPreferencesSetup] Error saving:', error);

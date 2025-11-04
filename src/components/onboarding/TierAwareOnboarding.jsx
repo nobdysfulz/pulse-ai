@@ -332,14 +332,11 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       };
       
       if (moduleKey === 'core') {
-        updates.onboarding_completed = true;
-        updates.profile_completed = true;
-        updates.profile_completion_date = new Date().toISOString();
+        updates.onboarding_completion_date = new Date().toISOString();
       } else if (moduleKey === 'agents') {
         updates.agent_onboarding_completed = true;
-      } else if (moduleKey === 'callcenter') {
-        updates.call_center_onboarding_completed = true;
       }
+      // Note: callcenter completion is tracked via completed_steps only
       
       if (existingOnboarding) {
         const { error } = await supabase

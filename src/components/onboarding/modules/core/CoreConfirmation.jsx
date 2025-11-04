@@ -28,19 +28,8 @@ export default function CoreConfirmation({ data, onNext, allData }) {
         });
       }
 
-      // Mark core onboarding as complete
-      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
-      if (onboardingRecords.length > 0) {
-        await UserOnboarding.update(onboardingRecords[0].id, {
-          onboardingCompleted: true,
-          profileCompleted: true,
-          marketSetupCompleted: true,
-          preferencesCompleted: true,
-          agentIntelligenceCompleted: true,
-          onboardingCompletionDate: new Date().toISOString()
-        });
-      }
-
+      // Core completion is handled by TierAwareOnboarding's completeModule
+      // which sets onboarding_completion_date
       toast.success('Onboarding completed successfully!');
       
       // Navigate to dashboard
