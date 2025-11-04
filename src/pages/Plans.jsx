@@ -1,36 +1,38 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
-import { User, UserCredit, UserAgentSubscription } from '@/api/entities';
+import { UserCredit, UserAgentSubscription } from '@/api/entities';
+import { UserContext } from '@/components/context/UserContext';
 import { cn } from '@/lib/utils';
 import { differenceInDays, endOfMonth } from 'date-fns';
 
 export default function PlansPage() {
-  const [user, setUser] = useState(null);
-  const [credits, setCredits] = useState({ used: 0, remaining: 100 });
+  const { user: contextUser } = useContext(UserContext);
+  const [credits, setCredits] = useState({ used: 0, remaining: 100, resetDate: null });
   const [agentSubscription, setAgentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!contextUser?.id) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const userData = await User.me();
-        setUser(userData);
-
         const [creditData, agentSubData] = await Promise.all([
-        UserCredit.filter({ userId: userData.id }),
-        UserAgentSubscription.filter({ userId: userData.id })]
-        );
+          UserCredit.filter({ userId: contextUser.id }),
+          UserAgentSubscription.filter({ userId: contextUser.id })
+        ]);
 
-        if (creditData.length > 0) {
+        if (creditData && creditData.length > 0) {
           setCredits({
             used: creditData[0].creditsUsed || 0,
-            remaining: creditData[0].creditsRemaining || 0,
-            resetDate: creditData[0].resetDate
+            remaining: creditData[0].creditsRemaining || creditData[0].creditsAvailable || 0,
+            resetDate: creditData[0].resetDate || creditData[0].lastResetAt
           });
         }
-        if (agentSubData.length > 0) {
+        if (agentSubData && agentSubData.length > 0) {
           setAgentSubscription(agentSubData[0]);
         }
       } catch (e) {
@@ -40,7 +42,7 @@ export default function PlansPage() {
       }
     };
     fetchUserData();
-  }, []);
+  }, [contextUser]);
 
   const getDaysUntilReset = () => {
     if (credits.resetDate) {
@@ -55,9 +57,9 @@ export default function PlansPage() {
   const daysUntilReset = getDaysUntilReset();
 
   const isCurrentPlan = (planName) => {
-    if (!user) return false;
-    if (planName === "Free" && user.subscriptionTier === 'Free') return true;
-    if (planName === "Accelerator" && user.subscriptionTier === 'Subscriber') return true;
+    if (!contextUser) return false;
+    if (planName === "Free" && contextUser.subscriptionTier === 'Free') return true;
+    if (planName === "Accelerator" && contextUser.subscriptionTier === 'Subscriber') return true;
     if (agentSubscription && planName.includes(agentSubscription.planType)) return true;
     return false;
   };

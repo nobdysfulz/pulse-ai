@@ -23,12 +23,14 @@ export default function ReferralTab({ user }) {
     setLoading(true);
     try {
       const referralData = await Referral.filter({ referrerId: user.id }, '-referralDate');
-      setReferrals(referralData || []);
+      setReferrals(Array.isArray(referralData) ? referralData : []);
 
-      const totalCredits = referralData.reduce((sum, ref) => sum + (ref.creditsAwarded || 0), 0);
+      const totalCredits = (referralData || []).reduce((sum, ref) => sum + (ref.creditsAwarded || 0), 0);
       setTotalCreditsEarned(totalCredits);
     } catch (error) {
       console.error("Failed to load referral data:", error);
+      setReferrals([]);
+      setTotalCreditsEarned(0);
     } finally {
       setLoading(false);
     }

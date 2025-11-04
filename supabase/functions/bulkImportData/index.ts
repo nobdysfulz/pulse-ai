@@ -58,6 +58,12 @@ Deno.serve(async (req) => {
     
     const isAdminTable = adminTables.includes(entityType);
 
+    // Helper to convert hex to database format (remove # if present)
+    const normalizeHex = (hex: string) => {
+      if (!hex) return null;
+      return hex.startsWith('#') ? hex.substring(1) : hex;
+    };
+
     // Map columns to database fields and auto-inject system fields
     const mappedRecords = records.map((row: any, index: number) => {
       const mapped: any = {};
@@ -66,19 +72,69 @@ Deno.serve(async (req) => {
         const value = row[csvCol];
         const dbColStr = dbCol as string;
         
-        // Handle array fields (pipe-separated values)
-        if (typeof value === 'string' && value.includes('|')) {
-          mapped[dbColStr] = value.split('|').map((v: string) => v.trim());
-        } else if (value === 'true' || value === 'false') {
-          // Handle boolean conversion
+        // Handle JSON objects (for storing complex data in jsonb fields)
+        if (value && typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+          try {
+            mapped[dbColStr] = JSON.parse(value);
+          } catch (e) {
+            mapped[dbColStr] = value;
+          }
+        }
+        // Handle array fields (pipe-separated values or JSON arrays)
+        else if (typeof value === 'string' && value.includes('|')) {
+          mapped[dbColStr] = value.split('|').map((v: string) => v.trim()).filter(v => v);
+        } 
+        // Handle boolean conversion
+        else if (value === 'true' || value === 'false') {
           mapped[dbColStr] = value === 'true';
-        } else if (value && !isNaN(Number(value)) && (dbColStr.includes('score') || dbColStr.includes('weight') || dbColStr.includes('order'))) {
-          // Handle numeric conversions for scores, weights, and order fields
+        } 
+        // Handle numeric conversions
+        else if (value && !isNaN(Number(value)) && (
+          dbColStr.includes('score') || 
+          dbColStr.includes('weight') || 
+          dbColStr.includes('order') ||
+          dbColStr.includes('duration') ||
+          dbColStr.includes('threshold') ||
+          dbColStr.includes('value')
+        )) {
           mapped[dbColStr] = Number(value);
-        } else {
+        }
+        // Handle hex color codes
+        else if (dbColStr.includes('color') && typeof value === 'string' && value.match(/^#?[0-9A-Fa-f]{6}$/)) {
+          mapped[dbColStr] = normalizeHex(value);
+        }
+        // Default: store as-is or null
+        else {
           mapped[dbColStr] = value || null;
         }
       });
+
+      // Special handling for agent_voices: store extra fields in voice_settings
+      if (entityType === 'agent_voices') {
+        const previewUrl = row['previewAudioUrl'];
+        const isActive = row['isActive'];
+        if (previewUrl || isActive !== undefined) {
+          mapped.voice_settings = {
+            ...(mapped.voice_settings || {}),
+            previewAudioUrl: previewUrl || null,
+            isActive: isActive === 'true' || isActive === true
+          };
+        }
+      }
+
+      // Special handling for call_logs: store full data in metadata
+      if (entityType === 'call_logs') {
+        // Store all CSV data in metadata for reference
+        mapped.metadata = {
+          ...mapped.metadata,
+          conversationId: row['conversationId'],
+          callSid: row['callSid'],
+          campaignName: row['campaignName'],
+          transcript: row['transcript'] ? (typeof row['transcript'] === 'string' ? JSON.parse(row['transcript']) : row['transcript']) : null,
+          analysis: row['analysis'] ? (typeof row['analysis'] === 'string' ? JSON.parse(row['analysis']) : row['analysis']) : null,
+          formData: row['formData'] ? (typeof row['formData'] === 'string' ? JSON.parse(row['formData']) : row['formData']) : null
+        };
+      }
 
       // Auto-inject user_id only for user-specific tables
       if (!isAdminTable && !mapped.user_id && entityType !== 'profiles') {
@@ -95,12 +151,17 @@ Deno.serve(async (req) => {
         mapped.id = user.id;
       }
 
-      // Auto-set timestamps
+      // Handle timestamps: map created_date/updated_date to created_at/updated_at
       const now = new Date().toISOString();
-      if (!mapped.created_at) {
+      if (row['created_date'] && !mapped.created_at) {
+        mapped.created_at = row['created_date'];
+      } else if (!mapped.created_at) {
         mapped.created_at = now;
       }
-      if (!mapped.updated_at) {
+      
+      if (row['updated_date'] && !mapped.updated_at) {
+        mapped.updated_at = row['updated_date'];
+      } else if (!mapped.updated_at) {
         mapped.updated_at = now;
       }
 

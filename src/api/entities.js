@@ -1,4 +1,4 @@
-// Entity API helpers - mix of real Supabase connections and stubs
+// Entity API helpers - enhanced with compatibility layer
 import { supabase } from '@/integrations/supabase/client';
 
 // Helper to convert camelCase to snake_case
@@ -31,11 +31,81 @@ const objectToCamelCase = (obj) => {
   }, {});
 };
 
+// Compatibility mapping for field name mismatches
+const fieldCompatibilityMap = {
+  referrals: { referrerId: 'referrer_user_id', referredUserEmail: 'referred_email' },
+  user_credits: { creditsRemaining: 'credits_available', resetDate: 'last_reset_at' },
+};
+
+// Order field mapping (created_date -> created_at, etc.)
+const orderFieldMap = {
+  created_date: 'created_at',
+  updated_date: 'updated_at',
+  weekNumber: 'created_at',
+};
+
+// Normalize order parameter
+const normalizeOrder = (orderBy) => {
+  if (!orderBy || typeof orderBy !== 'string') return orderBy;
+  const isDescending = orderBy.startsWith('-');
+  const field = orderBy.replace('-', '');
+  const mappedField = orderFieldMap[field] || toSnakeCase(field);
+  return isDescending ? `-${mappedField}` : mappedField;
+};
+
+// Normalize filters
+const normalizeFilters = (tableName, filters) => {
+  if (!filters || typeof filters !== 'object') return filters;
+  
+  const compatMap = fieldCompatibilityMap[tableName] || {};
+  const normalized = {};
+  
+  Object.entries(filters).forEach(([key, value]) => {
+    // Skip isActive filter for agent_voices (stored in voice_settings jsonb)
+    if (tableName === 'agent_voices' && key === 'isActive') return;
+    
+    const mappedKey = compatMap[key] || toSnakeCase(key);
+    normalized[mappedKey] = value;
+  });
+  
+  return normalized;
+};
+
+// Add backward compatibility aliases to response
+const addResponseAliases = (tableName, obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  // Add date aliases
+  if (obj.createdAt) obj.created_date = obj.createdAt;
+  if (obj.updatedAt) obj.updated_date = obj.updatedAt;
+  
+  // Table-specific aliases
+  if (tableName === 'user_credits') {
+    if (obj.creditsAvailable !== undefined) obj.creditsRemaining = obj.creditsAvailable;
+    if (obj.lastResetAt) obj.resetDate = obj.lastResetAt;
+  }
+  
+  if (tableName === 'referrals') {
+    if (obj.referrerUserId) obj.referrerId = obj.referrerUserId;
+    if (obj.referredEmail) obj.referredUserEmail = obj.referredEmail;
+    if (obj.createdAt) obj.referralDate = obj.createdAt;
+    obj.creditsAwarded = (obj.status === 'completed') ? 5 : 0;
+  }
+  
+  if (tableName === 'agent_voices' && obj.voiceSettings) {
+    obj.previewAudioUrl = obj.voiceSettings?.previewAudioUrl || null;
+    obj.isActive = obj.voiceSettings?.isActive !== false;
+  }
+  
+  return obj;
+};
+
 // Create real entity helpers that connect to Supabase tables
 const createEntity = (tableName) => ({
   list: async (orderBy = '-created_at') => {
-    const isDescending = orderBy.startsWith('-');
-    const column = toSnakeCase(orderBy.replace('-', ''));
+    const normalizedOrder = normalizeOrder(orderBy);
+    const isDescending = normalizedOrder.startsWith('-');
+    const column = normalizedOrder.replace('-', '');
     
     const { data, error } = await supabase
       .from(tableName)
@@ -43,24 +113,27 @@ const createEntity = (tableName) => ({
       .order(column, { ascending: !isDescending });
     
     if (error) throw error;
-    return (data || []).map(objectToCamelCase);
+    return (data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
   },
 
   filter: async (filters = {}, orderBy = '-created_at') => {
-    const isDescending = orderBy.startsWith('-');
-    const column = toSnakeCase(orderBy.replace('-', ''));
+    const normalizedFilters = normalizeFilters(tableName, filters);
+    const normalizedOrder = normalizeOrder(orderBy);
+    const isDescending = normalizedOrder.startsWith('-');
+    const column = normalizedOrder.replace('-', '');
     
     let query = supabase.from(tableName).select('*');
     
-    const snakeFilters = objectToSnakeCase(filters);
-    Object.entries(snakeFilters).forEach(([key, value]) => {
-      query = query.eq(key, value);
+    Object.entries(normalizedFilters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query = query.eq(key, value);
+      }
     });
     
     const { data, error } = await query.order(column, { ascending: !isDescending });
     
     if (error) throw error;
-    return (data || []).map(objectToCamelCase);
+    return (data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
   },
 
   get: async (id) => {
@@ -71,11 +144,24 @@ const createEntity = (tableName) => ({
       .maybeSingle();
     
     if (error) throw error;
-    return data ? objectToCamelCase(data) : null;
+    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
   },
 
   create: async (payload) => {
-    const snakePayload = objectToSnakeCase(payload);
+    // Handle agent_voices special case: store extra fields in voice_settings
+    let finalPayload = { ...payload };
+    if (tableName === 'agent_voices') {
+      const { previewAudioUrl, isActive, ...rest } = payload;
+      finalPayload = {
+        ...rest,
+        voice_settings: {
+          previewAudioUrl: previewAudioUrl || null,
+          isActive: isActive !== false
+        }
+      };
+    }
+    
+    const snakePayload = objectToSnakeCase(finalPayload);
     const { data, error } = await supabase
       .from(tableName)
       .insert(snakePayload)
@@ -83,11 +169,24 @@ const createEntity = (tableName) => ({
       .maybeSingle();
     
     if (error) throw error;
-    return data ? objectToCamelCase(data) : null;
+    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
   },
 
   update: async (id, payload) => {
-    const snakePayload = objectToSnakeCase(payload);
+    // Handle agent_voices special case
+    let finalPayload = { ...payload };
+    if (tableName === 'agent_voices') {
+      const { previewAudioUrl, isActive, ...rest } = payload;
+      finalPayload = {
+        ...rest,
+        voice_settings: {
+          previewAudioUrl: previewAudioUrl || null,
+          isActive: isActive !== false
+        }
+      };
+    }
+    
+    const snakePayload = objectToSnakeCase(finalPayload);
     const { data, error } = await supabase
       .from(tableName)
       .update(snakePayload)
@@ -96,7 +195,7 @@ const createEntity = (tableName) => ({
       .maybeSingle();
     
     if (error) throw error;
-    return data ? objectToCamelCase(data) : null;
+    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
   },
 
   delete: async (id) => {

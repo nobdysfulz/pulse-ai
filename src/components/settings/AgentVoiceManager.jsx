@@ -103,7 +103,16 @@ export default function AgentVoiceManager() {
 
   const handleEdit = (voice) => {
     setEditing(voice);
-    setFormData(voice);
+    // Extract fields from voice_settings if present
+    const previewUrl = voice.voiceSettings?.previewAudioUrl || voice.previewAudioUrl || '';
+    const isActive = voice.voiceSettings?.isActive !== false && voice.isActive !== false;
+    
+    setFormData({
+      name: voice.voiceName || voice.name || '',
+      voice_id: voice.voiceId || voice.voice_id || '',
+      previewAudioUrl: previewUrl,
+      isActive: isActive
+    });
   };
 
   const handleDelete = async (id) => {
@@ -120,7 +129,9 @@ export default function AgentVoiceManager() {
   };
 
   const togglePlayPreview = (voice) => {
-    if (!voice.previewAudioUrl) {
+    const previewUrl = voice.voiceSettings?.previewAudioUrl || voice.previewAudioUrl;
+    
+    if (!previewUrl) {
       toast.error('No preview audio available');
       return;
     }
@@ -135,7 +146,7 @@ export default function AgentVoiceManager() {
       audio.pause();
     }
 
-    const newAudio = new Audio(voice.previewAudioUrl);
+    const newAudio = new Audio(previewUrl);
     newAudio.play();
     newAudio.onended = () => setPlayingVoice(null);
     setAudio(newAudio);

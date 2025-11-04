@@ -197,6 +197,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          palette_id: string | null
           palette_name: string
           primary_color: string
           secondary_color: string | null
@@ -208,6 +209,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          palette_id?: string | null
           palette_name: string
           primary_color: string
           secondary_color?: string | null
@@ -219,6 +221,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          palette_id?: string | null
           palette_name?: string
           primary_color?: string
           secondary_color?: string | null
