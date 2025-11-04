@@ -78,7 +78,7 @@ export default function TodaysFocus({ actions, onToggleAction, onRefresh }) {
         }
             </div>
             <div className="text-center mt-6">
-                 <Link to={createPageUrl('PulseIntelligence')}>
+                 <Link to={createPageUrl('ToDo') + '?tab=tasks'}>
                     <span className="text-purple-900 text-sm font-semibold hover:underline">View All</span>
                 </Link>
             </div>

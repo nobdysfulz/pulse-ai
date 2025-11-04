@@ -181,6 +181,39 @@ export default function ToDoPage() {
     }
   }, [refreshUserData]);
 
+  const handleCreateManualAction = useCallback(async (formData) => {
+    if (!user) {
+      const error = new Error('User data not available');
+      toast.error('Unable to add task at this time. Please try again.');
+      throw error;
+    }
+
+    const frequency = formData.frequency || null;
+    const dueDate = formData.dueDate || formData.actionDate;
+
+    try {
+      await DailyAction.create({
+        userId: user.id,
+        title: formData.title,
+        description: formData.description || null,
+        category: formData.category,
+        actionType: formData.actionType,
+        priority: formData.priority,
+        actionDate: formData.actionDate,
+        dueDate,
+        frequency,
+        status: 'not_started'
+      });
+
+      toast.success('Task added to your action plan');
+      await refreshUserData();
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      toast.error('Failed to create task. Please try again.');
+      throw error;
+    }
+  }, [user, refreshUserData]);
+
   const handleGenerateActions = async () => {
     if (!user) {
       toast.error("User data not available.");
@@ -688,7 +721,7 @@ export default function ToDoPage() {
         <AddActionModal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onActionAdded={refreshUserData} />
+          onCreateAction={handleCreateManualAction} />
 
       }
     </>);
