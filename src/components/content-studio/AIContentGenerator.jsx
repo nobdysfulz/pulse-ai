@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AiPromptConfig } from '@/api/entities';
+import { AiPromptConfig, CreditOperations } from '@/api/entities';
 import ContentGeneratingIndicator from '../ui/ContentGeneratingIndicator';
 import { InlineLoadingIndicator } from '../ui/LoadingIndicator';
 
@@ -91,30 +91,13 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
         return;
       }
 
-      // Deduct credits immediately before generation
+      // Deduct credits immediately before generation using backend
       try {
-        if (!currentUser?.id) throw new Error('Not authenticated');
-
-        const { data: creditData, error: creditError } = await supabase
-          .from('user_credits')
-          .update({ 
-            credits_remaining: userCredits.creditsRemaining - currentCredits,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', currentUser.id)
-          .select()
-          .single();
-
-        if (creditError) throw creditError;
-
-        // Log the transaction
-        await supabase.from('credit_transactions').insert({
-          user_id: currentUser.id,
-          amount: -currentCredits,
-          transaction_type: 'deduction',
-          description: `Generated ${contentType} content`,
-          balance_after: creditData.credits_remaining
-        });
+        const result = await CreditOperations.deduct(currentCredits, `Generated ${contentType} content`);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to deduct credits');
+        }
 
         toast.success(`${currentCredits} credits deducted`);
       } catch (error) {

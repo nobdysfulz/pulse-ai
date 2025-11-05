@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from "@/integrations/supabase/client";
+import { TaskOperations } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -311,16 +312,11 @@ export default function DashboardPage() {
   const handleToggleTask = useCallback(async (actionId, isCompleted) => {
     const newStatus = isCompleted ? 'completed' : 'pending';
     try {
-      const { error } = await supabase
-        .from('daily_actions')
-        .update({
-          status: newStatus,
-          completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', actionId);
-
-      if (error) throw error;
+      const result = await TaskOperations.updateStatus(actionId, newStatus);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update task');
+      }
       
       await refreshUserData();
       toast.success(isCompleted ? "Task completed!" : "Task marked incomplete");
@@ -332,23 +328,19 @@ export default function DashboardPage() {
 
   const handleCreateAction = async (formData) => {
     try {
-      if (!user?.id) throw new Error('Not authenticated');
+      const result = await TaskOperations.create({
+        title: formData.title,
+        description: formData.description || '',
+        category: formData.category,
+        priority: formData.priority,
+        actionType: formData.actionType,
+        dueDate: formData.dueDate || formData.actionDate,
+        actionDate: formData.actionDate,
+      });
 
-      const { error } = await supabase
-        .from('daily_actions')
-        .insert({
-          user_id: user.id,
-          title: formData.title,
-          description: formData.description || '',
-          category: formData.category,
-          priority: formData.priority,
-          action_type: formData.actionType,
-          due_date: formData.dueDate || formData.actionDate,
-          action_date: formData.actionDate,
-          status: 'pending'
-        });
-
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create task');
+      }
 
       toast.success('Task added successfully!');
       await refreshUserData();

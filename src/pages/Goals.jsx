@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Goal, BrandColorPalette, ConnectionOperations } from '@/api/entities';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, PlusCircle, Edit, Printer, Download, Target } from "lucide-react";
@@ -106,18 +107,15 @@ export default function GoalsPage() {
       setGoals(allGoalsWithConfidence);
 
       if (user) {
-        const { data: connections, error: connectionsError } = await supabase
-          .from('external_service_connections')
-          .select('service_name, connection_status')
-          .eq('user_id', user.id)
-          .in('service_name', ['lofty', 'follow_up_boss']);
-
-        if (connectionsError) {
-          console.warn('Failed to load CRM connections', connectionsError);
+        try {
+          const connections = await ConnectionOperations.fetchUserConnections();
+          const crmConnections = [...(connections.crmConnections || []), ...(connections.externalConnections || [])]
+            .filter(c => ['lofty', 'follow_up_boss'].includes(c.serviceName) && c.connectionStatus === 'connected');
+          
+          setCrmConnected(crmConnections[0] || null);
+        } catch (error) {
+          console.warn('Failed to load CRM connections', error);
           setCrmConnected(null);
-        } else {
-          const activeConnection = (connections || []).find((connection) => connection.connection_status === 'connected');
-          setCrmConnected(activeConnection || null);
         }
       } else {
         setCrmConnected(null);
@@ -200,10 +198,7 @@ export default function GoalsPage() {
         trend
       };
 
-      await supabase
-        .from('goals')
-        .update(finalData)
-        .eq('id', goalId);
+      await Goal.update(goalId, finalData);
         
       await refreshUserData();
       setShowUpdateProgress(false);
@@ -229,9 +224,7 @@ export default function GoalsPage() {
         deadline: goalData.deadline
       };
       
-      await supabase
-        .from('goals')
-        .insert(payload);
+      await Goal.create(payload);
         
       await refreshUserData();
       setShowAddGoal(false);
@@ -256,14 +249,13 @@ export default function GoalsPage() {
     try {
       let brandHex = '#7C3AED';
       if (user) {
-        const { data: palette, error: paletteError } = await supabase
-          .from('brand_color_palettes')
-          .select('primary_hex')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (!paletteError && palette?.primary_hex) {
-          brandHex = palette.primary_hex;
+        try {
+          const palettes = await BrandColorPalette.filter({ userId: user.id });
+          if (palettes && palettes.length > 0 && palettes[0].primaryHex) {
+            brandHex = palettes[0].primaryHex;
+          }
+        } catch (error) {
+          console.warn('Failed to load brand palette', error);
         }
       }
 
