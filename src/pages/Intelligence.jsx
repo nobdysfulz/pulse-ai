@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, TrendingUp, Brain, Globe, RefreshCw, CheckCircle, Plus, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserContext } from '@/components/context/UserContext';
-import { DailyAction } from '@/api/entities';
+import { DailyAction, AiActionsLog } from '@/api/entities';
 
 const cleanJsonText = (value) =>
   typeof value === 'string' ? value.replace(/```json\s*|```/gi, '').trim() : value;
@@ -228,21 +228,21 @@ export default function IntelligencePage() {
 
       console.log('Daily action created successfully:', result);
 
-      const { error: logError } = await supabase
-        .from('ai_actions_log')
-        .insert({
-          user_id: userId,
-          action_type: 'recommendation_accepted',
+      try {
+        await AiActionsLog.create({
+          userId: userId,
+          actionType: 'recommendation_accepted',
           status: 'completed',
-          action_data: {
+          actionData: {
             recommendation: action.title,
             type: action.type,
             priority: action.priority,
             source: 'pgic'
           }
         });
-
-      if (logError) console.error('Failed to log action:', logError);
+      } catch (logError) {
+        console.error('Failed to log action:', logError);
+      }
 
       toast.success('Action added to your To-Do list', {
         description: action.title

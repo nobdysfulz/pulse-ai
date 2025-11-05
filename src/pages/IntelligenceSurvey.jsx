@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from '../components/context/UserContext';
-import { supabase } from '@/integrations/supabase/client';
+import { AgentIntelligenceProfile, UserOnboarding } from '@/api/entities';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -100,48 +100,32 @@ export default function IntelligenceSurveyPage() {
       };
 
       // Check if profile already exists
-      const { data: existingProfiles } = await supabase
-        .from('agent_intelligence_profiles')
-        .select('*')
-        .eq('user_id', user.id);
+      const existingProfiles = await AgentIntelligenceProfile.filter({ userId: user.id });
       
       if (existingProfiles && existingProfiles.length > 0) {
         // Update existing profile
-        await supabase
-          .from('agent_intelligence_profiles')
-          .update(profileData)
-          .eq('user_id', user.id);
+        await AgentIntelligenceProfile.update(existingProfiles[0].id, profileData);
       } else {
         // Create new profile
-        await supabase
-          .from('agent_intelligence_profiles')
-          .insert(profileData);
+        await AgentIntelligenceProfile.create(profileData);
       }
 
       // Update onboarding status
-      const { data: onboardingRecords } = await supabase
-        .from('user_onboarding')
-        .select('*')
-        .eq('user_id', user.id);
+      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
       
       if (onboardingRecords && onboardingRecords.length > 0) {
-        await supabase
-          .from('user_onboarding')
-          .update({
-            agent_intelligence_completed: true,
-            agent_intelligence_completion_date: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id);
+        await UserOnboarding.update(onboardingRecords[0].id, {
+          agentIntelligenceCompleted: true,
+          agentIntelligenceCompletionDate: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
       } else {
         // Create onboarding record if it doesn't exist
-        await supabase
-          .from('user_onboarding')
-          .insert({
-            user_id: user.id,
-            agent_intelligence_completed: true,
-            agent_intelligence_completion_date: new Date().toISOString()
-          });
+        await UserOnboarding.create({
+          userId: user.id,
+          agentIntelligenceCompleted: true,
+          agentIntelligenceCompletionDate: new Date().toISOString()
+        });
       }
 
       await refreshUserData();
@@ -149,13 +133,10 @@ export default function IntelligenceSurveyPage() {
       
       // Check if user should continue with agent onboarding or go to dashboard
       const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
-      const { data: onboardingData } = await supabase
-        .from('user_onboarding')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const onboardingRecordsCheck = await UserOnboarding.filter({ userId: user.id });
+      const onboardingData = onboardingRecordsCheck && onboardingRecordsCheck.length > 0 ? onboardingRecordsCheck[0] : null;
       
-      if (isSubscriber && !onboardingData?.agent_onboarding_completed) {
+      if (isSubscriber && !onboardingData?.agentOnboardingCompleted) {
         setTimeout(() => {
           navigate(createPageUrl('Onboarding') + '?phase=agents');
         }, 1000);
