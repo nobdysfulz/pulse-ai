@@ -35,11 +35,33 @@ serve(async (req) => {
     // Decode JWT to get user ID (JWT format: header.payload.signature)
     const parts = token.split('.');
     if (parts.length !== 3) {
-      throw new Error('Invalid JWT format');
+      console.error('[getUserContext] Invalid JWT format');
+      return new Response(
+        JSON.stringify({ error: 'Invalid token format' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const payload = JSON.parse(atob(parts[1]));
     const userId = payload.sub;
+
+    // Validate token expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.error('[getUserContext] Token expired');
+      return new Response(
+        JSON.stringify({ error: 'Token expired. Please refresh the page.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate token issuer (should be Clerk)
+    if (!payload.iss || !payload.iss.includes('clerk')) {
+      console.error('[getUserContext] Invalid token issuer:', payload.iss);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('[getUserContext] Fetching context for user:', userId);
 

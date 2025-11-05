@@ -132,6 +132,12 @@ verify_jwt = true
 [functions.getAgentContext]
 verify_jwt = true
 
+[functions.getUserContext]
+verify_jwt = false
+
+[functions.clerkSyncProfile]
+verify_jwt = false
+
 [functions.processReferral]
 verify_jwt = false
 

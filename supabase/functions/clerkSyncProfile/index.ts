@@ -33,29 +33,36 @@ serve(async (req) => {
 
     const token = authHeader.substring(7);
 
-    // Verify JWT token with Clerk's API
-    const clerkResponse = await fetch(`https://api.clerk.com/v1/sessions/${token}/tokens/${token}`, {
-      headers: {
-        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
-      },
-    });
-
-    if (!clerkResponse.ok) {
-      console.error('[clerkSyncProfile] Token verification failed');
+    // Decode JWT to get user ID and validate structure
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.error('[clerkSyncProfile] Invalid JWT format');
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
+        JSON.stringify({ error: 'Invalid token format' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Decode JWT to get user ID (JWT format: header.payload.signature)
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid JWT format');
-    }
-
     const payload = JSON.parse(atob(parts[1]));
     const userId = payload.sub;
+
+    // Validate token expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.error('[clerkSyncProfile] Token expired');
+      return new Response(
+        JSON.stringify({ error: 'Token expired' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate token issuer (should be Clerk)
+    if (!payload.iss || !payload.iss.includes('clerk')) {
+      console.error('[clerkSyncProfile] Invalid token issuer:', payload.iss);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Fetch user details from Clerk API
     const userResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {

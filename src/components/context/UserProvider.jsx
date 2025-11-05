@@ -58,6 +58,65 @@ export default function UserProvider({ children }) {
 
             if (contextError) {
                 console.error('[UserProvider] getUserContext error:', contextError);
+                
+                // Check if it's an authentication error
+                if (contextError.message?.includes('401') || contextError.message?.includes('Token') || contextError.message?.includes('expired')) {
+                    // Try to refresh the token and retry once
+                    console.log('[UserProvider] Attempting to refresh token...');
+                    try {
+                        const newToken = await getToken({ skipCache: true });
+                        
+                        if (newToken && newToken !== token) {
+                            console.log('[UserProvider] Retrying with fresh token...');
+                            // Retry with fresh token
+                            const { data: retryContext, error: retryError } = await supabase.functions.invoke(
+                                'getUserContext',
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${newToken}`,
+                                    },
+                                }
+                            );
+                            
+                            if (!retryError && retryContext) {
+                                console.log('[UserProvider] Retry successful with fresh token');
+                                // Set context and skip the error throw
+                                setUser(retryContext.user);
+                                setOnboarding(retryContext.onboarding || {
+                                    userId: clerkUser.id,
+                                    onboardingCompleted: false,
+                                    agentOnboardingCompleted: false,
+                                    agentIntelligenceCompleted: false,
+                                    completedSteps: []
+                                });
+                                setMarketConfig(retryContext.marketConfig);
+                                setAgentProfile(retryContext.agentProfile);
+                                setPreferences(retryContext.preferences || {
+                                    userId: clerkUser.id,
+                                    coachingStyle: 'balanced',
+                                    activityMode: 'get_moving',
+                                    dailyReminders: true,
+                                    weeklyReports: true,
+                                    marketUpdates: true,
+                                    emailNotifications: true,
+                                    timezone: 'America/New_York'
+                                });
+                                setActions(retryContext.actions || []);
+                                setAgentConfig(retryContext.agentConfig);
+                                setUserAgentSubscription(retryContext.userAgentSubscription);
+                                setGoals(retryContext.goals || []);
+                                setBusinessPlan(retryContext.businessPlan);
+                                setPulseHistory(retryContext.pulseHistory || []);
+                                setPulseConfig(retryContext.pulseConfig);
+                                setLoading(false);
+                                return; // Exit successfully
+                            }
+                        }
+                    } catch (retryErr) {
+                        console.error('[UserProvider] Token refresh/retry failed:', retryErr);
+                    }
+                }
+                
                 throw new Error('Failed to load user context: ' + (contextError.message || 'Unknown error'));
             }
 
