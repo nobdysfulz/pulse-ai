@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useUser } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 
 /**
@@ -9,6 +8,7 @@ import { toast } from 'sonner';
  */
 export default function ClerkSupabaseSync() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const syncAttemptsRef = useRef(0);
 
   // Verify database connection on mount
@@ -27,80 +27,34 @@ export default function ClerkSupabaseSync() {
         if (syncAttemptsRef.current >= 3) return; // Max 3 retries
 
         try {
-          console.log('[ClerkSync] Syncing user:', user.id);
+          console.log('[ClerkSync] Syncing user via backend:', user.id);
 
-          // 1. Check if profile exists
-          const { data: existingProfile, error: fetchError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (fetchError) {
-            // Database schema mismatch (wrong database)
-            if (fetchError.code === '22P02' || fetchError.message?.includes('invalid input')) {
-              console.error('[ClerkSync] ❌ Database schema mismatch - connected to wrong database?');
-              toast.error('Database connection error', {
-                description: 'The app may be connected to the wrong database. Please refresh.',
-              });
-              return; // Don't retry on schema errors
-            }
-            
-            // Network error (retry allowed)
-            if (fetchError.code === 'PGRST301' || fetchError.message?.includes('network')) {
-              console.warn('[ClerkSync] ⚠️ Network error, will retry...');
-            }
-            
-            if (fetchError.code !== 'PGRST116') { // PGRST116 = no rows (ok for new users)
-              console.error('[ClerkSync] Error fetching profile:', fetchError);
-              throw fetchError;
-            }
+          // Get Clerk session token
+          const token = await getToken();
+          if (!token) {
+            console.error('[ClerkSync] No token available');
+            return;
           }
 
-          // 2. Build profile data
-          const profileData = {
-            id: user.id,
-            email: user.primaryEmailAddress?.emailAddress,
-            full_name: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
-            avatar_url: user.imageUrl,
-            updated_at: new Date().toISOString(),
-          };
-
-          if (existingProfile) {
-            // Update existing profile
-            console.log('[ClerkSync] Updating existing profile');
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update(profileData)
-              .eq('id', user.id);
-
-            if (updateError) throw updateError;
-          } else {
-            // Create new profile
-            console.log('[ClerkSync] Creating new profile');
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert(profileData);
-
-            if (insertError) throw insertError;
-
-            // Create onboarding record for new users
-            console.log('[ClerkSync] Creating onboarding record');
-            const { error: onboardingError } = await supabase
-              .from('user_onboarding')
-              .insert({
-                user_id: user.id,
-                onboarding_completed: false,
-                agent_onboarding_completed: false,
-                call_center_onboarding_completed: false,
-              });
-
-            if (onboardingError && onboardingError.code !== '23505') { // Ignore duplicate key errors
-              console.error('[ClerkSync] Error creating onboarding:', onboardingError);
+          // Call backend sync function
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clerkSyncProfile`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
             }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Sync failed');
           }
 
-          console.log('[ClerkSync] ✓ Sync successful');
+          const result = await response.json();
+          console.log('[ClerkSync] ✓ Server sync complete:', result);
           syncAttemptsRef.current = 0; // Reset on success
 
         } catch (error) {
@@ -120,7 +74,7 @@ export default function ClerkSupabaseSync() {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [user, isLoaded]);
+  }, [user, isLoaded, getToken]);
 
   return null;
 }
