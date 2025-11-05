@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@clerk/clerk-react';
 import OnboardingSidebar from './OnboardingSidebar';
 import {
   buildActiveModules,
@@ -112,6 +113,7 @@ const getUserOnboarding = async (userId) => {
 
 function TierAwareOnboarding({ initialPhase = 'core' }) {
   const { user, onboarding: onboardingContext, refreshUserData } = useContext(UserContext);
+  const { getToken } = useAuth();
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -226,31 +228,31 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       newCompleted.add(currentStepObj.id);
       setCompletedSteps(newCompleted);
       
-      // Save progress to database with retry logic
+      // Save progress to database via backend function
       try {
-        const existingOnboarding = await getUserOnboarding(user.id);
+        const token = await getToken();
+        if (!token) {
+          throw new Error('Failed to get authentication token');
+        }
 
-        const savePayload = {
-          completed_steps: Array.from(newCompleted),
-          updated_at: new Date().toISOString()
-        };
-
-        if (existingOnboarding) {
-          const { error } = await supabase
-            .from('user_onboarding')
-            .update(savePayload)
-            .eq('user_id', user.id);
-          
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('user_onboarding')
-            .insert({
-              user_id: user.id,
-              ...savePayload
-            });
-          
-          if (error) throw error;
+        const { error } = await supabase.functions.invoke(
+          'saveOnboardingProgress',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: {
+              progressData: {
+                completed_steps: Array.from(newCompleted),
+              },
+            },
+          }
+        );
+        
+        if (error) {
+          console.error('❌ Failed to save progress:', error);
+          toast.error('Failed to save progress. Please try again.');
+          return; // Don't proceed if save fails
         }
         
         console.log(`✅ Progress saved for step: ${currentStepObj.id}`);
@@ -326,10 +328,12 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
     try {
       console.log(`🎯 Completing module: ${moduleKey}`);
       
-      const existingOnboarding = await getUserOnboarding(user.id);
-      const updates = {
-        updated_at: new Date().toISOString()
-      };
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+
+      const updates = {};
       
       if (moduleKey === 'core') {
         updates.onboarding_completion_date = new Date().toISOString();
@@ -338,22 +342,21 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       }
       // Note: callcenter completion is tracked via completed_steps only
       
-      if (existingOnboarding) {
-        const { error } = await supabase
-          .from('user_onboarding')
-          .update(updates)
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('user_onboarding')
-          .insert({
-            user_id: user.id,
-            ...updates
-          });
-        
-        if (error) throw error;
+      const { error } = await supabase.functions.invoke(
+        'saveOnboardingProgress',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: {
+            progressData: updates,
+          },
+        }
+      );
+      
+      if (error) {
+        console.error(`❌ Error completing module ${moduleKey}:`, error);
+        throw error;
       }
       
       console.log(`✅ Module ${moduleKey} marked as complete`);

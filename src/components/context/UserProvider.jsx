@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserContext } from './UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 
 export default function UserProvider({ children }) {
     const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+    const { getToken } = useAuth();
     const [user, setUser] = useState(null);
     const [marketConfig, setMarketConfig] = useState(null);
     const [agentProfile, setAgentProfile] = useState(null);
@@ -32,138 +33,63 @@ export default function UserProvider({ children }) {
         setError(null);
         
         try {
-            console.log('[UserProvider] Fetching user profile from Supabase...');
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', clerkUser.id)
-                .maybeSingle();
-
-            if (profileError && profileError.code !== 'PGRST116') {
-                throw profileError;
+            // Get Clerk session token
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Failed to get authentication token');
             }
 
-            // If no profile exists, create it
-            let userData = profileData;
-            if (!userData) {
-                console.log('[UserProvider] Profile not found, creating new profile...');
-                const newProfile = {
-                    id: clerkUser.id,
-                    email: clerkUser.primaryEmailAddress?.emailAddress,
-                    full_name: clerkUser.fullName,
-                    avatar_url: clerkUser.imageUrl,
-                };
-                
-                const { data: createdProfile, error: createError } = await supabase
-                    .from('profiles')
-                    .insert(newProfile)
-                    .select()
-                    .single();
-                
-                if (createError) {
-                    console.error('[UserProvider] Error creating profile:', createError);
-                    userData = newProfile; // Use local data if insert fails
-                } else {
-                    userData = createdProfile;
-                    console.log('[UserProvider] ✓ Profile created successfully');
+            console.log('[UserProvider] Calling getUserContext backend function...');
+            
+            // Call backend function to get all user data at once
+            const { data: context, error: contextError } = await supabase.functions.invoke(
+                'getUserContext',
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
+            );
+
+            if (contextError) {
+                console.error('[UserProvider] getUserContext error:', contextError);
+                throw new Error('Failed to load user context: ' + (contextError.message || 'Unknown error'));
             }
 
-            console.log('[UserProvider] User loaded:', userData.email);
-            setUser(userData);
-
-            // Fetch all user context data in parallel
-            console.log('[UserProvider] Fetching user context in parallel...');
-
-            const [
-                onboardingResult,
-                marketConfigResult,
-                preferencesResult,
-                actionsResult,
-                agentConfigResult,
-                goalsResult,
-                businessPlanResult,
-                pulseHistoryResult,
-                pulseConfigResult
-            ] = await Promise.all([
-                supabase.from('user_onboarding').select('*').eq('user_id', userData.id).maybeSingle(),
-                supabase.from('market_config').select('*').eq('user_id', userData.id).maybeSingle(),
-                supabase.from('user_preferences').select('*').eq('user_id', userData.id).maybeSingle(),
-                supabase.from('daily_actions').select('*').eq('user_id', userData.id).order('due_date', { ascending: true }),
-                supabase.from('agent_config').select('*').eq('user_id', userData.id).maybeSingle(),
-                supabase.from('goals').select('*').eq('user_id', userData.id).order('created_at', { ascending: false }),
-                supabase.from('business_plans').select('*').eq('user_id', userData.id).maybeSingle(),
-                supabase.from('pulse_scores').select('*').eq('user_id', userData.id).order('date', { ascending: false }).limit(30),
-                supabase.from('pulse_scores').select('*').eq('user_id', userData.id).order('date', { ascending: false }).limit(1)
-            ]);
-
-            // Log any fetch errors but continue with available data
-            if (onboardingResult.error) console.warn('[UserProvider] Onboarding fetch error:', onboardingResult.error);
-            if (marketConfigResult.error) console.warn('[UserProvider] Market config fetch error:', marketConfigResult.error);
-            if (preferencesResult.error) console.warn('[UserProvider] Preferences fetch error:', preferencesResult.error);
-            if (actionsResult.error) console.warn('[UserProvider] Actions fetch error:', actionsResult.error);
-            if (agentConfigResult.error) console.warn('[UserProvider] Agent config fetch error:', agentConfigResult.error);
-            if (goalsResult.error) console.warn('[UserProvider] Goals fetch error:', goalsResult.error);
-            if (businessPlanResult.error) console.warn('[UserProvider] Business plan fetch error:', businessPlanResult.error);
-            if (pulseHistoryResult.error) console.warn('[UserProvider] Pulse history fetch error:', pulseHistoryResult.error);
-            if (pulseConfigResult.error) console.warn('[UserProvider] Pulse config fetch error:', pulseConfigResult.error);
-
-            // Create default onboarding record if missing
-            if (!onboardingResult.data) {
-                console.log('[UserProvider] Creating default onboarding record');
-                await supabase.from('user_onboarding').insert({
-                    user_id: userData.id,
-                    onboarding_completed: false,
-                    agent_onboarding_completed: false,
-                    call_center_onboarding_completed: false,
-                }).select().maybeSingle();
+            if (!context) {
+                throw new Error('No context data returned from backend');
             }
 
-            // Build context with fetched data
-            const agentContext = {
-                user: userData,
-                onboarding: onboardingResult.data || {
-                    userId: userData.id,
-                    onboardingCompleted: false,
-                    agentOnboardingCompleted: false,
-                    agentIntelligenceCompleted: false,
-                    completedSteps: []
-                },
-                marketConfig: marketConfigResult.data || null,
-                agentProfile: null,
-                preferences: preferencesResult.data || {
-                    userId: userData.id,
-                    coachingStyle: 'balanced',
-                    activityMode: 'get_moving',
-                    dailyReminders: true,
-                    weeklyReports: true,
-                    marketUpdates: true,
-                    emailNotifications: true,
-                    timezone: 'America/New_York'
-                },
-                actions: actionsResult.data || [],
-                agentConfig: agentConfigResult.data || null,
-                userAgentSubscription: null,
-                goals: goalsResult.data || [],
-                businessPlan: businessPlanResult.data || null,
-                pulseHistory: pulseHistoryResult.data || [],
-                pulseConfig: pulseConfigResult.data?.[0] || null
-            };
+            console.log('[UserProvider] Context loaded successfully from backend');
 
-            console.log('[UserProvider] Context loaded successfully');
-
-            // Set all context data
-            setOnboarding(agentContext.onboarding);
-            setMarketConfig(agentContext.marketConfig);
-            setAgentProfile(agentContext.agentProfile);
-            setPreferences(agentContext.preferences);
-            setActions(agentContext.actions);
-            setAgentConfig(agentContext.agentConfig);
-            setUserAgentSubscription(agentContext.userAgentSubscription);
-            setGoals(agentContext.goals);
-            setBusinessPlan(agentContext.businessPlan);
-            setPulseHistory(agentContext.pulseHistory);
-            setPulseConfig(agentContext.pulseConfig);
+            // Set all state from backend response
+            setUser(context.user);
+            setOnboarding(context.onboarding || {
+                userId: clerkUser.id,
+                onboardingCompleted: false,
+                agentOnboardingCompleted: false,
+                agentIntelligenceCompleted: false,
+                completedSteps: []
+            });
+            setMarketConfig(context.marketConfig);
+            setAgentProfile(context.agentProfile);
+            setPreferences(context.preferences || {
+                userId: clerkUser.id,
+                coachingStyle: 'balanced',
+                activityMode: 'get_moving',
+                dailyReminders: true,
+                weeklyReports: true,
+                marketUpdates: true,
+                emailNotifications: true,
+                timezone: 'America/New_York'
+            });
+            setActions(context.actions || []);
+            setAgentConfig(context.agentConfig);
+            setUserAgentSubscription(context.userAgentSubscription);
+            setGoals(context.goals || []);
+            setBusinessPlan(context.businessPlan);
+            setPulseHistory(context.pulseHistory || []);
+            setPulseConfig(context.pulseConfig);
 
             console.log('[UserProvider] All context data set successfully');
 
@@ -173,7 +99,7 @@ export default function UserProvider({ children }) {
         } finally {
             setLoading(false);
         }
-    }, [clerkUser, isClerkLoaded]);
+    }, [clerkUser, isClerkLoaded, getToken]);
 
     useEffect(() => {
         fetchUserData();
