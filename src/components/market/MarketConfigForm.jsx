@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { UserMarketConfig } from '@/api/entities';
 
 const US_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -133,13 +133,9 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
 
     try {
       console.log('[MarketConfigForm] Loading market config for user:', user.id);
-      // Get ALL configs for this user
-      const { data: allConfigs, error } = await supabase
-        .from('market_config')
-        .select('*')
-        .eq('user_id', user.id);
+      // Get ALL configs for this user using backend entity
+      const allConfigs = await UserMarketConfig.filter({ userId: user.id });
       
-      if (error) throw error;
       console.log('[MarketConfigForm] Found', allConfigs?.length || 0, 'total configs');
 
       if (allConfigs && allConfigs.length > 0) {
@@ -172,10 +168,7 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
           console.log('[MarketConfigForm] Cleaning up', sortedConfigs.length - 1, 'old configs');
           for (let i = 1; i < sortedConfigs.length; i++) {
             try {
-              await supabase
-                .from('market_config')
-                .delete()
-                .eq('id', sortedConfigs[i].id);
+              await UserMarketConfig.delete(sortedConfigs[i].id);
               console.log('[MarketConfigForm] Deleted old config:', sortedConfigs[i].id);
             } catch (deleteError) {
               console.error('[MarketConfigForm] Failed to delete old config:', deleteError);
@@ -260,38 +253,19 @@ export default function MarketConfigForm({ onSaveComplete, compact = false }) {
       let savedConfig;
       if (existingConfigId) {
         console.log('[MarketConfigForm] Updating existing config:', existingConfigId);
-        const { data, error } = await supabase
-          .from('market_config')
-          .update(dataToSave)
-          .eq('id', existingConfigId)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        savedConfig = data;
+        savedConfig = await UserMarketConfig.update(existingConfigId, dataToSave);
         console.log('[MarketConfigForm] Update response:', savedConfig);
       } else {
         console.log('[MarketConfigForm] Creating new config');
-        const { data, error } = await supabase
-          .from('market_config')
-          .insert(dataToSave)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        savedConfig = data;
+        savedConfig = await UserMarketConfig.create(dataToSave);
         console.log('[MarketConfigForm] Create response:', savedConfig);
         setExistingConfigId(savedConfig.id);
       }
 
       // Verify the save by reading it back
       console.log('[MarketConfigForm] Verifying save by reading back...');
-      const { data: verifyConfigs, error: verifyError } = await supabase
-        .from('market_config')
-        .select('*')
-        .eq('user_id', user.id);
+      const verifyConfigs = await UserMarketConfig.filter({ userId: user.id });
       
-      if (verifyError) throw verifyError;
       console.log('[MarketConfigForm] Verification found', verifyConfigs?.length || 0, 'configs');
 
       if (!verifyConfigs || verifyConfigs.length === 0) {

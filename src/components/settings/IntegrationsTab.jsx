@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { UserContext } from '@/components/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingIndicator, { InlineLoadingIndicator } from '../ui/LoadingIndicator';
+import { ConnectionOperations } from '@/api/entities';
 
 export default function IntegrationsTab({ onUpdate, user }) {
   const { agentConfig, refreshUserData } = useContext(UserContext);
@@ -52,30 +53,26 @@ export default function IntegrationsTab({ onUpdate, user }) {
     if (!user || !user.id) return;
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
+      const connectionsData = await ConnectionOperations.fetchUserConnections();
+      const connections = connectionsData?.external || [];
 
-      const zoomConn = (connections || []).find((c) => c.service_name === 'zoom' && c.connection_status === 'connected');
+      const zoomConn = connections.find((c) => c.service_name === 'zoom' && c.connection_status === 'connected');
       setIsZoomConnected(!!zoomConn);
 
-      const microsoftConn = (connections || []).find((c) => c.service_name === 'microsoft_365' && c.connection_status === 'connected');
+      const microsoftConn = connections.find((c) => c.service_name === 'microsoft_365' && c.connection_status === 'connected');
       setIsMicrosoftConnected(!!microsoftConn);
 
-      const facebookConn = (connections || []).find((c) => c.service_name === 'facebook' && c.connection_status === 'connected');
+      const facebookConn = connections.find((c) => c.service_name === 'facebook' && c.connection_status === 'connected');
       setIsFacebookConnected(!!facebookConn);
 
-      const instagramConn = (connections || []).find((c) => c.service_name === 'instagram' && c.connection_status === 'connected');
+      const instagramConn = connections.find((c) => c.service_name === 'instagram' && c.connection_status === 'connected');
       setIsInstagramConnected(!!instagramConn);
 
-      const linkedinConn = (connections || []).find((c) => c.service_name === 'linkedin' && c.connection_status === 'connected');
+      const linkedinConn = connections.find((c) => c.service_name === 'linkedin' && c.connection_status === 'connected');
       setIsLinkedInConnected(!!linkedinConn);
 
-      // NEW: Check for Google Workspace connection
-      const googleWorkspaceConn = (connections || []).find((c) => c.service_name === 'google_workspace' && c.connection_status === 'connected');
+      // Check for Google Workspace connection
+      const googleWorkspaceConn = connections.find((c) => c.service_name === 'google_workspace' && c.connection_status === 'connected');
       setIsGoogleWorkspaceConnected(!!googleWorkspaceConn);
     } catch (error) {
       console.error("Failed to load integration connections:", error);
@@ -89,42 +86,29 @@ export default function IntegrationsTab({ onUpdate, user }) {
         return;
       }
 
-      // Check Lofty connection status
       try {
-        const { data: loftyConnections, error } = await supabase
-          .from('crm_connections')
-          .select('*')
-          .eq('provider', 'lofty')
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        if (loftyConnections && loftyConnections.length > 0) {
-          setLoftyConnection(loftyConnections[0]);
-          setIsLoftyConnected(loftyConnections[0].connection_status === 'connected');
-        }
-      } catch (error) {
-        console.error("Failed to load Lofty connection status:", error);
-      }
+        const connectionsData = await ConnectionOperations.fetchUserConnections();
+        const crmConnections = connectionsData?.crm || [];
 
-      // Check Follow Up Boss connection status
-      try {
-        const { data: fubConnections, error } = await supabase
-          .from('crm_connections')
-          .select('*')
-          .eq('provider', 'follow_up_boss')
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        if (fubConnections && fubConnections.length > 0) {
-          setFubConnection(fubConnections[0]);
-          setIsFubConnected(fubConnections[0].connection_status === 'connected');
+        // Check Lofty connection status
+        const loftyConns = crmConnections.filter(c => c.provider === 'lofty');
+        if (loftyConns.length > 0) {
+          setLoftyConnection(loftyConns[0]);
+          setIsLoftyConnected(loftyConns[0].connection_status === 'connected');
         }
-      } catch (error) {
-        console.error("Failed to load Follow Up Boss connection status:", error);
-      }
 
-      // Check external service connections
-      await checkExternalServiceConnections();
+        // Check Follow Up Boss connection status
+        const fubConns = crmConnections.filter(c => c.provider === 'follow_up_boss');
+        if (fubConns.length > 0) {
+          setFubConnection(fubConns[0]);
+          setIsFubConnected(fubConns[0].connection_status === 'connected');
+        }
+
+        // Check external service connections
+        await checkExternalServiceConnections();
+      } catch (error) {
+        console.error("Failed to load integration status:", error);
+      }
 
       setLoading(false);
     };
@@ -225,25 +209,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsGoogleWorkspaceDisconnecting(true);
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'google_workspace');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'google_workspace' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsGoogleWorkspaceConnected(false);
-        toast.success("Google Workspace has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections(); // Refresh status after disconnect
-      }
+      setIsGoogleWorkspaceConnected(false);
+      toast.success("Google Workspace has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections(); // Refresh status after disconnect
     } catch (e) {
       console.error("Disconnect Google Workspace error:", e);
       toast.error("Failed to disconnect Google Workspace.");
@@ -277,25 +250,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'microsoft_365');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'microsoft_365' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsMicrosoftConnected(false);
-        toast.success("Microsoft 365 has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections();
-      }
+      setIsMicrosoftConnected(false);
+      toast.success("Microsoft 365 has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections();
     } catch (e) {
       console.error("Disconnect Microsoft error:", e);
       toast.error("Failed to disconnect Microsoft 365.");
@@ -329,25 +291,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'facebook');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'facebook' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsFacebookConnected(false);
-        toast.success("Facebook has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections();
-      }
+      setIsFacebookConnected(false);
+      toast.success("Facebook has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections();
     } catch (e) {
       console.error("Disconnect Facebook error:", e);
       toast.error("Failed to disconnect Facebook.");
@@ -381,25 +332,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'instagram');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'instagram' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsInstagramConnected(false);
-        toast.success("Instagram has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections();
-      }
+      setIsInstagramConnected(false);
+      toast.success("Instagram has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections();
     } catch (e) {
       console.error("Disconnect Instagram error:", e);
       toast.error("Failed to disconnect Instagram.");
@@ -431,25 +371,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'linkedin');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'linkedin' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsLinkedInConnected(false);
-        toast.success("LinkedIn has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections();
-      }
+      setIsLinkedInConnected(false);
+      toast.success("LinkedIn has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections();
     } catch (e) {
       console.error("Disconnect LinkedIn error:", e);
       toast.error("Failed to disconnect LinkedIn.");
@@ -481,25 +410,14 @@ export default function IntegrationsTab({ onUpdate, user }) {
     }
 
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('service_name', 'zoom');
+      await supabase.functions.invoke('disconnectService', {
+        body: { serviceName: 'zoom' }
+      });
       
-      if (error) throw error;
-
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('external_service_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsZoomConnected(false);
-        toast.success("Zoom has been disconnected.");
-        if (onUpdate) await onUpdate();
-        await checkExternalServiceConnections();
-      }
+      setIsZoomConnected(false);
+      toast.success("Zoom has been disconnected.");
+      if (onUpdate) await onUpdate();
+      await checkExternalServiceConnections();
     } catch (e) {
       console.error("Disconnect Zoom error:", e);
       toast.error("Failed to disconnect Zoom.");
