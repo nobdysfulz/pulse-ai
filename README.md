@@ -72,6 +72,11 @@ Create a `.env` file in the project root and populate the following keys:
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon (publishable) key for the client SDK. |
 | `VITE_SUPABASE_PROJECT_ID` | Project ID used by Supabase tooling. |
 
+The active Supabase project reference for Pulse AI is `pdbggzsmgcrguhscynnk`. Copy `.env` from the root of this repository and
+ensure the Supabase values match that project. Supabase Edge Functions and CLI commands can read matching credentials from
+`supabase/.env`; use the provided [`supabase/.env.example`](./supabase/.env.example) as a starting point and keep the
+`SUPABASE_SERVICE_ROLE_KEY` value in your local file (do not commit it).
+
 For Supabase Edge Functions and integration flows you will also need to configure secrets through the Supabase dashboard or CLI:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -87,6 +92,12 @@ Edge functions live in `supabase/functions`. Each folder contains an `index.ts` 
 
 ```bash
 supabase functions serve computePulse --env-file supabase/.env
+```
+
+Before serving or deploying functions, link your Supabase CLI to the production project:
+
+```bash
+supabase link --project-ref pdbggzsmgcrguhscynnk
 ```
 
 When serving functions locally you must provide all required secrets (service role key, Lovable API key, Twilio credentials, etc.) via an `.env` file or the Supabase secrets store. Many functions enforce JWT verification, so authenticate with `supabase login` and run `supabase start` to boot a local stack before invoking them.
