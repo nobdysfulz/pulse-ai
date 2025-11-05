@@ -44,14 +44,13 @@ import ErrorBoundary from './components/ui/ErrorBoundary'
 function App() {
   return (
     <BrowserRouter>
-      <ClerkSupabaseSync />
       <React.Suspense fallback={
         <div className="flex items-center justify-center min-h-screen bg-background">
           <div className="text-text-body">Loading...</div>
         </div>
       }>
         <Routes>
-          {/* Public routes */}
+          {/* Public routes - NO ClerkSupabaseSync */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           
@@ -63,12 +62,13 @@ function App() {
           <Route path="/auth/callback/google-workspace" element={<GoogleWorkspaceAuthConfirmation />} />
           <Route path="/auth/callback/zoom" element={<ZoomAuthConfirmation />} />
 
-          {/* Protected routes */}
+          {/* Protected routes - WITH ClerkSupabaseSync */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
+                <ClerkSupabaseSync />
                 <Layout>
                   <ErrorBoundary>
                     <Dashboard />
