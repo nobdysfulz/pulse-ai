@@ -3,6 +3,11 @@ import { UserContext } from './UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser, useAuth } from '@clerk/clerk-react';
 
+// Set global token getter for entities.js
+if (typeof window !== 'undefined') {
+  window.__clerkGetToken = null;
+}
+
 export default function UserProvider({ children }) {
     const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
     const { getToken } = useAuth();
@@ -102,8 +107,13 @@ export default function UserProvider({ children }) {
     }, [clerkUser, isClerkLoaded, getToken]);
 
     useEffect(() => {
+        // Set global token getter for entities.js
+        if (typeof window !== 'undefined') {
+            window.__clerkGetToken = getToken;
+        }
+        
         fetchUserData();
-    }, [fetchUserData]);
+    }, [fetchUserData, getToken]);
 
     const contextValue = useMemo(() => ({
         user,

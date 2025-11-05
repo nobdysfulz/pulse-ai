@@ -1,7 +1,7 @@
 
 import React, { useContext, useState, useEffect, useCallback } from 'react';
 import { UserContext } from '../context/UserContext';
-import { UserCredit, CreditTransaction } from '@/api/entities';
+import { UserCredit, CreditOperations } from '@/api/entities';
 import { toast } from 'sonner';
 
 export default function useCredits() {
@@ -66,29 +66,16 @@ export default function useCredits() {
     }
 
     if (isSubscriber) {
-        // For subscribers, we still log the transaction for tracking purposes, but don't deduct credits.
-        try {
-             await CreditTransaction.create({
-                userId: user.id,
-                feature,
-                credits: amount,
-                description: `${description} (Subscriber - No Deduction)`,
-                balanceAfter: 9999999, // Use a large number instead of Infinity
-            });
-        } catch (e) {
-            console.error("Error creating subscriber credit transaction log:", e);
-        }
+        // For subscribers, still track usage but don't deduct
         return true;
     }
     
-    // Logic for Free users
+    // Logic for Free users - use backend credit operations
     if (!userCredits || userCredits.creditsRemaining < amount) {
       toast.error("Insufficient credits for this action.");
       return false;
     }
 
-    const currentUsed = parseInt(userCredits.creditsUsed, 10) || 0;
-    const currentRemaining = parseInt(userCredits.creditsRemaining, 10) || 0;
     const deductionAmount = parseInt(amount, 10);
 
     if (isNaN(deductionAmount) || deductionAmount <= 0) {
@@ -97,34 +84,34 @@ export default function useCredits() {
         return false;
     }
 
-    const newCreditsUsed = currentUsed + deductionAmount;
-    const newCreditsRemaining = currentRemaining - deductionAmount;
-    
     try {
-      await UserCredit.update(userCredits.id, {
-        userId: user.id,
-        creditsUsed: newCreditsUsed,
-        creditsRemaining: newCreditsRemaining,
-      });
+      // Use backend function for atomic credit deduction
+      const result = await CreditOperations.deduct(
+        deductionAmount,
+        description || `${feature} usage`,
+        { feature }
+      );
 
-      await CreditTransaction.create({
-        userId: user.id,
-        feature,
-        credits: deductionAmount,
-        description,
-        balanceAfter: newCreditsRemaining,
-      });
-
-      setUserCredits(prev => ({
-        ...prev,
-        creditsUsed: newCreditsUsed,
-        creditsRemaining: newCreditsRemaining
-      }));
-      
-      return true;
+      if (result.success) {
+        setUserCredits(prev => ({
+          ...prev,
+          creditsRemaining: result.newBalance
+        }));
+        return true;
+      } else {
+        toast.error(result.error || "Error deducting credits");
+        return false;
+      }
     } catch (error) {
       console.error("Error deducting credits:", error);
-      toast.error(`Error deducting credits: ${error.message}`);
+      
+      // Handle insufficient credits error specifically
+      if (error.message?.includes('Insufficient credits')) {
+        toast.error("Insufficient credits for this action.");
+      } else {
+        toast.error(`Error deducting credits: ${error.message}`);
+      }
+      
       return false;
     }
   }, [user, userCredits, isSubscriber]);

@@ -1,5 +1,16 @@
 // Entity API helpers - enhanced with compatibility layer
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@clerk/clerk-react';
+
+// Helper to get Clerk token
+const getClerkToken = async () => {
+  // We'll use this in the context where useAuth is available
+  // For now, we'll use a global reference that will be set by UserProvider
+  if (window.__clerkGetToken) {
+    return await window.__clerkGetToken();
+  }
+  throw new Error('Clerk token not available. Make sure UserProvider is initialized.');
+};
 
 // Helper to convert camelCase to snake_case
 const toSnakeCase = (str) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -100,112 +111,189 @@ const addResponseAliases = (tableName, obj) => {
   return obj;
 };
 
-// Create real entity helpers that connect to Supabase tables
+// Create real entity helpers that connect to backend functions
 const createEntity = (tableName) => ({
   list: async (orderBy = '-created_at') => {
-    const normalizedOrder = normalizeOrder(orderBy);
-    const isDescending = normalizedOrder.startsWith('-');
-    const column = normalizedOrder.replace('-', '');
-    
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .order(column, { ascending: !isDescending });
-    
-    if (error) throw error;
-    return (data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
+    try {
+      const token = await getClerkToken();
+      const normalizedOrder = normalizeOrder(orderBy);
+      const isDescending = normalizedOrder.startsWith('-');
+      const column = normalizedOrder.replace('-', '');
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'list',
+          filters: {
+            order: column,
+            ascending: !isDescending,
+          },
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return (data?.data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
+    } catch (error) {
+      console.error(`[entities.${tableName}.list] Error:`, error);
+      throw error;
+    }
   },
 
   filter: async (filters = {}, orderBy = '-created_at') => {
-    const normalizedFilters = normalizeFilters(tableName, filters);
-    const normalizedOrder = normalizeOrder(orderBy);
-    const isDescending = normalizedOrder.startsWith('-');
-    const column = normalizedOrder.replace('-', '');
-    
-    let query = supabase.from(tableName).select('*');
-    
-    Object.entries(normalizedFilters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        query = query.eq(key, value);
-      }
-    });
-    
-    const { data, error } = await query.order(column, { ascending: !isDescending });
-    
-    if (error) throw error;
-    return (data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
+    try {
+      const token = await getClerkToken();
+      const normalizedFilters = normalizeFilters(tableName, filters);
+      const normalizedOrder = normalizeOrder(orderBy);
+      const isDescending = normalizedOrder.startsWith('-');
+      const column = normalizedOrder.replace('-', '');
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'filter',
+          filters: {
+            ...normalizedFilters,
+            order: column,
+            ascending: !isDescending,
+          },
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return (data?.data || []).map(item => addResponseAliases(tableName, objectToCamelCase(item)));
+    } catch (error) {
+      console.error(`[entities.${tableName}.filter] Error:`, error);
+      throw error;
+    }
   },
 
   get: async (id) => {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    
-    if (error) throw error;
-    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
+    try {
+      const token = await getClerkToken();
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'get',
+          id,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return data?.data ? addResponseAliases(tableName, objectToCamelCase(data.data)) : null;
+    } catch (error) {
+      console.error(`[entities.${tableName}.get] Error:`, error);
+      throw error;
+    }
   },
 
   create: async (payload) => {
-    // Handle agent_voices special case: store extra fields in voice_settings
-    let finalPayload = { ...payload };
-    if (tableName === 'agent_voices') {
-      const { previewAudioUrl, isActive, ...rest } = payload;
-      finalPayload = {
-        ...rest,
-        voice_settings: {
-          previewAudioUrl: previewAudioUrl || null,
-          isActive: isActive !== false
-        }
-      };
+    try {
+      const token = await getClerkToken();
+
+      // Handle agent_voices special case: store extra fields in voice_settings
+      let finalPayload = { ...payload };
+      if (tableName === 'agent_voices') {
+        const { previewAudioUrl, isActive, ...rest } = payload;
+        finalPayload = {
+          ...rest,
+          voice_settings: {
+            previewAudioUrl: previewAudioUrl || null,
+            isActive: isActive !== false
+          }
+        };
+      }
+
+      const snakePayload = objectToSnakeCase(finalPayload);
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'create',
+          data: snakePayload,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return data?.data ? addResponseAliases(tableName, objectToCamelCase(data.data)) : null;
+    } catch (error) {
+      console.error(`[entities.${tableName}.create] Error:`, error);
+      throw error;
     }
-    
-    const snakePayload = objectToSnakeCase(finalPayload);
-    const { data, error } = await supabase
-      .from(tableName)
-      .insert(snakePayload)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
   },
 
   update: async (id, payload) => {
-    // Handle agent_voices special case
-    let finalPayload = { ...payload };
-    if (tableName === 'agent_voices') {
-      const { previewAudioUrl, isActive, ...rest } = payload;
-      finalPayload = {
-        ...rest,
-        voice_settings: {
-          previewAudioUrl: previewAudioUrl || null,
-          isActive: isActive !== false
-        }
-      };
+    try {
+      const token = await getClerkToken();
+
+      // Handle agent_voices special case
+      let finalPayload = { ...payload };
+      if (tableName === 'agent_voices') {
+        const { previewAudioUrl, isActive, ...rest } = payload;
+        finalPayload = {
+          ...rest,
+          voice_settings: {
+            previewAudioUrl: previewAudioUrl || null,
+            isActive: isActive !== false
+          }
+        };
+      }
+
+      const snakePayload = objectToSnakeCase(finalPayload);
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'update',
+          id,
+          data: snakePayload,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return data?.data ? addResponseAliases(tableName, objectToCamelCase(data.data)) : null;
+    } catch (error) {
+      console.error(`[entities.${tableName}.update] Error:`, error);
+      throw error;
     }
-    
-    const snakePayload = objectToSnakeCase(finalPayload);
-    const { data, error } = await supabase
-      .from(tableName)
-      .update(snakePayload)
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    return data ? addResponseAliases(tableName, objectToCamelCase(data)) : null;
   },
 
   delete: async (id) => {
-    const { error } = await supabase
-      .from(tableName)
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-    return { success: true };
+    try {
+      const token = await getClerkToken();
+
+      const { data, error } = await supabase.functions.invoke('entityOperations', {
+        body: {
+          table: tableName,
+          operation: 'delete',
+          id,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error(`[entities.${tableName}.delete] Error:`, error);
+      throw error;
+    }
   }
 });
 
@@ -500,5 +588,148 @@ export const User = {
     await applyProfileUpdate(session.user.id, updates);
 
     return await fetchUserProfileWithSession();
+  },
+};
+
+// Specialized backend operations with convenient wrappers
+export const TaskOperations = {
+  updateStatus: async (taskId, status) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('updateTaskStatus', {
+        body: { taskId, status },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[TaskOperations.updateStatus] Error:', error);
+      throw error;
+    }
+  },
+
+  create: async (taskData) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('createTask', {
+        body: taskData,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[TaskOperations.create] Error:', error);
+      throw error;
+    }
+  },
+};
+
+export const CreditOperations = {
+  deduct: async (amount, description, metadata = {}) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageCredits', {
+        body: { operation: 'deduct', amount, description, metadata },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[CreditOperations.deduct] Error:', error);
+      throw error;
+    }
+  },
+
+  add: async (amount, description, metadata = {}) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageCredits', {
+        body: { operation: 'add', amount, description, metadata },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[CreditOperations.add] Error:', error);
+      throw error;
+    }
+  },
+
+  set: async (amount, description, metadata = {}) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageCredits', {
+        body: { operation: 'set', amount, description, metadata },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[CreditOperations.set] Error:', error);
+      throw error;
+    }
+  },
+};
+
+export const GoalOperations = {
+  create: async (goalData) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageGoal', {
+        body: { operation: 'create', goalData },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[GoalOperations.create] Error:', error);
+      throw error;
+    }
+  },
+
+  update: async (goalId, goalData) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageGoal', {
+        body: { operation: 'update', goalId, goalData },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[GoalOperations.update] Error:', error);
+      throw error;
+    }
+  },
+
+  delete: async (goalId) => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('manageGoal', {
+        body: { operation: 'delete', goalId },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[GoalOperations.delete] Error:', error);
+      throw error;
+    }
+  },
+};
+
+export const ConnectionOperations = {
+  fetchAll: async () => {
+    try {
+      const token = await getClerkToken();
+      const { data, error } = await supabase.functions.invoke('fetchUserConnections', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      return data?.data || { crm: [], external: [] };
+    } catch (error) {
+      console.error('[ConnectionOperations.fetchAll] Error:', error);
+      throw error;
+    }
   },
 };
