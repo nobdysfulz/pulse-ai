@@ -338,24 +338,18 @@ export default function ContentStudioPage() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('generated_content')
-        .insert({
-          user_id: user.id,
-          title: contentData.title,
-          content: contentData.body,
-          content_type: contentData.type,
-          metadata: {
-            creditsUsed: contentData.credits || 0,
-            platform: contentData.platform || null,
-            promptId: contentData.promptId || null,
-            source: contentData.source || 'content_studio',
-          },
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await GeneratedContent.create({
+        userId: user.id,
+        title: contentData.title,
+        content: contentData.body,
+        contentType: contentData.type,
+        metadata: {
+          creditsUsed: contentData.credits || 0,
+          platform: contentData.platform || null,
+          promptId: contentData.promptId || null,
+          source: contentData.source || 'content_studio',
+        },
+      });
 
       toast.success('Content generated and saved!');
       setActiveTab('recents');

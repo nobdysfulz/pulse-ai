@@ -148,25 +148,10 @@ export default function IntelligencePage() {
   useEffect(() => {
     fetchGraphContext();
 
-    const channel = supabase
-      .channel('intelligence-updates')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'graph_context_cache' },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            setContext(payload.new.context);
-            setLastUpdated(new Date());
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
-      supabase.removeChannel(channel);
     };
   }, [fetchGraphContext]);
 

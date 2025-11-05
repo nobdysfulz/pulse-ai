@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, BarChart3, DollarSign, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { BusinessPlan } from '@/api/entities';
 import { UserContext } from "../components/context/UserContext";
 import ProductionPlannerModal from '../components/goal-planner/ProductionPlannerModal';
 import { toast } from "sonner";
@@ -69,14 +69,7 @@ export default function GoalPlanner() {
                 return;
             }
 
-            const { data: plans, error } = await supabase
-                .from('business_plans')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            if (error) throw error;
+            const plans = await BusinessPlan.filter({ userId: user.id }, '-createdAt');
             setActivePlan(plans && plans.length > 0 ? plans[0] : null);
         } catch (error) {
             console.error('Error loading business plan:', error);
