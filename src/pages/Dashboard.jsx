@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext, useMemo, useCallback, useRef } 
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from "@/integrations/supabase/client";
 import { TaskOperations } from "@/api/entities";
+import { RefreshBatcher } from '@/utils/batchOperations';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,9 @@ export default function DashboardPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
+  
+  // Create a batched refresh handler to reduce redundant calls
+  const refreshBatcher = useMemo(() => new RefreshBatcher(refreshUserData, 1000), [refreshUserData]);
 
   const onboardingJourney = useMemo(() => {
     if (!user) return null;
@@ -300,7 +304,8 @@ export default function DashboardPage() {
       } else {
         toast.info("No new actions to generate based on your current plan.");
       }
-      await refreshUserData();
+      // Use batched refresh for task generation
+      refreshBatcher.requestRefresh();
     } catch (error) {
       console.error("Error generating actions from Dashboard:", error);
       toast.error("Could not generate actions. Please try again or contact support.");
@@ -318,7 +323,8 @@ export default function DashboardPage() {
         throw new Error(result.error || 'Failed to update task');
       }
       
-      await refreshUserData();
+      // Use batched refresh to avoid redundant calls when toggling multiple tasks
+      refreshBatcher.requestRefresh();
       toast.success(isCompleted ? "Task completed!" : "Task marked incomplete");
     } catch (error) {
       console.error("Failed to update task:", error);
@@ -343,7 +349,8 @@ export default function DashboardPage() {
       }
 
       toast.success('Task added successfully!');
-      await refreshUserData();
+      // Use batched refresh for task creation
+      refreshBatcher.requestRefresh();
       setShowAddModal(false);
     } catch (error) {
       console.error('Error creating task:', error);

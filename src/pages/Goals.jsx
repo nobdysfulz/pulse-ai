@@ -3,6 +3,8 @@ import React, { useState, useEffect, useContext, useMemo, useCallback } from "re
 import { UserContext } from '../components/context/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Goal, BrandColorPalette, ConnectionOperations } from '@/api/entities';
+import { getMemoryCacheItem, setMemoryCacheItem, CACHE_KEYS } from '@/lib/cache';
+import { RefreshBatcher } from '@/utils/batchOperations';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, PlusCircle, Edit, Printer, Download, Target } from "lucide-react";
@@ -47,6 +49,9 @@ const normalizeGoalRecord = (goal) => {
 
 export default function GoalsPage() {
   const { user, goals: contextGoals, businessPlan, refreshUserData, preferences } = useContext(UserContext);
+  
+  // Create a batched refresh handler to reduce redundant calls
+  const refreshBatcher = useMemo(() => new RefreshBatcher(refreshUserData, 1000), [refreshUserData]);
   
   // Check URL parameters for tab selection
   const urlParams = new URLSearchParams(window.location.search);
@@ -163,7 +168,8 @@ export default function GoalsPage() {
         toast.info('No updates needed — goals are already current.');
       }
 
-      await refreshUserData();
+      // Use force refresh for CRM sync (critical operation)
+      refreshBatcher.forceRefresh();
     } catch (error) {
       console.error("Failed to sync from CRM:", error);
       const message = error instanceof Error ? error.message : "Failed to sync goals from CRM";
@@ -200,7 +206,8 @@ export default function GoalsPage() {
 
       await Goal.update(goalId, finalData);
         
-      await refreshUserData();
+      // Use batched refresh to avoid redundant calls
+      refreshBatcher.requestRefresh();
       setShowUpdateProgress(false);
       setSelectedGoal(null);
       toast.success("Goal progress updated!");
@@ -226,7 +233,8 @@ export default function GoalsPage() {
       
       await Goal.create(payload);
         
-      await refreshUserData();
+      // Use batched refresh to avoid redundant calls
+      refreshBatcher.requestRefresh();
       setShowAddGoal(false);
       toast.success("New custom goal added!");
     } catch (error) {
@@ -236,7 +244,8 @@ export default function GoalsPage() {
   };
 
   const handlePlanSaved = async () => {
-    await refreshUserData(); // Refresh user data to get updated goals from context
+    // Use force refresh for critical operations like saving plan
+    refreshBatcher.forceRefresh();
     setShowPlannerModal(false);
   };
 
@@ -250,9 +259,18 @@ export default function GoalsPage() {
       let brandHex = '#7C3AED';
       if (user) {
         try {
-          const palettes = await BrandColorPalette.filter({ userId: user.id });
-          if (palettes && palettes.length > 0 && palettes[0].primaryHex) {
-            brandHex = palettes[0].primaryHex;
+          // Try memory cache first for brand palettes
+          const cachedPalette = getMemoryCacheItem(`${CACHE_KEYS.BRAND_PALETTES}_${user.id}`);
+          
+          if (cachedPalette) {
+            brandHex = cachedPalette;
+          } else {
+            const palettes = await BrandColorPalette.filter({ userId: user.id });
+            if (palettes && palettes.length > 0 && palettes[0].primaryHex) {
+              brandHex = palettes[0].primaryHex;
+              // Cache for 10 minutes
+              setMemoryCacheItem(`${CACHE_KEYS.BRAND_PALETTES}_${user.id}`, brandHex, 10 * 60 * 1000);
+            }
           }
         } catch (error) {
           console.warn('Failed to load brand palette', error);
@@ -292,7 +310,8 @@ export default function GoalsPage() {
       } else {
         toast.info("No new actions were generated based on your current plan.");
       }
-      await refreshUserData();
+      // Use batched refresh for task generation
+      refreshBatcher.requestRefresh();
     } catch (error) {
       console.error("Error generating actions from Goals page:", error);
       toast.error("Could not generate actions.");

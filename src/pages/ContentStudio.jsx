@@ -17,6 +17,7 @@ import ContentDetailModal from '../components/content-studio/ContentDetailModal'
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LoadingIndicator, { InlineLoadingIndicator } from '../components/ui/LoadingIndicator';
+import { getCacheItem, setCacheItem, CACHE_KEYS } from '@/lib/cache';
 import {
   ContentTopic,
   ContentPack,
@@ -263,11 +264,14 @@ export default function ContentStudioPage() {
     setLoading(true);
 
     try {
+      // Try to get cached prompt configs first (5 min cache)
+      const cachedPrompts = getCacheItem(CACHE_KEYS.PROMPT_CONFIGS);
+      
       const [topics, featured, templates, prompts] = await Promise.all([
         ContentTopic.filter({ isActive: true }),
         FeaturedContentPack.filter({ isActive: true }),
         TaskTemplate.filter({ category: 'social_media', triggerType: 'day_of_week', isActive: true }),
-        AiPromptConfig.filter({ isActive: true }),
+        cachedPrompts ? Promise.resolve(cachedPrompts) : AiPromptConfig.filter({ isActive: true }),
       ]);
 
       const currentWeek = getCurrentWeekNumber();
@@ -304,6 +308,12 @@ export default function ContentStudioPage() {
             promptId: prompt.promptId || prompt.promptKey || prompt.promptName || prompt.prompt_id || prompt.prompt_key,
           }))
         : [];
+      
+      // Cache prompt configs if they were fetched (not from cache)
+      if (!cachedPrompts && normalizedPrompts.length > 0) {
+        setCacheItem(CACHE_KEYS.PROMPT_CONFIGS, normalizedPrompts);
+      }
+      
       setPromptConfigs(normalizedPrompts);
 
       await Promise.all([loadRecentGenerated(), loadPreferencesForUser(), loadMarketIntel()]);
