@@ -66,14 +66,13 @@ serve(async (req) => {
       const primaryEmail = email_addresses?.find((e: any) => e.id === evt.data.primary_email_address_id);
       const email = primaryEmail?.email_address;
 
-      // Upsert profile
+      // Upsert profile - using correct table structure
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({
           id,
           email,
           full_name: `${first_name || ''} ${last_name || ''}`.trim() || null,
-          avatar_url: image_url,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'id'
@@ -84,40 +83,7 @@ serve(async (req) => {
         throw profileError;
       }
 
-      // Initialize user_onboarding record if new user
-      if (eventType === 'user.created') {
-        const { error: onboardingError } = await supabaseClient
-          .from('user_onboarding')
-          .insert({
-            user_id: id,
-            onboarding_completed: false,
-            agent_onboarding_completed: false,
-            call_center_onboarding_completed: false,
-          });
-
-        if (onboardingError && onboardingError.code !== '23505') { // Ignore duplicate key errors
-          console.error('Error creating onboarding record:', onboardingError);
-        }
-      }
-
       console.log(`Successfully synced user ${id}`);
-    }
-
-    if (eventType === 'user.deleted') {
-      const { id } = evt.data;
-      
-      // Delete user data (cascading deletes will handle related records)
-      const { error: deleteError } = await supabaseClient
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) {
-        console.error('Error deleting user:', deleteError);
-        throw deleteError;
-      }
-
-      console.log(`Successfully deleted user ${id}`);
     }
 
     return new Response(
