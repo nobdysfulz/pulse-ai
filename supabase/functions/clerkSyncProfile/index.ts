@@ -1,7 +1,6 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { createClerkClient } from 'https://esm.sh/@clerk/backend@1.15.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,32 +33,48 @@ serve(async (req) => {
 
     const token = authHeader.substring(7);
 
-    // Initialize Clerk client
-    const clerkClient = createClerkClient({ secretKey: CLERK_SECRET_KEY });
+    // Verify JWT token with Clerk's API
+    const clerkResponse = await fetch(`https://api.clerk.com/v1/sessions/${token}/tokens/${token}`, {
+      headers: {
+        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+      },
+    });
 
-    // Verify token and get user ID
-    let userId: string;
-    try {
-      const verifiedToken = await clerkClient.verifyToken(token, {
-        secretKey: CLERK_SECRET_KEY,
-      });
-      userId = verifiedToken.sub;
-    } catch (error) {
-      console.error('[clerkSyncProfile] Token verification failed:', error);
+    if (!clerkResponse.ok) {
+      console.error('[clerkSyncProfile] Token verification failed');
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch user details from Clerk
-    const clerkUser = await clerkClient.users.getUser(userId);
-    
-    const email = clerkUser.emailAddresses.find(
-      (e) => e.id === clerkUser.primaryEmailAddressId
-    )?.emailAddress;
+    // Decode JWT to get user ID (JWT format: header.payload.signature)
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT format');
+    }
 
-    const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
+    const payload = JSON.parse(atob(parts[1]));
+    const userId = payload.sub;
+    
+    // Fetch user details from Clerk API
+    const userResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user from Clerk');
+    }
+
+    const clerkUser = await userResponse.json();
+    
+    const email = clerkUser.email_addresses?.find(
+      (e: any) => e.id === clerkUser.primary_email_address_id
+    )?.email_address;
+
+    const fullName = `${clerkUser.first_name || ''} ${clerkUser.last_name || ''}`.trim() || null;
 
     console.log('[clerkSyncProfile] Syncing user:', {
       userId,
@@ -78,7 +93,7 @@ serve(async (req) => {
           id: userId,
           email,
           full_name: fullName,
-          avatar_url: clerkUser.imageUrl,
+          avatar_url: clerkUser.image_url,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'id' }
