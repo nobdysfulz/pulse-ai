@@ -4,8 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
-import { UserMarketConfig, UserOnboarding } from '@/api/entities';
+import { UserMarketConfig, UserOnboarding, Profile } from '@/api/entities';
 import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 
@@ -85,7 +84,7 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
         city: formData.city
       };
 
-      const existingMarket = await UserMarketConfig.filter({ userId: user.id });
+      const existingMarket = await UserMarketConfig.filter({ userId: clerkUser.id });
       if (existingMarket.length > 0) {
         await UserMarketConfig.update(existingMarket[0].id, marketData);
       } else {
@@ -93,12 +92,9 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
       }
 
       // Update profile with experience level
-      await supabase
-        .from('profiles')
-        .update({ 
-          years_experience: getYearsFromExperience(formData.experienceLevel)
-        })
-        .eq('id', user.id);
+      await Profile.update(clerkUser.id, { 
+        years_experience: getYearsFromExperience(formData.experienceLevel)
+      });
 
       // Progress is tracked via completed_steps in TierAwareOnboarding
       await onNext(formData);

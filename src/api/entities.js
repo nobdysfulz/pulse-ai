@@ -321,6 +321,29 @@ const createStubEntity = (name) => ({
   }
 });
 
+// Profile entity for user profile management
+export const Profile = {
+  update: async (userId, updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('[Profile.update] Error:', error);
+      throw error;
+    }
+  }
+};
+
+// External Service Connections entity
+export const ExternalServiceConnection = createEntity('external_service_connections');
+
 const sanitizeString = (value) => {
   if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();

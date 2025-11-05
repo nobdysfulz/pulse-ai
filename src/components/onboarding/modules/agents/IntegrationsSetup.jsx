@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ExternalServiceConnection } from '@/api/entities';
 
 export default function IntegrationsSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
@@ -28,20 +29,17 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
     
     setLoading(true);
     try {
-      const { data: connections, error } = await supabase
-        .from('external_service_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('connection_status', 'connected');
-      
-      if (error) throw error;
+      const connections = await ExternalServiceConnection.filter({ 
+        userId: user.id,
+        connectionStatus: 'connected'
+      });
 
       const status = {
-        google: connections?.some(c => c.service_name === 'google_workspace') || false,
-        microsoft: connections?.some(c => c.service_name === 'microsoft_365') || false,
-        crm: connections?.some(c => c.service_name === 'lofty' || c.service_name === 'follow_up_boss') || false,
-        zoom: connections?.some(c => c.service_name === 'zoom') || false,
-        meta: connections?.some(c => c.service_name === 'facebook' || c.service_name === 'instagram') || false
+        google: connections?.some(c => c.serviceName === 'google_workspace') || false,
+        microsoft: connections?.some(c => c.serviceName === 'microsoft_365') || false,
+        crm: connections?.some(c => c.serviceName === 'lofty' || c.serviceName === 'follow_up_boss') || false,
+        zoom: connections?.some(c => c.serviceName === 'zoom') || false,
+        meta: connections?.some(c => c.serviceName === 'facebook' || c.serviceName === 'instagram') || false
       };
 
       setConnected(status);

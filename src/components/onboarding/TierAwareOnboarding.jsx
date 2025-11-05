@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@clerk/clerk-react';
+import { UserOnboarding } from '@/api/entities';
 import OnboardingSidebar from './OnboardingSidebar';
 import {
   buildActiveModules,
@@ -99,16 +100,15 @@ class OnboardingErrorBoundary extends React.Component {
   }
 }
 
-// Helper to interact with user_onboarding table
+// Helper to interact with user_onboarding table using entity API
 const getUserOnboarding = async (userId) => {
-  const { data, error } = await supabase
-    .from('user_onboarding')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  return data;
+  try {
+    const results = await UserOnboarding.filter({ userId });
+    return results.length > 0 ? results[0] : null;
+  } catch (error) {
+    console.error('[getUserOnboarding] Error:', error);
+    return null;
+  }
 };
 
 function TierAwareOnboarding({ initialPhase = 'core' }) {

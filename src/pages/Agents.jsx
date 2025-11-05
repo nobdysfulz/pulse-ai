@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { UserContext } from '../components/context/UserContext';
-import { supabase } from '@/integrations/supabase/client';
+import { UserOnboarding } from '@/api/entities';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CalendarPlus, Phone, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -46,14 +46,9 @@ export default function AgentsPage() {
     const checkOnboarding = async () => {
       if (user) {
         try {
-          const { data: onboardingRecords, error } = await supabase
-            .from('user_onboarding')
-            .select('*')
-            .eq('user_id', user.id);
+          const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
 
-          if (error) throw error;
-
-          if (!onboardingRecords || onboardingRecords.length === 0 || !onboardingRecords[0].agent_onboarding_completed) {
+          if (!onboardingRecords || onboardingRecords.length === 0 || !onboardingRecords[0].agentOnboardingCompleted) {
             setShowOnboarding(true);
           }
         } catch (error) {
