@@ -154,7 +154,11 @@ const createEntity = (tableName) => ({
 
   filter: async (filters = {}, orderBy = '-created_at', token = null) => {
     try {
+      console.log('🔐 Entity.filter - Input token provided:', !!token);
       const authToken = await getClerkToken(token);
+      console.log('🔐 Entity.filter - Using authToken:', !!authToken, 'Length:', authToken?.length);
+      console.log('🔐 Entity.filter - Token preview:', authToken?.substring(0, 50) + '...');
+      
       const normalizedFilters = normalizeFilters(tableName, filters);
       const normalizedOrder = normalizeOrder(orderBy);
       const isDescending = normalizedOrder.startsWith('-');

@@ -148,6 +148,41 @@ function TierAwareOnboarding({ initialPhase = "core" }) {
     }
   }, [activeModules, user?.id]);
 
+  // Temporary test to verify token works with edge function
+  useEffect(() => {
+    const testEdgeFunctionDirectly = async () => {
+      try {
+        const token = await getToken();
+        console.log('🔐 DIRECT TEST - Token:', token?.substring(0, 50) + '...');
+        
+        const response = await fetch(
+          'https://gzdzmqpkbgvkuulykjml.supabase.co/functions/v1/entityOperations',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              operation: 'list',
+              entity: 'user_onboarding',
+              filters: {}
+            })
+          }
+        );
+        
+        console.log('🔐 DIRECT TEST - Response status:', response.status);
+        const responseText = await response.text();
+        console.log('🔐 DIRECT TEST - Response body:', responseText);
+      } catch (error) {
+        console.error('🔐 DIRECT TEST - Error:', error);
+      }
+    };
+    
+    // Run test after component loads
+    setTimeout(testEdgeFunctionDirectly, 2000);
+  }, []);
+
   // Add this inside the loadOnboardingProgress function, right after token retrieval
   const loadOnboardingProgress = async () => {
     setLoading(true);
