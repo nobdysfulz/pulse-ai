@@ -1,5 +1,8 @@
 project_id = "pdbggzsmgcrguhscynnk"
 
+[functions.clerkWebhook]
+verify_jwt = false
+
 [functions.executive_assistantChat]
 verify_jwt = true
 

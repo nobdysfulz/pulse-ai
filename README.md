@@ -108,6 +108,27 @@ Deploy updated functions with:
 supabase functions deploy <function-name>
 ```
 
+### Clerk → Supabase synchronization checklist
+
+Use the following steps to connect Clerk authentication with the `pdbggzsmgcrguhscynnk` Supabase project and keep Lovable in sync:
+
+1. **Confirm environment variables** – ensure your Lovable environment (local `.env`, Vercel, etc.) includes:
+   - `VITE_SUPABASE_URL=https://pdbggzsmgcrguhscynnk.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY=<anon-key from the project>`
+   - `VITE_SUPABASE_PROJECT_ID=pdbggzsmgcrguhscynnk`
+2. **Store the Clerk signing secret** in Supabase so the webhook can verify inbound requests:
+   ```bash
+   supabase secrets set CLERK_WEBHOOK_SECRET=sk_live_or_test_value --project-ref pdbggzsmgcrguhscynnk
+   supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<service-role-key> --project-ref pdbggzsmgcrguhscynnk
+   ```
+3. **Deploy the edge function** that syncs Clerk users into Supabase:
+   ```bash
+   npm run deploy:clerk-webhook
+   ```
+   The script automatically targets the `pdbggzsmgcrguhscynnk` project unless you override `SUPABASE_PROJECT_REF`.
+4. **Register the webhook endpoint** in Clerk with the deployed function URL (e.g., `https://<supabase-project>.functions.supabase.co/clerkWebhook`).
+5. **Test the flow** – create a new user in Clerk and verify a matching record appears in the `profiles` table inside Supabase and that you can sign in to the Lovable app with those credentials.
+
 ## Available scripts
 The following npm scripts are defined in `package.json`:
 
@@ -118,6 +139,7 @@ The following npm scripts are defined in `package.json`:
 | `npm run build:dev` | Generate a development-mode build (useful for staging). |
 | `npm run preview` | Preview the production build locally. |
 | `npm run lint` | Run ESLint across the project. |
+| `npm run deploy:clerk-webhook` | Deploy the Clerk → Supabase synchronization edge function to the configured project. |
 
 ## Testing & quality checks
 The project currently ships with an ESLint configuration for static analysis. Run it before submitting a pull request:
