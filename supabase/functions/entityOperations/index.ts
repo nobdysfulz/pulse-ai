@@ -1,6 +1,7 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,14 +46,18 @@ serve(async (req) => {
 
     const token = authHeader.substring(7);
 
-    // Decode JWT to get user ID
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid JWT format');
+    // ✅ PROPERLY VALIDATE CLERK JWT
+    let userId: string;
+    try {
+      userId = await validateClerkTokenWithJose(token);
+      console.log(`[entityOperations] ✓ Validated user: ${userId}`);
+    } catch (error) {
+      console.error('[entityOperations] JWT validation failed:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired JWT token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
 
     // Parse request body
     const body = await req.json();
