@@ -450,14 +450,11 @@ export default function IntegrationsTab({ onUpdate, user }) {
         setLoftyApiKey('');
         toast.success("Lofty CRM connected successfully!");
 
-        const { data: connections } = await supabase
-          .from('crm_connections')
-          .select('*')
-          .eq('provider', 'lofty')
-          .eq('user_id', user.id);
-        
-        if (connections && connections.length > 0) {
-          setLoftyConnection(connections[0]);
+        // Fetch updated connection data via backend
+        const connectionsData = await ConnectionOperations.fetchUserConnections();
+        const loftyConns = connectionsData?.crm?.filter(c => c.provider === 'lofty') || [];
+        if (loftyConns.length > 0) {
+          setLoftyConnection(loftyConns[0]);
         }
 
         if (onUpdate) await onUpdate();
@@ -480,25 +477,19 @@ export default function IntegrationsTab({ onUpdate, user }) {
 
     setIsLoftyDisconnecting(true);
     try {
-      const { data: connections, error } = await supabase
-        .from('crm_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider', 'lofty');
-      
+      const { data, error } = await supabase.functions.invoke('disconnectService', {
+        body: { 
+          serviceName: 'lofty',
+          connectionType: 'crm'
+        }
+      });
+
       if (error) throw error;
 
-      if (connections && connections.length > 0) {
-        await supabase
-          .from('crm_connections')
-          .update({ connection_status: 'disconnected' })
-          .eq('id', connections[0].id);
-        
-        setIsLoftyConnected(false);
-        setLoftyConnection(null);
-        toast.success("Lofty CRM has been disconnected.");
-        if (onUpdate) await onUpdate();
-      }
+      setIsLoftyConnected(false);
+      setLoftyConnection(null);
+      toast.success(data?.message || "Lofty CRM has been disconnected.");
+      if (onUpdate) await onUpdate();
     } catch (e) {
       console.error("Disconnect Lofty error:", e);
       toast.error("Failed to disconnect Lofty CRM.");
@@ -533,14 +524,11 @@ export default function IntegrationsTab({ onUpdate, user }) {
         setFubApiKey('');
         toast.success("Follow Up Boss connected successfully!");
 
-        const { data: connections } = await supabase
-          .from('crm_connections')
-          .select('*')
-          .eq('provider', 'follow_up_boss')
-          .eq('user_id', user.id);
-
-        if (connections && connections.length > 0) {
-          setFubConnection(connections[0]);
+        // Fetch updated connection data via backend
+        const connectionsData = await ConnectionOperations.fetchUserConnections();
+        const fubConns = connectionsData?.crm?.filter(c => c.provider === 'follow_up_boss') || [];
+        if (fubConns.length > 0) {
+          setFubConnection(fubConns[0]);
         }
 
         if (onUpdate) await onUpdate();

@@ -37,7 +37,7 @@ serve(async (req) => {
     const payload = JSON.parse(atob(parts[1]));
     const userId = payload.sub;
 
-    const { serviceName } = await req.json();
+    const { serviceName, connectionType } = await req.json();
 
     if (!serviceName) {
       return new Response(
@@ -46,11 +46,52 @@ serve(async (req) => {
       );
     }
 
-    console.log('[disconnectService] Disconnecting service:', serviceName, 'for user:', userId);
+    console.log('[disconnectService] Disconnecting service:', serviceName, 'for user:', userId, 'type:', connectionType);
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Find the connection
+    // Handle CRM connections
+    if (connectionType === 'crm') {
+      const { data: connections, error: fetchError } = await supabase
+        .from('crm_connections')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('provider', serviceName);
+
+      if (fetchError) {
+        console.error('[disconnectService] CRM fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      if (!connections || connections.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'CRM connection not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from('crm_connections')
+        .update({ connection_status: 'disconnected', updated_at: new Date().toISOString() })
+        .eq('id', connections[0].id);
+
+      if (updateError) {
+        console.error('[disconnectService] CRM update error:', updateError);
+        throw updateError;
+      }
+
+      console.log('[disconnectService] ✓ CRM service disconnected successfully');
+
+      return new Response(
+        JSON.stringify({ success: true, message: `${serviceName} CRM disconnected successfully` }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+    // Handle external service connections (default)
     const { data: connections, error: fetchError } = await supabase
       .from('external_service_connections')
       .select('*')
