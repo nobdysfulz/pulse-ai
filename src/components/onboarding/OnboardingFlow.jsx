@@ -2,6 +2,7 @@
 import React, { useState, useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { UserOnboarding, UserMarketConfig, UserPreferences } from '@/api/entities';
+import { useAuth } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ const createPageUrl = (pageName) => {
 
 export default function OnboardingFlow({ isOpen, onComplete }) {
   const { user, refreshUserData } = useContext(UserContext);
+  const { getToken } = useAuth();
   const navigate = useNavigate(); // Initialize useNavigate hook
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -63,13 +65,16 @@ export default function OnboardingFlow({ isOpen, onComplete }) {
             userId={user?.id} // Pass userId to the MarketConfigForm
             onSaveComplete={async () => {
               try {
+                const token = await getToken();
+                if (!token) throw new Error('Failed to get authentication token');
+                
                 // Mark market setup as complete in UserOnboarding
-                const currentOnboardings = await UserOnboarding.filter({ userId: user.id });
+                const currentOnboardings = await UserOnboarding.filter({ userId: user.id }, '-created_at', token);
                 if (currentOnboardings.length > 0) {
                   await UserOnboarding.update(currentOnboardings[0].id, {
                     marketSetupCompleted: true,
                     marketCompletionDate: new Date().toISOString()
-                  });
+                  }, token);
                 } else {
                   // If no onboarding record exists, create one with market info
                   await UserOnboarding.create({
@@ -77,7 +82,7 @@ export default function OnboardingFlow({ isOpen, onComplete }) {
                     marketSetupCompleted: true,
                     marketCompletionDate: new Date().toISOString(),
                     preferencesCompleted: false // Default for other steps
-                  });
+                  }, token);
                 }
                 toast.success('Market setup complete!');
                 await refreshUserData(); // Refresh user context to get updated onboarding status
@@ -188,26 +193,29 @@ export default function OnboardingFlow({ isOpen, onComplete }) {
   const handleComplete = async () => {
     setSaving(true);
     try {
+      const token = await getToken();
+      if (!token) throw new Error('Failed to get authentication token');
+      
       // Market config saving and its completion status are handled by MarketConfigForm
       // This `handleComplete` is primarily for the final 'preferences' step and overall flow completion.
 
       // Save preferences
-      const preferences = await UserPreferences.filter({ userId: user.id });
+      const preferences = await UserPreferences.filter({ userId: user.id }, '-created_at', token);
       if (preferences.length > 0) {
         await UserPreferences.update(preferences[0].id, {
           coachingStyle: formData.coachingStyle,
           activityMode: formData.activityMode
-        });
+        }, token);
       } else {
         await UserPreferences.create({
           userId: user.id,
           coachingStyle: formData.coachingStyle,
           activityMode: formData.activityMode
-        });
+        }, token);
       }
 
       // Update onboarding status for preferences completion AND overall onboarding completion
-      const onboardings = await UserOnboarding.filter({ userId: user.id });
+      const onboardings = await UserOnboarding.filter({ userId: user.id }, '-created_at', token);
       if (onboardings.length > 0) {
         await UserOnboarding.update(onboardings[0].id, {
           preferencesCompleted: true,
@@ -215,7 +223,7 @@ export default function OnboardingFlow({ isOpen, onComplete }) {
           onboardingCompleted: true, // Mark overall onboarding as completed
           onboardingCompletionDate: new Date().toISOString() // Set overall completion date
           // marketSetupCompleted and marketCompletionDate should already be set by MarketConfigForm's onSaveComplete
-        });
+        }, token);
       } else {
         // Fallback: If no onboarding record exists by this point, create one with preferences completed
         await UserOnboarding.create({
@@ -225,7 +233,7 @@ export default function OnboardingFlow({ isOpen, onComplete }) {
           onboardingCompleted: true, // Mark overall onboarding as completed
           onboardingCompletionDate: new Date().toISOString(), // Set overall completion date
           marketSetupCompleted: false // Default to false, as MarketConfigForm would handle this
-        });
+        }, token);
       }
 
       toast.success('Onboarding completed!'); // Changed toast message

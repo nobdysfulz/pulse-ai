@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { UserMarketConfig, UserOnboarding, Profile } from '@/api/entities';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 
 const US_STATES = [
@@ -43,6 +43,7 @@ const DATABASE_SIZES = [
 
 export default function MarketBusinessSetup({ data, onNext, allData }) {
   const { user: clerkUser } = useUser();
+  const { getToken } = useAuth();
   const [formData, setFormData] = useState({
     // Market Config
     primaryTerritory: '',
@@ -75,6 +76,9 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
     setSaving(true);
     try {
       if (!clerkUser?.id) throw new Error('No user found');
+      
+      const token = await getToken();
+      if (!token) throw new Error('Failed to get authentication token');
 
       // Save Market Config
       const marketData = {
@@ -84,17 +88,21 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
         city: formData.city
       };
 
-      const existingMarket = await UserMarketConfig.filter({ userId: clerkUser.id });
+      const existingMarket = await UserMarketConfig.filter({ userId: clerkUser.id }, '-created_at', token);
       if (existingMarket.length > 0) {
-        await UserMarketConfig.update(existingMarket[0].id, marketData);
+        await UserMarketConfig.update(existingMarket[0].id, marketData, token);
       } else {
-        await UserMarketConfig.create(marketData);
+        await UserMarketConfig.create(marketData, token);
       }
 
-      // Update profile with experience level
-      await Profile.update(clerkUser.id, { 
+      // Update profile with experience level using entity update
+      const profileData = {
         years_experience: getYearsFromExperience(formData.experienceLevel)
-      });
+      };
+      const existingProfile = await Profile.filter({ id: clerkUser.id }, '-created_at', token);
+      if (existingProfile.length > 0) {
+        await Profile.update(clerkUser.id, profileData, token);
+      }
 
       // Progress is tracked via completed_steps in TierAwareOnboarding
       await onNext(formData);

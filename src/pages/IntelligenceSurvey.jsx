@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { AgentIntelligenceProfile, UserOnboarding } from '@/api/entities';
+import { useAuth } from '@clerk/clerk-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -51,6 +52,7 @@ const sections = [...new Set(questions.map(q => q.section))];
 
 export default function IntelligenceSurveyPage() {
   const { user, refreshUserData } = useContext(UserContext);
+  const { getToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -82,6 +84,9 @@ export default function IntelligenceSurveyPage() {
 
     setSubmitting(true);
     try {
+      const token = await getToken();
+      if (!token) throw new Error('Failed to get authentication token');
+      
       const profileData = {
         user_id: user.id,
         experience_level: answers.experience_level,
@@ -100,32 +105,32 @@ export default function IntelligenceSurveyPage() {
       };
 
       // Check if profile already exists
-      const existingProfiles = await AgentIntelligenceProfile.filter({ userId: user.id });
+      const existingProfiles = await AgentIntelligenceProfile.filter({ userId: user.id }, '-created_at', token);
       
       if (existingProfiles && existingProfiles.length > 0) {
         // Update existing profile
-        await AgentIntelligenceProfile.update(existingProfiles[0].id, profileData);
+        await AgentIntelligenceProfile.update(existingProfiles[0].id, profileData, token);
       } else {
         // Create new profile
-        await AgentIntelligenceProfile.create(profileData);
+        await AgentIntelligenceProfile.create(profileData, token);
       }
 
       // Update onboarding status
-      const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
+      const onboardingRecords = await UserOnboarding.filter({ userId: user.id }, '-created_at', token);
       
       if (onboardingRecords && onboardingRecords.length > 0) {
         await UserOnboarding.update(onboardingRecords[0].id, {
           agentIntelligenceCompleted: true,
           agentIntelligenceCompletionDate: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        });
+        }, token);
       } else {
         // Create onboarding record if it doesn't exist
         await UserOnboarding.create({
           userId: user.id,
           agentIntelligenceCompleted: true,
           agentIntelligenceCompletionDate: new Date().toISOString()
-        });
+        }, token);
       }
 
       await refreshUserData();
@@ -133,7 +138,7 @@ export default function IntelligenceSurveyPage() {
       
       // Check if user should continue with agent onboarding or go to dashboard
       const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
-      const onboardingRecordsCheck = await UserOnboarding.filter({ userId: user.id });
+      const onboardingRecordsCheck = await UserOnboarding.filter({ userId: user.id }, '-created_at', token);
       const onboardingData = onboardingRecordsCheck && onboardingRecordsCheck.length > 0 ? onboardingRecordsCheck[0] : null;
       
       if (isSubscriber && !onboardingData?.agentOnboardingCompleted) {

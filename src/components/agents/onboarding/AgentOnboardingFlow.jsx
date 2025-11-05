@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { UserGuidelines, UserOnboarding } from '@/api/entities';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/clerk-react';
 import OnboardingWelcome from './OnboardingWelcome';
 import EmailCategoriesStep from './EmailCategoriesStep';
 import EmailStyleStep from './EmailStyleStep';
@@ -13,6 +14,7 @@ import TransactionPartiesStep from './TransactionPartiesStep';
 
 export default function AgentOnboardingFlow({ onComplete }) {
   const { user } = useContext(UserContext);
+  const { getToken } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [guidelines, setGuidelines] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -33,6 +35,9 @@ export default function AgentOnboardingFlow({ onComplete }) {
   const completeOnboarding = async () => {
     setSaving(true);
     try {
+      const token = await getToken();
+      if (!token) throw new Error('Failed to get authentication token');
+      
       for (const guideline of guidelines) {
         await UserGuidelines.create({
           userId: user.id,
@@ -40,23 +45,23 @@ export default function AgentOnboardingFlow({ onComplete }) {
           guidelineCategory: guideline.guidelineCategory,
           guidelineText: guideline.guidelineText,
           guidelineType: guideline.guidelineType
-        });
+        }, token);
       }
 
-      const existingOnboarding = await UserOnboarding.filter({ userId: user.id });
+      const existingOnboarding = await UserOnboarding.filter({ userId: user.id }, '-created_at', token);
       if (existingOnboarding.length > 0) {
         await UserOnboarding.update(existingOnboarding[0].id, {
           completedSteps: steps.map(s => s.title),
           agentOnboardingCompleted: true,
           onboardingCompletionDate: new Date().toISOString()
-        });
+        }, token);
       } else {
         await UserOnboarding.create({
           userId: user.id,
           completedSteps: steps.map(s => s.title),
           agentOnboardingCompleted: true,
           onboardingCompletionDate: new Date().toISOString()
-        });
+        }, token);
       }
 
       toast.success("AI Agents setup complete!");

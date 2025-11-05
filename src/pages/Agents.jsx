@@ -46,6 +46,7 @@ export default function AgentsPage() {
     const checkOnboarding = async () => {
       if (user) {
         try {
+          // Note: This doesn't need token as it's used for UI flow control only
           const onboardingRecords = await UserOnboarding.filter({ userId: user.id });
 
           if (!onboardingRecords || onboardingRecords.length === 0 || !onboardingRecords[0].agentOnboardingCompleted) {

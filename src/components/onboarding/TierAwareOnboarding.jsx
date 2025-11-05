@@ -101,9 +101,9 @@ class OnboardingErrorBoundary extends React.Component {
 }
 
 // Helper to interact with user_onboarding table using entity API
-const getUserOnboarding = async (userId) => {
+const getUserOnboarding = async (userId, token) => {
   try {
-    const results = await UserOnboarding.filter({ userId });
+    const results = await UserOnboarding.filter({ userId }, '-created_at', token);
     return results.length > 0 ? results[0] : null;
   } catch (error) {
     console.error('[getUserOnboarding] Error:', error);
@@ -163,7 +163,8 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       let progress = onboardingContext;
 
       try {
-        const onboardingData = await getUserOnboarding(user.id);
+        const token = await getToken();
+        const onboardingData = await getUserOnboarding(user.id, token);
         if (onboardingData) {
           progress = normalizeOnboardingProgress(onboardingData);
         }
@@ -272,7 +273,8 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         // Logic for module transitions
         if (currentPhase === 'core') {
           // Core complete - redirect to Intelligence Survey if not completed
-          const onboardingData = await getUserOnboarding(user.id);
+          const token = await getToken();
+          const onboardingData = await getUserOnboarding(user.id, token);
           const normalizedData = normalizeOnboardingProgress(onboardingData);
           
           if (!normalizedData?.agentIntelligenceCompleted) {

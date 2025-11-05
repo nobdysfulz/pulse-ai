@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { X, AlertCircle } from 'lucide-react';
 import { UserOnboarding } from '@/api/entities';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function AgentDisclosureModal({ isOpen, onAccept, onDecline, userId }) {
+  const { getToken } = useAuth();
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -19,12 +21,15 @@ export default function AgentDisclosureModal({ isOpen, onAccept, onDecline, user
 
     setSaving(true);
     try {
-      const onboardings = await UserOnboarding.filter({ userId });
+      const token = await getToken();
+      if (!token) throw new Error('Failed to get authentication token');
+      
+      const onboardings = await UserOnboarding.filter({ userId }, '-created_at', token);
       if (onboardings.length > 0) {
         await UserOnboarding.update(onboardings[0].id, {
           disclosureAccepted: true,
           disclosureAcceptanceTimestamp: new Date().toISOString()
-        });
+        }, token);
       }
       onAccept();
     } catch (error) {

@@ -5,9 +5,11 @@ import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ExternalServiceConnection } from '@/api/entities';
+import { useAuth } from '@clerk/clerk-react';
 
 export default function IntegrationsSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(null);
   const [connected, setConnected] = useState({
@@ -29,10 +31,11 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
     
     setLoading(true);
     try {
+      const token = await getToken();
       const connections = await ExternalServiceConnection.filter({ 
         userId: user.id,
         connectionStatus: 'connected'
-      });
+      }, '-created_at', token);
 
       const status = {
         google: connections?.some(c => c.serviceName === 'google_workspace') || false,
@@ -55,51 +58,76 @@ export default function IntegrationsSetup({ data, onNext, onBack }) {
     setConnecting(service);
     
     try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+      
       let response;
       
       switch (service) {
         case 'google':
           response = await supabase.functions.invoke('initiateGoogleWorkspaceOAuth', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
             body: {
               redirectPath: '/onboarding'
             }
           });
-          if (response.data.authUrl) {
+          if (response.data?.authUrl) {
             window.location.href = response.data.authUrl;
+          } else {
+            throw new Error('No authorization URL received');
           }
           break;
           
         case 'microsoft':
           response = await supabase.functions.invoke('initiateMicrosoftOAuth', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
             body: {
               redirectPath: '/onboarding'
             }
           });
-          if (response.data.authUrl) {
+          if (response.data?.authUrl) {
             window.location.href = response.data.authUrl;
+          } else {
+            throw new Error('No authorization URL received');
           }
           break;
           
         case 'zoom':
           response = await supabase.functions.invoke('initiateZoomOAuth', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
             body: {
               redirectPath: '/onboarding'
             }
           });
-          if (response.data.authUrl) {
+          if (response.data?.authUrl) {
             window.location.href = response.data.authUrl;
+          } else {
+            throw new Error('No authorization URL received');
           }
           break;
           
         case 'meta':
           response = await supabase.functions.invoke('initiateMetaOAuth', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
             body: {
               redirectPath: '/onboarding',
               service: 'facebook' // Default to Facebook, can be changed to Instagram
             }
           });
-          if (response.data.authUrl) {
+          if (response.data?.authUrl) {
             window.location.href = response.data.authUrl;
+          } else {
+            throw new Error('No authorization URL received');
           }
           break;
           
