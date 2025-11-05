@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { DailyAction, TaskTemplate } from '@/api/entities';
 
 /**
  * Helper function to sync CRM tasks into PULSE Daily Actions

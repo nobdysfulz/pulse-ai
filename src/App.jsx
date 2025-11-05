@@ -3,6 +3,7 @@ import ClerkSupabaseSync from '@/components/context/ClerkSupabaseSync'
 import { Toaster } from "@/components/ui/toaster"
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import React from 'react'
+import AppErrorBoundary from '@/components/ui/AppErrorBoundary'
 
 // Import pages directly
 const Login = React.lazy(() => import('./pages/Login'))
@@ -43,7 +44,8 @@ import ErrorBoundary from './components/ui/ErrorBoundary'
 
 function App() {
   return (
-    <BrowserRouter>
+    <AppErrorBoundary>
+      <BrowserRouter>
       <React.Suspense fallback={
         <div className="flex items-center justify-center min-h-screen bg-background">
           <div className="text-text-body">Loading...</div>
@@ -257,6 +259,7 @@ function App() {
       </React.Suspense>
       <Toaster />
     </BrowserRouter>
+    </AppErrorBoundary>
   )
 }
 

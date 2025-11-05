@@ -2,14 +2,24 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@clerk/clerk-react';
 
-// Helper to get Clerk token
-const getClerkToken = async () => {
-  // We'll use this in the context where useAuth is available
-  // For now, we'll use a global reference that will be set by UserProvider
-  if (window.__clerkGetToken) {
-    return await window.__clerkGetToken();
+// Helper to get Clerk token with optional token parameter
+const getClerkToken = async (providedToken) => {
+  // If token is provided directly, use it
+  if (providedToken) {
+    return providedToken;
   }
-  throw new Error('Clerk token not available. Make sure UserProvider is initialized.');
+  
+  // Otherwise try to get from global reference (fallback for legacy code)
+  if (window.__clerkGetToken) {
+    try {
+      return await window.__clerkGetToken();
+    } catch (error) {
+      console.error('[getClerkToken] Error from window.__clerkGetToken:', error);
+      throw new Error('Failed to retrieve authentication token. Please log in again.');
+    }
+  }
+  
+  throw new Error('No authentication token available. Please pass token to entity methods or ensure UserProvider is initialized.');
 };
 
 // Helper to convert camelCase to snake_case
@@ -113,9 +123,9 @@ const addResponseAliases = (tableName, obj) => {
 
 // Create real entity helpers that connect to backend functions
 const createEntity = (tableName) => ({
-  list: async (orderBy = '-created_at') => {
+  list: async (orderBy = '-created_at', token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
       const normalizedOrder = normalizeOrder(orderBy);
       const isDescending = normalizedOrder.startsWith('-');
       const column = normalizedOrder.replace('-', '');
@@ -130,7 +140,7 @@ const createEntity = (tableName) => ({
           },
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -142,9 +152,9 @@ const createEntity = (tableName) => ({
     }
   },
 
-  filter: async (filters = {}, orderBy = '-created_at') => {
+  filter: async (filters = {}, orderBy = '-created_at', token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
       const normalizedFilters = normalizeFilters(tableName, filters);
       const normalizedOrder = normalizeOrder(orderBy);
       const isDescending = normalizedOrder.startsWith('-');
@@ -161,7 +171,7 @@ const createEntity = (tableName) => ({
           },
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -173,9 +183,9 @@ const createEntity = (tableName) => ({
     }
   },
 
-  get: async (id) => {
+  get: async (id, token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {
@@ -184,7 +194,7 @@ const createEntity = (tableName) => ({
           id,
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -196,9 +206,9 @@ const createEntity = (tableName) => ({
     }
   },
 
-  create: async (payload) => {
+  create: async (payload, token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
 
       // Handle agent_voices special case: store extra fields in voice_settings
       let finalPayload = { ...payload };
@@ -222,7 +232,7 @@ const createEntity = (tableName) => ({
           data: snakePayload,
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -234,9 +244,9 @@ const createEntity = (tableName) => ({
     }
   },
 
-  update: async (id, payload) => {
+  update: async (id, payload, token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
 
       // Handle agent_voices special case
       let finalPayload = { ...payload };
@@ -261,7 +271,7 @@ const createEntity = (tableName) => ({
           data: snakePayload,
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -273,9 +283,9 @@ const createEntity = (tableName) => ({
     }
   },
 
-  delete: async (id) => {
+  delete: async (id, token = null) => {
     try {
-      const token = await getClerkToken();
+      const authToken = await getClerkToken(token);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {
@@ -284,7 +294,7 @@ const createEntity = (tableName) => ({
           id,
         },
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
@@ -755,5 +765,10 @@ export const ConnectionOperations = {
       console.error('[ConnectionOperations.fetchAll] Error:', error);
       throw error;
     }
+  },
+  
+  // Alias for compatibility
+  fetchUserConnections: async () => {
+    return ConnectionOperations.fetchAll();
   },
 };
