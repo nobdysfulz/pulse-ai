@@ -573,7 +573,6 @@ export const EmailTemplate = createEntity('email_templates');
 export const EmailCampaign = createEntity('email_campaigns');
 export const FeatureFlag = createEntity('feature_flags');
 export const AiAgentConversation = createEntity('ai_agent_conversations');
-export const ExternalServiceConnection = createEntity('external_service_connections');
 export const AgentIntelligenceProfile = createEntity('agent_intelligence_profiles');
 export const AiActionsLog = createEntity('ai_actions_log');
 
