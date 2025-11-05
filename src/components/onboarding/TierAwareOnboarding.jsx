@@ -34,6 +34,43 @@ import CallerIdentitySetup from './modules/callcenter/CallerIdentitySetup';
 import GoogleWorkspaceSetup from './modules/callcenter/GoogleWorkspaceSetup';
 import CallCenterConfirmation from './modules/callcenter/CallCenterConfirmation';
 
+// Add this right after the imports
+console.log('🔐 DEBUG - TierAwareOnboarding component loaded');
+
+// Add this inside the loadOnboardingProgress function, right after token retrieval
+const loadOnboardingProgress = async () => {
+  setLoading(true);
+  try {
+    if (!user?.id) {
+      console.error('No user ID available');
+      setLoading(false);
+      return;
+    }
+
+    let progress = onboardingContext;
+
+    try {
+      console.log('🔐 STEP 1: Getting token...');
+      const token = await getToken();
+      console.log('🔐 STEP 2: Token retrieved:', !!token, 'Length:', token?.length);
+      console.log('🔐 STEP 3: Token preview:', token?.substring(0, 50) + '...');
+      
+      console.log('🔐 STEP 4: Calling getUserOnboarding...');
+      const onboardingData = await getUserOnboarding(user.id, token);
+      console.log('🔐 STEP 5: getUserOnboarding result:', onboardingData);
+      
+      if (onboardingData) {
+        progress = normalizeOnboardingProgress(onboardingData);
+        console.log('🔐 STEP 6: Normalized progress:', progress);
+      } else {
+        console.log('🔐 STEP 6: No onboarding data found');
+      }
+    } catch (error) {
+      console.error('🔐 STEP 7: Error fetching onboarding:', error);
+      // ... rest of error handling
+    }
+    // ... rest of function
+    
 const MODULES = {
   core: {
     title: 'Core Setup',
