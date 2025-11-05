@@ -50,9 +50,8 @@ function App() {
         </div>
       }>
         <Routes>
-          {/* Public routes - NO ClerkSupabaseSync */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login/*" element={<Login />} />
+          <Route path="/signup/*" element={<Signup />} />
           
           {/* OAuth callback routes */}
           <Route path="/auth/callback/facebook" element={<FacebookAuthConfirmation />} />
