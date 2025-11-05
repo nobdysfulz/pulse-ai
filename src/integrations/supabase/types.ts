@@ -288,15 +288,7 @@ export type Database = {
           tool_result?: Json | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_tool_usage_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       brand_color_palettes: {
         Row: {
@@ -1247,7 +1239,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          brokerage_name: string | null
+          brokerage: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
@@ -1255,13 +1247,12 @@ export type Database = {
           license_number: string | null
           license_state: string | null
           phone: string | null
-          specialization: string | null
+          role: string | null
           updated_at: string | null
-          years_experience: number | null
         }
         Insert: {
           avatar_url?: string | null
-          brokerage_name?: string | null
+          brokerage?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -1269,13 +1260,12 @@ export type Database = {
           license_number?: string | null
           license_state?: string | null
           phone?: string | null
-          specialization?: string | null
+          role?: string | null
           updated_at?: string | null
-          years_experience?: number | null
         }
         Update: {
           avatar_url?: string | null
-          brokerage_name?: string | null
+          brokerage?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -1283,9 +1273,8 @@ export type Database = {
           license_number?: string | null
           license_state?: string | null
           phone?: string | null
-          specialization?: string | null
+          role?: string | null
           updated_at?: string | null
-          years_experience?: number | null
         }
         Relationships: []
       }
@@ -1776,15 +1765,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_guidelines_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_knowledge: {
         Row: {
@@ -1824,47 +1805,33 @@ export type Database = {
       }
       user_onboarding: {
         Row: {
-          agent_intelligence_completed: boolean | null
-          agent_intelligence_completion_date: string | null
           agent_onboarding_completed: boolean | null
-          completed_steps: string[] | null
+          call_center_onboarding_completed: boolean | null
           created_at: string | null
           id: string
-          onboarding_completion_date: string | null
+          onboarding_completed: boolean | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          agent_intelligence_completed?: boolean | null
-          agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
-          completed_steps?: string[] | null
+          call_center_onboarding_completed?: boolean | null
           created_at?: string | null
           id?: string
-          onboarding_completion_date?: string | null
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          agent_intelligence_completed?: boolean | null
-          agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
-          completed_steps?: string[] | null
+          call_center_onboarding_completed?: boolean | null
           created_at?: string | null
           id?: string
-          onboarding_completion_date?: string | null
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_onboarding_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_preferences: {
         Row: {
@@ -1948,15 +1915,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
