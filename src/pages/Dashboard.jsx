@@ -332,13 +332,12 @@ export default function DashboardPage() {
 
   const handleCreateAction = async (formData) => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) throw new Error('Not authenticated');
+      if (!user?.id) throw new Error('Not authenticated');
 
       const { error } = await supabase
         .from('daily_actions')
         .insert({
-          user_id: authUser.id,
+          user_id: user.id,
           title: formData.title,
           description: formData.description || '',
           category: formData.category,

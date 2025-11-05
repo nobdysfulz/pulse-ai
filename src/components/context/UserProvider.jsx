@@ -37,18 +37,37 @@ export default function UserProvider({ children }) {
                 .from('profiles')
                 .select('*')
                 .eq('id', clerkUser.id)
-                .single();
+                .maybeSingle();
 
             if (profileError && profileError.code !== 'PGRST116') {
                 throw profileError;
             }
 
-            const userData = profileData || {
-                id: clerkUser.id,
-                email: clerkUser.primaryEmailAddress?.emailAddress,
-                full_name: clerkUser.fullName,
-                avatar_url: clerkUser.imageUrl,
-            };
+            // If no profile exists, create it
+            let userData = profileData;
+            if (!userData) {
+                console.log('[UserProvider] Profile not found, creating new profile...');
+                const newProfile = {
+                    id: clerkUser.id,
+                    email: clerkUser.primaryEmailAddress?.emailAddress,
+                    full_name: clerkUser.fullName,
+                    avatar_url: clerkUser.imageUrl,
+                };
+                
+                const { data: createdProfile, error: createError } = await supabase
+                    .from('profiles')
+                    .insert(newProfile)
+                    .select()
+                    .single();
+                
+                if (createError) {
+                    console.error('[UserProvider] Error creating profile:', createError);
+                    userData = newProfile; // Use local data if insert fails
+                } else {
+                    userData = createdProfile;
+                    console.log('[UserProvider] ✓ Profile created successfully');
+                }
+            }
 
             console.log('[UserProvider] User loaded:', userData.email);
             setUser(userData);
@@ -88,6 +107,17 @@ export default function UserProvider({ children }) {
             if (businessPlanResult.error) console.warn('[UserProvider] Business plan fetch error:', businessPlanResult.error);
             if (pulseHistoryResult.error) console.warn('[UserProvider] Pulse history fetch error:', pulseHistoryResult.error);
             if (pulseConfigResult.error) console.warn('[UserProvider] Pulse config fetch error:', pulseConfigResult.error);
+
+            // Create default onboarding record if missing
+            if (!onboardingResult.data) {
+                console.log('[UserProvider] Creating default onboarding record');
+                await supabase.from('user_onboarding').insert({
+                    user_id: userData.id,
+                    onboarding_completed: false,
+                    agent_onboarding_completed: false,
+                    call_center_onboarding_completed: false,
+                }).select().maybeSingle();
+            }
 
             // Build context with fetched data
             const agentContext = {

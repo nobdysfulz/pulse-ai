@@ -2,15 +2,16 @@ import React, { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { useClerk } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 
 export default function SecurityTab() {
     const { user, setSupportChatOpen } = useContext(UserContext);
+    const { signOut } = useClerk();
 
     const handleSignOut = async () => {
         try {
-            await supabase.auth.signOut();
+            await signOut();
             toast.success("You have been signed out.");
         } catch (error) {
             console.error("Sign out failed:", error);

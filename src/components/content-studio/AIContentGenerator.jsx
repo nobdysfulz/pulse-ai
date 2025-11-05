@@ -12,7 +12,7 @@ import { AiPromptConfig } from '@/api/entities';
 import ContentGeneratingIndicator from '../ui/ContentGeneratingIndicator';
 import { InlineLoadingIndicator } from '../ui/LoadingIndicator';
 
-export default function AIContentGenerator({ userCredits, isSubscriber, marketConfig, onContentGenerated, onCreditError, marketIntelligence, promptConfigs, preferences }) {
+export default function AIContentGenerator({ userCredits, isSubscriber, marketConfig, onContentGenerated, onCreditError, marketIntelligence, promptConfigs, preferences, currentUser }) {
   const [contentType, setContentType] = useState('social_post');
   const [platform, setPlatform] = useState('instagram');
   const [topic, setTopic] = useState('');
@@ -93,8 +93,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
       // Deduct credits immediately before generation
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        if (!currentUser?.id) throw new Error('Not authenticated');
 
         const { data: creditData, error: creditError } = await supabase
           .from('user_credits')
@@ -102,7 +101,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
             credits_remaining: userCredits.creditsRemaining - currentCredits,
             updated_at: new Date().toISOString()
           })
-          .eq('user_id', user.id)
+          .eq('user_id', currentUser.id)
           .select()
           .single();
 
@@ -110,7 +109,7 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
 
         // Log the transaction
         await supabase.from('credit_transactions').insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           amount: -currentCredits,
           transaction_type: 'deduction',
           description: `Generated ${contentType} content`,

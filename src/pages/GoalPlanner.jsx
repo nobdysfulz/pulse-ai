@@ -64,8 +64,7 @@ export default function GoalPlanner() {
         setLoading(true);
         try {
             // Fetch the most recent business plan for the current user
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (!authUser) {
+            if (!user?.id) {
                 setActivePlan(null);
                 return;
             }
@@ -73,7 +72,7 @@ export default function GoalPlanner() {
             const { data: plans, error } = await supabase
                 .from('business_plans')
                 .select('*')
-                .eq('user_id', authUser.id)
+                .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(1);
 

@@ -330,10 +330,11 @@ const buildUserObject = (session, profile, roles = []) => {
   };
 };
 
+// Note: This function is deprecated - we now use Clerk for authentication
+// Keeping for backward compatibility with legacy code
 const getActiveSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  return data.session;
+  console.warn('[entities] getActiveSession() is deprecated - use Clerk instead');
+  return null;
 };
 
 const loadProfile = async (userId) => {

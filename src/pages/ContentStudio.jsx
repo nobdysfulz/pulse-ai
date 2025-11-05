@@ -702,6 +702,7 @@ export default function ContentStudioPage() {
               onCreditError={() => setShowCreditModal(true)}
               promptConfigs={promptConfigs}
               preferences={preferences}
+              currentUser={user}
             />
           </div>
         );

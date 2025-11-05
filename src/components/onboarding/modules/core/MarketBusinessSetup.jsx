@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { UserMarketConfig, UserOnboarding } from '@/api/entities';
+import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 
 const US_STATES = [
@@ -42,6 +43,7 @@ const DATABASE_SIZES = [
 ];
 
 export default function MarketBusinessSetup({ data, onNext, allData }) {
+  const { user: clerkUser } = useUser();
   const [formData, setFormData] = useState({
     // Market Config
     primaryTerritory: '',
@@ -73,12 +75,11 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!clerkUser?.id) throw new Error('No user found');
 
       // Save Market Config
       const marketData = {
-        userId: user.id,
+        userId: clerkUser.id,
         marketName: formData.primaryTerritory,
         state: formData.state,
         city: formData.city

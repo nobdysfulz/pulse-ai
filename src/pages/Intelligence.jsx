@@ -106,11 +106,10 @@ export default function IntelligencePage() {
         toast.info('Refreshing intelligence scores...');
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!currentUser?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('buildGraphContext', {
-        body: { userId: user.id, fresh }
+        body: { userId: currentUser.id, fresh }
       });
 
       if (error) throw error;
@@ -202,10 +201,9 @@ export default function IntelligencePage() {
     try {
       setProcessingActions(prev => new Set(prev).add(index));
 
-      let userId = currentUser?.id;
+      const userId = currentUser?.id;
       if (!userId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        userId = user?.id;
+        throw new Error('Not authenticated');
       }
 
       if (!userId) throw new Error('Not authenticated');

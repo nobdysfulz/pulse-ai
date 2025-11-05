@@ -110,6 +110,24 @@ export function createClerkWebhookHandler(deps) {
           throw profileError;
         }
 
+        // Create onboarding record for new users
+        if (event.type === 'user.created') {
+          const { error: onboardingError } = await supabaseClient
+            .from('user_onboarding')
+            .insert({
+              user_id: data.id,
+              onboarding_completed: false,
+              agent_onboarding_completed: false,
+              call_center_onboarding_completed: false,
+            });
+
+          if (onboardingError && onboardingError.code !== '23505') {
+            if (logger && typeof logger.error === 'function') {
+              logger.error('Error creating onboarding record:', onboardingError);
+            }
+          }
+        }
+
         if (logger && typeof logger.log === 'function') {
           logger.log(`Successfully synced user ${data.id}`);
         }

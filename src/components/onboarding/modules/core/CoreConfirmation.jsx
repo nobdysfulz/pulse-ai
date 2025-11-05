@@ -3,30 +3,23 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserOnboarding } from '@/api/entities';
+import { useUser } from '@clerk/clerk-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 export default function CoreConfirmation({ data, onNext, allData }) {
+  const { user: clerkUser } = useUser();
   const [completing, setCompleting] = useState(false);
   const navigate = useNavigate();
 
   const handleComplete = async () => {
     setCompleting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!clerkUser?.id) throw new Error('No user found');
 
-      // Update User metadata with full name
-      if (allData?.welcome?.firstName && allData?.welcome?.lastName) {
-        await supabase.auth.updateUser({
-          data: {
-            firstName: allData.welcome.firstName,
-            lastName: allData.welcome.lastName,
-            full_name: `${allData.welcome.firstName} ${allData.welcome.lastName}`
-          }
-        });
-      }
+      // Note: Clerk user metadata is managed through Clerk Dashboard
+      // No need to update it here - ClerkSupabaseSync handles profile creation
 
       toast.success('Core setup completed!');
       

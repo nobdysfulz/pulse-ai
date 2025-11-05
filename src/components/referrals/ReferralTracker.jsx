@@ -33,9 +33,9 @@ export default function ReferralTracker() {
           // Check if referral is within 60-day window
           if (referralAge <= sixtyDaysInMs) {
             try {
-              const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+              const currentUser = clerkUser;
               
-              if (authError) throw authError;
+              if (!currentUser) return;
               
               if (currentUser && referralData.referrerId !== currentUser.id) {
                 // Process the referral

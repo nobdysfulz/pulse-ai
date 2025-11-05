@@ -3,10 +3,11 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare, Brain } from 'lucide-react';
 import { UserContext } from '../context/UserContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useClerk } from '@clerk/clerk-react';
 
 export default function PrimarySidebar({ onNavigate }) {
   const { user } = useContext(UserContext);
+  const { signOut } = useClerk();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -14,7 +15,7 @@ export default function PrimarySidebar({ onNavigate }) {
   const isSubscriberOrAdmin = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     onNavigate?.(); 
   };
 
