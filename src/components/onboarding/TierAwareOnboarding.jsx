@@ -1,106 +1,68 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { UserContext } from '../context/UserContext';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@clerk/clerk-react';
-import { UserOnboarding } from '@/api/entities';
-import OnboardingSidebar from './OnboardingSidebar';
-import {
-  buildActiveModules,
-  determineInitialPhase,
-  normalizeOnboardingProgress
-} from './onboardingLogic';
+import React, { useState, useEffect, useContext, useMemo } from "react";
+import { UserContext } from "../context/UserContext";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@clerk/clerk-react";
+import { UserOnboarding } from "@/api/entities";
+import OnboardingSidebar from "./OnboardingSidebar";
+import { buildActiveModules, determineInitialPhase, normalizeOnboardingProgress } from "./onboardingLogic";
 
 // Core Module Components
-import WelcomeStep from './modules/core/WelcomeStep';
-import MarketBusinessSetup from './modules/core/MarketBusinessSetup';
-import BrandPreferencesSetup from './modules/core/BrandPreferencesSetup';
-import CoreConfirmation from './modules/core/CoreConfirmation';
+import WelcomeStep from "./modules/core/WelcomeStep";
+import MarketBusinessSetup from "./modules/core/MarketBusinessSetup";
+import BrandPreferencesSetup from "./modules/core/BrandPreferencesSetup";
+import CoreConfirmation from "./modules/core/CoreConfirmation";
 
 // Agents Module Components
-import AITeamIntro from './modules/agents/AITeamIntro';
-import IntegrationsSetup from './modules/agents/IntegrationsSetup';
-import AgentCustomization from './modules/agents/AgentCustomization';
-import AgentTestMode from './modules/agents/AgentTestMode';
+import AITeamIntro from "./modules/agents/AITeamIntro";
+import IntegrationsSetup from "./modules/agents/IntegrationsSetup";
+import AgentCustomization from "./modules/agents/AgentCustomization";
+import AgentTestMode from "./modules/agents/AgentTestMode";
 
 // Call Center Module Components
-import PhoneNumberSetup from './modules/callcenter/PhoneNumberSetup';
-import VoiceSelection from './modules/callcenter/VoiceSelection';
-import CallerIdentitySetup from './modules/callcenter/CallerIdentitySetup';
-import GoogleWorkspaceSetup from './modules/callcenter/GoogleWorkspaceSetup';
-import CallCenterConfirmation from './modules/callcenter/CallCenterConfirmation';
+import PhoneNumberSetup from "./modules/callcenter/PhoneNumberSetup";
+import VoiceSelection from "./modules/callcenter/VoiceSelection";
+import CallerIdentitySetup from "./modules/callcenter/CallerIdentitySetup";
+import GoogleWorkspaceSetup from "./modules/callcenter/GoogleWorkspaceSetup";
+import CallCenterConfirmation from "./modules/callcenter/CallCenterConfirmation";
 
 // Add this right after the imports
-console.log('🔐 DEBUG - TierAwareOnboarding component loaded');
+console.log("🔐 DEBUG - TierAwareOnboarding component loaded");
 
-// Add this inside the loadOnboardingProgress function, right after token retrieval
-const loadOnboardingProgress = async () => {
-  setLoading(true);
-  try {
-    if (!user?.id) {
-      console.error('No user ID available');
-      setLoading(false);
-      return;
-    }
-
-    let progress = onboardingContext;
-
-    try {
-      console.log('🔐 STEP 1: Getting token...');
-      const token = await getToken();
-      console.log('🔐 STEP 2: Token retrieved:', !!token, 'Length:', token?.length);
-      console.log('🔐 STEP 3: Token preview:', token?.substring(0, 50) + '...');
-      
-      console.log('🔐 STEP 4: Calling getUserOnboarding...');
-      const onboardingData = await getUserOnboarding(user.id, token);
-      console.log('🔐 STEP 5: getUserOnboarding result:', onboardingData);
-      
-      if (onboardingData) {
-        progress = normalizeOnboardingProgress(onboardingData);
-        console.log('🔐 STEP 6: Normalized progress:', progress);
-      } else {
-        console.log('🔐 STEP 6: No onboarding data found');
-      }
-    } catch (error) {
-      console.error('🔐 STEP 7: Error fetching onboarding:', error);
-      // ... rest of error handling
-    }
-    // ... rest of function
-    
 const MODULES = {
   core: {
-    title: 'Core Setup',
+    title: "Core Setup",
     steps: [
-      { id: 'welcome', component: WelcomeStep, title: 'Welcome' },
-      { id: 'market', component: MarketBusinessSetup, title: 'Business & Market' },
-      { id: 'preferences', component: BrandPreferencesSetup, title: 'Preferences' },
-      { id: 'core-confirm', component: CoreConfirmation, title: 'Review' }
+      { id: "welcome", component: WelcomeStep, title: "Welcome" },
+      { id: "market", component: MarketBusinessSetup, title: "Business & Market" },
+      { id: "preferences", component: BrandPreferencesSetup, title: "Preferences" },
+      { id: "core-confirm", component: CoreConfirmation, title: "Review" },
     ],
-    postModuleRedirect: 'IntelligenceSurvey'
+    postModuleRedirect: "IntelligenceSurvey",
   },
   agents: {
-    title: 'AI Agents',
+    title: "AI Agents",
     steps: [
-      { id: 'ai-team-intro', component: AITeamIntro, title: 'Meet Your Team' },
-      { id: 'integrations', component: IntegrationsSetup, title: 'Connect Services' },
-      { id: 'customization', component: AgentCustomization, title: 'Customize' },
-      { id: 'test', component: AgentTestMode, title: 'Test Mode' }
-    ]
+      { id: "ai-team-intro", component: AITeamIntro, title: "Meet Your Team" },
+      { id: "integrations", component: IntegrationsSetup, title: "Connect Services" },
+      { id: "customization", component: AgentCustomization, title: "Customize" },
+      { id: "test", component: AgentTestMode, title: "Test Mode" },
+    ],
   },
   callcenter: {
-    title: 'Call Center',
+    title: "Call Center",
     steps: [
-      { id: 'phone', component: PhoneNumberSetup, title: 'Phone Number' },
-      { id: 'voice', component: VoiceSelection, title: 'Voice Selection' },
-      { id: 'identity', component: CallerIdentitySetup, title: 'Caller Identity' },
-      { id: 'workspace', component: GoogleWorkspaceSetup, title: 'Google Workspace' },
-      { id: 'call-confirm', component: CallCenterConfirmation, title: 'Launch' }
-    ]
-  }
+      { id: "phone", component: PhoneNumberSetup, title: "Phone Number" },
+      { id: "voice", component: VoiceSelection, title: "Voice Selection" },
+      { id: "identity", component: CallerIdentitySetup, title: "Caller Identity" },
+      { id: "workspace", component: GoogleWorkspaceSetup, title: "Google Workspace" },
+      { id: "call-confirm", component: CallCenterConfirmation, title: "Launch" },
+    ],
+  },
 };
 
 // Error Boundary Component
@@ -115,7 +77,7 @@ class OnboardingErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('💥 Onboarding Error:', error, errorInfo);
+    console.error("💥 Onboarding Error:", error, errorInfo);
   }
 
   render() {
@@ -125,9 +87,7 @@ class OnboardingErrorBoundary extends React.Component {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-[#1E293B] mb-4">Something went wrong</h2>
             <p className="text-[#64748B] mb-4">Please refresh the page and try again.</p>
-            <Button onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
           </div>
         </div>
       );
@@ -140,15 +100,15 @@ class OnboardingErrorBoundary extends React.Component {
 // Helper to interact with user_onboarding table using entity API
 const getUserOnboarding = async (userId, token) => {
   try {
-    const results = await UserOnboarding.filter({ userId }, '-created_at', token);
+    const results = await UserOnboarding.filter({ userId }, "-created_at", token);
     return results.length > 0 ? results[0] : null;
   } catch (error) {
-    console.error('[getUserOnboarding] Error:', error);
+    console.error("[getUserOnboarding] Error:", error);
     return null;
   }
 };
 
-function TierAwareOnboarding({ initialPhase = 'core' }) {
+function TierAwareOnboarding({ initialPhase = "core" }) {
   const { user, onboarding: onboardingContext, refreshUserData } = useContext(UserContext);
   const { getToken } = useAuth();
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
@@ -156,17 +116,17 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [onboardingData, setOnboardingData] = useState({});
-  const [activeModules, setActiveModules] = useState(['core']);
+  const [activeModules, setActiveModules] = useState(["core"]);
   const navigate = useNavigate();
 
-  const userTier = user?.subscriptionTier || '';
+  const userTier = user?.subscriptionTier || "";
   const hasCallCenter = user?.hasCallCenterAddon || false;
 
   const validateModuleTransition = (currentMod, nextMod) => {
     const validTransitions = {
-      core: ['agents', 'callcenter'],
-      agents: ['callcenter'],
-      callcenter: []
+      core: ["agents", "callcenter"],
+      agents: ["callcenter"],
+      callcenter: [],
     };
     return validTransitions[currentMod]?.includes(nextMod) ?? false;
   };
@@ -175,9 +135,9 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
     if (user?.id) {
       const modules = buildActiveModules({
         subscriptionTier: userTier,
-        hasCallCenterAddon: hasCallCenter
+        hasCallCenterAddon: hasCallCenter,
       });
-      console.log('🔄 Setting active modules:', modules);
+      console.log("🔄 Setting active modules:", modules);
       setActiveModules(modules);
     }
   }, [user?.id, userTier, hasCallCenter]);
@@ -188,11 +148,12 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
     }
   }, [activeModules, user?.id]);
 
+  // Add this inside the loadOnboardingProgress function, right after token retrieval
   const loadOnboardingProgress = async () => {
     setLoading(true);
     try {
       if (!user?.id) {
-        console.error('No user ID available');
+        console.error("No user ID available");
         setLoading(false);
         return;
       }
@@ -200,17 +161,26 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
       let progress = onboardingContext;
 
       try {
+        console.log("🔐 STEP 1: Getting token...");
         const token = await getToken();
+        console.log("🔐 STEP 2: Token retrieved:", !!token, "Length:", token?.length);
+        console.log("🔐 STEP 3: Token preview:", token?.substring(0, 50) + "...");
+
+        console.log("🔐 STEP 4: Calling getUserOnboarding...");
         const onboardingData = await getUserOnboarding(user.id, token);
+        console.log("🔐 STEP 5: getUserOnboarding result:", onboardingData);
+
         if (onboardingData) {
           progress = normalizeOnboardingProgress(onboardingData);
+          console.log("🔐 STEP 6: Normalized progress:", progress);
+        } else {
+          console.log("🔐 STEP 6: No onboarding data found");
         }
       } catch (error) {
-        console.error('Error fetching onboarding:', error);
-        if (!onboardingContext) {
-          throw new Error('Onboarding service is not available');
-        }
+        console.error("🔐 STEP 7: Error fetching onboarding:", error);
+        // ... rest of error handling
       }
+      // ... rest of function
 
       const normalizedProgress = normalizeOnboardingProgress(progress) || null;
 
@@ -225,19 +195,19 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         setCurrentPhase(phase);
         setCurrentStep(0);
       } else if (normalizedProgress) {
-        console.log('🎉 All required onboarding modules completed - redirecting to dashboard');
-        toast.success('Onboarding complete! Welcome to PULSE AI.');
-        navigate(createPageUrl('Dashboard'));
+        console.log("🎉 All required onboarding modules completed - redirecting to dashboard");
+        toast.success("Onboarding complete! Welcome to PULSE AI.");
+        navigate(createPageUrl("Dashboard"));
         return;
       } else {
-        console.log('🆕 No onboarding record - starting fresh at core');
-        setCurrentPhase('core');
+        console.log("🆕 No onboarding record - starting fresh at core");
+        setCurrentPhase("core");
         setCurrentStep(0);
       }
     } catch (error) {
-      console.error('❌ Error loading onboarding progress:', error);
-      toast.error('Failed to load onboarding progress');
-      setCurrentPhase('core');
+      console.error("❌ Error loading onboarding progress:", error);
+      toast.error("Failed to load onboarding progress");
+      setCurrentPhase("core");
       setCurrentStep(0);
     } finally {
       setLoading(false);
@@ -252,54 +222,51 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
 
       const currentModuleObj = MODULES[currentPhase];
       const currentStepObj = currentModuleObj.steps[currentStep];
-      
+
       if (!currentStepObj) {
         throw new Error(`Invalid step: ${currentStep}`);
       }
-      
-      setOnboardingData(prev => ({
+
+      setOnboardingData((prev) => ({
         ...prev,
-        [currentStepObj.id]: stepData
+        [currentStepObj.id]: stepData,
       }));
-      
+
       const newCompleted = new Set(completedSteps);
       newCompleted.add(currentStepObj.id);
       setCompletedSteps(newCompleted);
-      
+
       // Save progress to database via backend function
       try {
         const token = await getToken();
         if (!token) {
-          throw new Error('Failed to get authentication token');
+          throw new Error("Failed to get authentication token");
         }
 
-        const { error } = await supabase.functions.invoke(
-          'saveOnboardingProgress',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
+        const { error } = await supabase.functions.invoke("saveOnboardingProgress", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: {
+            progressData: {
+              completed_steps: Array.from(newCompleted),
             },
-            body: {
-              progressData: {
-                completed_steps: Array.from(newCompleted),
-              },
-            },
-          }
-        );
-        
+          },
+        });
+
         if (error) {
-          console.error('❌ Failed to save progress:', error);
-          toast.error('Failed to save progress. Please try again.');
+          console.error("❌ Failed to save progress:", error);
+          toast.error("Failed to save progress. Please try again.");
           return; // Don't proceed if save fails
         }
-        
+
         console.log(`✅ Progress saved for step: ${currentStepObj.id}`);
       } catch (saveError) {
-        console.error('❌ Failed to save progress:', saveError);
-        toast.error('Failed to save progress. Please try again.');
+        console.error("❌ Failed to save progress:", saveError);
+        toast.error("Failed to save progress. Please try again.");
         return; // Don't proceed if save fails
       }
-      
+
       if (currentStep < currentModuleObj.steps.length - 1) {
         setCurrentStep(currentStep + 1);
       } else {
@@ -308,45 +275,45 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
         await refreshUserData();
 
         // Logic for module transitions
-        if (currentPhase === 'core') {
+        if (currentPhase === "core") {
           // Core complete - redirect to Intelligence Survey if not completed
           const token = await getToken();
           const onboardingData = await getUserOnboarding(user.id, token);
           const normalizedData = normalizeOnboardingProgress(onboardingData);
-          
+
           if (!normalizedData?.agentIntelligenceCompleted) {
-            toast.success('Core setup complete! Please complete the Intelligence Survey.');
-            navigate(createPageUrl('IntelligenceSurvey'));
+            toast.success("Core setup complete! Please complete the Intelligence Survey.");
+            navigate(createPageUrl("IntelligenceSurvey"));
             return;
           }
-          
-          const isSubscriber = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
-          if (isSubscriber && activeModules.includes('agents')) {
-            setCurrentPhase('agents');
+
+          const isSubscriber = user?.subscriptionTier === "Subscriber" || user?.subscriptionTier === "Admin";
+          if (isSubscriber && activeModules.includes("agents")) {
+            setCurrentPhase("agents");
             setCurrentStep(0);
           } else {
-            toast.success('Core onboarding complete! Welcome to PULSE AI.');
-            navigate(createPageUrl('Dashboard'));
+            toast.success("Core onboarding complete! Welcome to PULSE AI.");
+            navigate(createPageUrl("Dashboard"));
           }
-        } else if (currentPhase === 'agents') {
-          if (activeModules.includes('callcenter')) {
-            setCurrentPhase('callcenter');
+        } else if (currentPhase === "agents") {
+          if (activeModules.includes("callcenter")) {
+            setCurrentPhase("callcenter");
             setCurrentStep(0);
           } else {
-            toast.success('AI Agents setup complete!');
-            navigate(createPageUrl('Dashboard'));
+            toast.success("AI Agents setup complete!");
+            navigate(createPageUrl("Dashboard"));
           }
-        } else if (currentPhase === 'callcenter') {
-          toast.success('Call Center setup complete!');
-          navigate(createPageUrl('Dashboard'));
+        } else if (currentPhase === "callcenter") {
+          toast.success("Call Center setup complete!");
+          navigate(createPageUrl("Dashboard"));
         } else {
           console.warn(`Unexpected module completion: ${currentPhase}`);
-          navigate(createPageUrl('Dashboard'));
+          navigate(createPageUrl("Dashboard"));
         }
       }
     } catch (error) {
-      console.error('❌ Error in handleNext:', error);
-      toast.error('Something went wrong. Please try again.');
+      console.error("❌ Error in handleNext:", error);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
@@ -366,38 +333,35 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
   const completeModule = async (moduleKey) => {
     try {
       console.log(`🎯 Completing module: ${moduleKey}`);
-      
+
       const token = await getToken();
       if (!token) {
-        throw new Error('Failed to get authentication token');
+        throw new Error("Failed to get authentication token");
       }
 
       const updates = {};
-      
-      if (moduleKey === 'core') {
+
+      if (moduleKey === "core") {
         updates.onboarding_completion_date = new Date().toISOString();
-      } else if (moduleKey === 'agents') {
+      } else if (moduleKey === "agents") {
         updates.agent_onboarding_completed = true;
       }
       // Note: callcenter completion is tracked via completed_steps only
-      
-      const { error } = await supabase.functions.invoke(
-        'saveOnboardingProgress',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: {
-            progressData: updates,
-          },
-        }
-      );
-      
+
+      const { error } = await supabase.functions.invoke("saveOnboardingProgress", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: {
+          progressData: updates,
+        },
+      });
+
       if (error) {
         console.error(`❌ Error completing module ${moduleKey}:`, error);
         throw error;
       }
-      
+
       console.log(`✅ Module ${moduleKey} marked as complete`);
       toast.success(`${MODULES[moduleKey].title} complete!`);
     } catch (error) {
@@ -419,13 +383,18 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
   }
 
   const currentModuleObj = MODULES[currentPhase];
-  
+
   if (!currentModuleObj) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Invalid module: {currentPhase}</p>
-          <Button onClick={() => { setCurrentPhase('core'); setCurrentStep(0); }}>
+          <Button
+            onClick={() => {
+              setCurrentPhase("core");
+              setCurrentStep(0);
+            }}
+          >
             Return to start
           </Button>
         </div>
@@ -434,7 +403,7 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
   }
 
   const currentStepComp = currentModuleObj.steps[currentStep];
-  
+
   if (!currentStepComp) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -447,8 +416,8 @@ function TierAwareOnboarding({ initialPhase = 'core' }) {
   }
 
   const CurrentStepComponent = currentStepComp.component;
-  
-  if (!CurrentStepComponent || typeof CurrentStepComponent !== 'function') {
+
+  if (!CurrentStepComponent || typeof CurrentStepComponent !== "function") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
