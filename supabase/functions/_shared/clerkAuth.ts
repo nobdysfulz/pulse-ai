@@ -86,13 +86,7 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
     
     // Sanitize: remove trailing $ if present (common in dev keys)
     const sanitizedFrontendApi = frontendApi.replace(/\$+$/, '');
-    
     const jwksUrl = `https://${sanitizedFrontendApi}/.well-known/jwks.json`;
-    
-    console.log('🔐 DEBUG - Frontend API (raw):', frontendApi);
-    console.log('🔐 DEBUG - Frontend API (sanitized):', sanitizedFrontendApi);
-    console.log('🔐 DEBUG - JWKS URL:', jwksUrl);
-    console.log('🔐 DEBUG - Token being validated:', token.substring(0, 50) + '...');
 
     // Import jose for JWT verification
     const { jwtVerify, createRemoteJWKSet } = await import('https://deno.land/x/jose@v5.2.0/index.ts');
