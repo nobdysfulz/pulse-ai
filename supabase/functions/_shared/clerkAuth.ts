@@ -68,7 +68,10 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
   try {
     const CLERK_PUBLISHABLE_KEY = Deno.env.get('VITE_CLERK_PUBLISHABLE_KEY');
     
+    console.log('[clerkAuth] Checking CLERK_PUBLISHABLE_KEY:', CLERK_PUBLISHABLE_KEY ? 'Present' : 'Missing');
+    
     if (!CLERK_PUBLISHABLE_KEY) {
+      console.error('[clerkAuth] VITE_CLERK_PUBLISHABLE_KEY not found in environment');
       throw new Error('VITE_CLERK_PUBLISHABLE_KEY environment variable is required');
     }
 
@@ -87,6 +90,8 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
     // Sanitize: remove trailing $ if present (common in dev keys)
     const sanitizedFrontendApi = frontendApi.replace(/\$+$/, '');
     const jwksUrl = `https://${sanitizedFrontendApi}/.well-known/jwks.json`;
+    
+    console.log('[clerkAuth] JWKS URL:', jwksUrl);
 
     // Import jose for JWT verification
     const { jwtVerify, createRemoteJWKSet } = await import('https://deno.land/x/jose@v5.2.0/index.ts');

@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
@@ -22,24 +22,13 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header', code: 401 }),
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const token = authHeader.substring(7);
-    
-    // Validate Clerk JWT properly
-    let userId: string;
-    try {
-      userId = await validateClerkTokenWithJose(token);
-    } catch (error) {
-      console.error('[fetchUserConnections] JWT validation failed:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JWT', code: 401, message: error instanceof Error ? error.message : 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const userId: string = await validateClerkTokenWithJose(token);
 
     console.log('[fetchUserConnections] Fetching connections for user:', userId);
 
