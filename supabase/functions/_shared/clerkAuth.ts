@@ -61,26 +61,29 @@ export async function validateClerkToken(token: string): Promise<string> {
 }
 
 /**
- * Alternative: Decode and validate JWT manually using Jose library
- * This is a backup approach if Clerk API verification has issues
+ * Validate JWT using Jose with HMAC secret key
+ * This uses the CLERK_SECRET_KEY directly for verification
  */
 export async function validateClerkTokenWithJose(token: string): Promise<string> {
   try {
     const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY');
     
     if (!CLERK_SECRET_KEY) {
-      throw new Error('CLERK_SECRET_KEY not configured');
+      throw new Error('CLERK_SECRET_KEY environment variable is required');
     }
 
+    console.log('🔐 DEBUG - CLERK_SECRET_KEY exists:', !!CLERK_SECRET_KEY);
+    console.log('🔐 DEBUG - Token being validated:', token.substring(0, 50) + '...');
+
     // Import jose for JWT verification
-    const { jwtVerify, createRemoteJWKSet } = await import('https://deno.land/x/jose@v5.2.0/index.ts');
+    const { jwtVerify } = await import('https://deno.land/x/jose@v5.2.0/index.ts');
     
-    // Clerk uses RSA keys - fetch JWKS from Clerk
-    const JWKS = createRemoteJWKSet(new URL('https://api.clerk.com/v1/jwks'));
+    // Convert secret key to Uint8Array for Jose
+    const secret = new TextEncoder().encode(CLERK_SECRET_KEY);
     
-    // Verify the JWT
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: 'https://clerk.com',
+    // Verify JWT signature and decode payload
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256', 'HS384', 'HS512'], // Support HMAC algorithms
     });
 
     const userId = payload.sub;
@@ -89,11 +92,11 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
       throw new Error('No sub claim in JWT');
     }
 
-    console.log('[clerkAuth] ✓ Token validated (jose) for user:', userId);
+    console.log('[clerkAuth] ✓ Token validated (HMAC) for user:', userId);
     return userId;
 
   } catch (error) {
-    console.error('[clerkAuth] Jose validation error:', error);
+    console.error('[clerkAuth] JWT validation failed:', error);
     throw new Error(
       error instanceof Error 
         ? `JWT validation failed: ${error.message}` 
