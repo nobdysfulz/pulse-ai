@@ -3,6 +3,15 @@ project_id = "pdbggzsmgcrguhscynnk"
 [functions.clerkWebhook]
 verify_jwt = false
 
+[functions.entityOperations]
+verify_jwt = false
+
+[functions.saveOnboardingProgress]
+verify_jwt = false
+
+[functions.updateUserData]
+verify_jwt = false
+
 [functions.executive_assistantChat]
 verify_jwt = true
 

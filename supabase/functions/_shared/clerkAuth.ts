@@ -84,9 +84,13 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
     const domainBytes = Uint8Array.from(atob(base64Domain), c => c.charCodeAt(0));
     const frontendApi = new TextDecoder().decode(domainBytes);
     
-    const jwksUrl = `https://${frontendApi}/.well-known/jwks.json`;
+    // Sanitize: remove trailing $ if present (common in dev keys)
+    const sanitizedFrontendApi = frontendApi.replace(/\$+$/, '');
     
-    console.log('🔐 DEBUG - Frontend API:', frontendApi);
+    const jwksUrl = `https://${sanitizedFrontendApi}/.well-known/jwks.json`;
+    
+    console.log('🔐 DEBUG - Frontend API (raw):', frontendApi);
+    console.log('🔐 DEBUG - Frontend API (sanitized):', sanitizedFrontendApi);
     console.log('🔐 DEBUG - JWKS URL:', jwksUrl);
     console.log('🔐 DEBUG - Token being validated:', token.substring(0, 50) + '...');
 

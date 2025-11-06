@@ -165,7 +165,7 @@ function TierAwareOnboarding({ initialPhase = "core" }) {
             },
             body: JSON.stringify({
               operation: 'list',
-              entity: 'user_onboarding',
+              table: 'user_onboarding',
               filters: {}
             })
           }
