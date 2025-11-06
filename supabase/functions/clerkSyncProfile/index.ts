@@ -1,163 +1,73 @@
-import 'https://deno.land/x/xhr@0.1.0/mod.ts';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get environment variables
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY')!;
-
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !CLERK_SECRET_KEY) {
-      throw new Error('Missing required environment variables');
-    }
-
-    // Get Clerk token from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const token = authHeader.substring(7);
+    const userId: string = await validateClerkTokenWithJose(token);
 
-    // Decode JWT to get user ID and validate structure
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      console.error('[clerkSyncProfile] Invalid JWT format');
-      return new Response(
-        JSON.stringify({ error: 'Invalid token format' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const clerkSecretKey = Deno.env.get('CLERK_SECRET_KEY');
+    if (!clerkSecretKey) {
+      throw new Error('CLERK_SECRET_KEY not configured');
     }
 
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
-
-    // Validate token expiration
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      console.error('[clerkSyncProfile] Token expired');
-      return new Response(
-        JSON.stringify({ error: 'Token expired' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate token issuer (should be Clerk)
-    if (!payload.iss || !payload.iss.includes('clerk')) {
-      console.error('[clerkSyncProfile] Invalid token issuer:', payload.iss);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Fetch user details from Clerk API
     const userResponse = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
-      },
+      headers: { Authorization: `Bearer ${clerkSecretKey}` },
     });
 
     if (!userResponse.ok) {
-      throw new Error('Failed to fetch user from Clerk');
+      throw new Error(`Clerk API error: ${userResponse.status}`);
     }
 
     const clerkUser = await userResponse.json();
-    
-    const email = clerkUser.email_addresses?.find(
-      (e: any) => e.id === clerkUser.primary_email_address_id
-    )?.email_address;
 
-    const fullName = `${clerkUser.first_name || ''} ${clerkUser.last_name || ''}`.trim() || null;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[clerkSyncProfile] Syncing user:', {
-      userId,
-      email,
-      fullName,
-    });
-
-    // Create Supabase admin client (service role)
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-
-    // Upsert profile using service role (bypasses RLS)
     const { error: profileError } = await supabase
       .from('profiles')
-      .upsert(
-        {
-          id: userId,
-          email,
-          full_name: fullName,
-          avatar_url: clerkUser.image_url,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      );
+      .upsert({
+        id: userId,
+        email: clerkUser.email_addresses?.[0]?.email_address,
+        full_name: `${clerkUser.first_name || ''} ${clerkUser.last_name || ''}`.trim(),
+        avatar_url: clerkUser.image_url,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-    if (profileError) {
-      console.error('[clerkSyncProfile] Profile upsert error:', profileError);
-      throw profileError;
-    }
+    if (profileError) throw profileError;
 
-    console.log('[clerkSyncProfile] ✓ Profile synced successfully');
-
-    // Try to create onboarding record (only if user_onboarding.user_id is text)
-    // Skip if it fails due to type mismatch (we'll handle this separately)
-    try {
-      const { error: onboardingError } = await supabase
-        .from('user_onboarding')
-        .upsert(
-          {
-            user_id: userId,
-            onboarding_completed: false,
-            agent_onboarding_completed: false,
-            call_center_onboarding_completed: false,
-          },
-          { onConflict: 'user_id' }
-        );
-
-      if (onboardingError && onboardingError.code !== '23505') {
-        console.warn('[clerkSyncProfile] Onboarding upsert warning:', onboardingError);
-      } else {
-        console.log('[clerkSyncProfile] ✓ Onboarding record synced');
-      }
-    } catch (onboardingErr) {
-      console.warn('[clerkSyncProfile] Onboarding sync skipped:', onboardingErr);
-    }
+    await supabase
+      .from('user_onboarding')
+      .upsert({ user_id: userId }, { onConflict: 'user_id' })
+      .then(() => {});
 
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        userId,
-        email,
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      JSON.stringify({ success: true, userId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('[clerkSyncProfile] Error:', error);
+    console.error('Error in clerkSyncProfile:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error',
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

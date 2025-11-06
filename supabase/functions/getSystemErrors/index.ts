@@ -1,4 +1,10 @@
-import { corsHeaders, createSupabaseAdmin, createSupabaseAuthedClient } from '../_shared/emailUtils.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -7,26 +13,21 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabaseAuthed = createSupabaseAuthedClient(authHeader);
-    const supabaseAdmin = createSupabaseAdmin();
+    const token = authHeader.substring(7);
+    const userId: string = await validateClerkTokenWithJose(token);
 
-    const { data: authData, error: authError } = await supabaseAuthed.auth.getUser();
-    if (authError || !authData?.user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const userId = authData.user.id;
-    const { data: roles } = await supabaseAdmin
+    const { data: roles } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const { severity, resolved } = body ?? {};
 
-    let query = supabaseAdmin
+    let query = supabase
       .from('system_errors')
       .select('*')
       .order('last_occurrence_at', { ascending: false });
@@ -75,13 +76,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ errors }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in getSystemErrors:', error);
     return new Response(
       JSON.stringify({ errors: [], error: 'Failed to fetch errors' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

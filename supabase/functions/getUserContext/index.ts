@@ -1,72 +1,33 @@
-import 'https://deno.land/x/xhr@0.1.0/mod.ts';
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY')!;
-
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !CLERK_SECRET_KEY) {
-      throw new Error('Missing required environment variables');
-    }
-
-    // Get Clerk token from Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const token = authHeader.substring(7);
-
-    // Decode JWT to get user ID (JWT format: header.payload.signature)
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      console.error('[getUserContext] Invalid JWT format');
-      return new Response(
-        JSON.stringify({ error: 'Invalid token format' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
-
-    // Validate token expiration
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      console.error('[getUserContext] Token expired');
-      return new Response(
-        JSON.stringify({ error: 'Token expired. Please refresh the page.' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate token issuer (should be Clerk)
-    if (!payload.iss || !payload.iss.includes('clerk')) {
-      console.error('[getUserContext] Invalid token issuer:', payload.iss);
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const userId: string = await validateClerkTokenWithJose(token);
 
     console.log('[getUserContext] Fetching context for user:', userId);
 
-    // Create Supabase admin client (service role bypasses RLS)
-    const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch all user data in parallel using service role
     const [
