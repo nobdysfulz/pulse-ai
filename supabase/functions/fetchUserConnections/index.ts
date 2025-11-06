@@ -1,6 +1,7 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,19 +24,24 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        JSON.stringify({ error: 'Missing or invalid Authorization header', code: 401 }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const token = authHeader.substring(7);
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid JWT format');
+    
+    // Validate Clerk JWT properly
+    let userId: string;
+    try {
+      userId = await validateClerkTokenWithJose(token);
+    } catch (error) {
+      console.error('[fetchUserConnections] JWT validation failed:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JWT', code: 401, message: error instanceof Error ? error.message : 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
 
     console.log('[fetchUserConnections] Fetching connections for user:', userId);
 

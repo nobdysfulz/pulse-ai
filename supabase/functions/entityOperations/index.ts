@@ -25,8 +25,8 @@ const ALLOWED_TABLES = [
   'pulse_config', 'agent_intelligence_profiles', 'brand_color_palettes', 'content_packs',
   'content_topics', 'credit_transactions', 'crm_connections', 'email_campaigns',
   'email_templates', 'external_service_connections', 'generated_content', 'market_intelligence',
-  'referrals', 'role_play_session_logs', 'role_play_user_progress', 'call_logs',
-  'ai_agent_conversations', 'ai_actions_log', 'ai_tool_usage', 'transactions',
+  'referrals', 'role_play_session_logs', 'role_play_user_progress', 'role_play_analysis_reports', 
+  'call_logs', 'ai_agent_conversations', 'ai_actions_log', 'ai_tool_usage', 'transactions',
   'role_play_scenarios', 'objection_scripts', 'client_personas', 'agent_voices',
   'task_templates', 'featured_content_packs', 'campaign_templates', 'legal_documents',
   'feature_flags', 'ai_prompt_configs', 'graph_context_cache', 'user_credits'
