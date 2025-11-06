@@ -61,29 +61,44 @@ export async function validateClerkToken(token: string): Promise<string> {
 }
 
 /**
- * Validate JWT using Jose with HMAC secret key
- * This uses the CLERK_SECRET_KEY directly for verification
+ * Validate JWT using Jose with RSA256 and Clerk's JWKS endpoint
+ * This is the correct validation method for Clerk JWTs
  */
 export async function validateClerkTokenWithJose(token: string): Promise<string> {
   try {
-    const CLERK_SECRET_KEY = Deno.env.get('CLERK_SECRET_KEY');
+    const CLERK_PUBLISHABLE_KEY = Deno.env.get('VITE_CLERK_PUBLISHABLE_KEY');
     
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('CLERK_SECRET_KEY environment variable is required');
+    if (!CLERK_PUBLISHABLE_KEY) {
+      throw new Error('VITE_CLERK_PUBLISHABLE_KEY environment variable is required');
     }
 
-    console.log('🔐 DEBUG - CLERK_SECRET_KEY exists:', !!CLERK_SECRET_KEY);
+    // Extract frontend API domain from publishable key
+    // Format: pk_test_<base64_encoded_domain> or pk_live_<base64_encoded_domain>
+    const keyParts = CLERK_PUBLISHABLE_KEY.split('_');
+    if (keyParts.length < 3) {
+      throw new Error('Invalid CLERK_PUBLISHABLE_KEY format');
+    }
+    
+    // Decode the base64 domain
+    const base64Domain = keyParts.slice(2).join('_');
+    const domainBytes = Uint8Array.from(atob(base64Domain), c => c.charCodeAt(0));
+    const frontendApi = new TextDecoder().decode(domainBytes);
+    
+    const jwksUrl = `https://${frontendApi}/.well-known/jwks.json`;
+    
+    console.log('🔐 DEBUG - Frontend API:', frontendApi);
+    console.log('🔐 DEBUG - JWKS URL:', jwksUrl);
     console.log('🔐 DEBUG - Token being validated:', token.substring(0, 50) + '...');
 
     // Import jose for JWT verification
-    const { jwtVerify } = await import('https://deno.land/x/jose@v5.2.0/index.ts');
+    const { jwtVerify, createRemoteJWKSet } = await import('https://deno.land/x/jose@v5.2.0/index.ts');
     
-    // Convert secret key to Uint8Array for Jose
-    const secret = new TextEncoder().encode(CLERK_SECRET_KEY);
+    // Create JWKS getter that fetches Clerk's public keys
+    const JWKS = createRemoteJWKSet(new URL(jwksUrl));
     
-    // Verify JWT signature and decode payload
-    const { payload } = await jwtVerify(token, secret, {
-      algorithms: ['HS256', 'HS384', 'HS512'], // Support HMAC algorithms
+    // Verify JWT using RSA256 (Clerk's algorithm)
+    const { payload } = await jwtVerify(token, JWKS, {
+      algorithms: ['RS256'],
     });
 
     const userId = payload.sub;
@@ -92,7 +107,7 @@ export async function validateClerkTokenWithJose(token: string): Promise<string>
       throw new Error('No sub claim in JWT');
     }
 
-    console.log('[clerkAuth] ✓ Token validated (HMAC) for user:', userId);
+    console.log('[clerkAuth] ✓ Token validated (RSA256) for user:', userId);
     return userId;
 
   } catch (error) {
