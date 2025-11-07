@@ -660,6 +660,7 @@ export type Database = {
       }
       daily_actions: {
         Row: {
+          action_type: string | null
           category: string
           completed_at: string | null
           created_at: string | null
@@ -675,6 +676,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          action_type?: string | null
           category: string
           completed_at?: string | null
           created_at?: string | null
@@ -690,6 +692,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          action_type?: string | null
           category?: string
           completed_at?: string | null
           created_at?: string | null
