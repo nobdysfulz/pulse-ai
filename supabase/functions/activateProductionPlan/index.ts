@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -25,26 +26,19 @@ serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
+    const token = authHeader.replace('Bearer ', '');
+    const userId = await validateClerkTokenWithJose(token);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      throw new Error('User not authenticated');
-    }
-
     const body = await req.json();
-    const { planData, calculatedTargets, userId } = body ?? {};
+    const { planData, calculatedTargets } = body ?? {};
 
-    if (!planData || !calculatedTargets || !userId) {
+    if (!planData || !calculatedTargets) {
       throw new Error('Missing plan payload.');
-    }
-
-    if (userId !== user.id) {
-      throw new Error('User mismatch.');
     }
 
     const requiredNumbers = [

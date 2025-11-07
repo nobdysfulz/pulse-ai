@@ -236,3 +236,6 @@ verify_jwt = true
 
 [functions.fetchUserConnections]
 verify_jwt = false
+
+[functions.activateProductionPlan]
+verify_jwt = false
