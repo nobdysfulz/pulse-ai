@@ -667,6 +667,7 @@ export type Database = {
           description: string | null
           due_date: string
           duration_minutes: number | null
+          frequency: string | null
           id: string
           priority: string | null
           scheduled_time: string | null
@@ -683,6 +684,7 @@ export type Database = {
           description?: string | null
           due_date: string
           duration_minutes?: number | null
+          frequency?: string | null
           id?: string
           priority?: string | null
           scheduled_time?: string | null
@@ -699,6 +701,7 @@ export type Database = {
           description?: string | null
           due_date?: string
           duration_minutes?: number | null
+          frequency?: string | null
           id?: string
           priority?: string | null
           scheduled_time?: string | null
