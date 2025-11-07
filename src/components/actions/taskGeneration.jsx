@@ -34,7 +34,7 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
         // Check for existing tasks
         const existingTasks = await DailyAction.filter({
             userId: user.id,
-            actionDate: todayDate,
+            dueDate: todayDate,
             generated: true
         });
 
@@ -120,12 +120,12 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
         topPulseTasks.forEach(template => {
             tasksToGenerate.push({
                 userId: user.id,
-                actionDate: todayDate,
+                dueDate: todayDate,
                 actionType: template.actionType,
                 title: template.title,
                 description: template.description,
                 priority: template.priority,
-                status: 'not_started',
+                status: 'pending',
                 isRecurring: false,
                 generated: true,
                 category: template.category,
@@ -150,12 +150,12 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
         dayOfWeekTasks.forEach(template => {
             tasksToGenerate.push({
                 userId: user.id,
-                actionDate: todayDate,
+                dueDate: todayDate,
                 actionType: template.actionType,
                 title: template.title,
                 description: template.description,
                 priority: template.priority,
-                status: 'not_started',
+                status: 'pending',
                 isRecurring: false,
                 generated: true,
                 category: template.category,
@@ -177,12 +177,12 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
         accountDayTasks.forEach(template => {
             tasksToGenerate.push({
                 userId: user.id,
-                actionDate: todayDate,
+                dueDate: todayDate,
                 actionType: template.actionType,
                 title: template.title,
                 description: template.description,
                 priority: template.priority,
-                status: 'not_started',
+                status: 'pending',
                 isRecurring: false,
                 generated: true,
                 category: template.category,
@@ -210,12 +210,12 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
         initiativeTasks.forEach(template => {
             tasksToGenerate.push({
                 userId: user.id,
-                actionDate: todayDate,
+                dueDate: todayDate,
                 actionType: template.actionType,
                 title: template.title,
                 description: template.description,
                 priority: template.priority,
-                status: 'not_started',
+                status: 'pending',
                 isRecurring: false,
                 generated: true,
                 category: template.category,
@@ -234,13 +234,13 @@ export const generateTasksForToday = async (user, profile, marketConfig, busines
                 for (const crmTask of crmTasks) {
                     tasksToGenerate.push({
                         userId: user.id,
-                        actionDate: todayDate,
+                        dueDate: todayDate,
                         actionType: 'client_follow_up',
                         category: `${crmTask.crmType}_sync`,
                         title: crmTask.title,
                         description: crmTask.description,
                         priority: crmTask.priority || 'medium',
-                        status: 'not_started',
+                        status: 'pending',
                         isRecurring: false,
                         generated: true,
                         pulseImpact: 0.1,

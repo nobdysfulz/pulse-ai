@@ -220,8 +220,7 @@ export default function IntelligencePage() {
         description: 'AI-recommended action from Pulse Intelligence Core',
         category,
         priority: action.priority || 'medium',
-        status: 'not_started',
-        actionDate: today,
+        status: 'pending',
         dueDate: today,
         actionType: action.type || 'general'
       });

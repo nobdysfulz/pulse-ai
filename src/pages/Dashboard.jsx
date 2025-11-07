@@ -340,8 +340,7 @@ export default function DashboardPage() {
         category: formData.category,
         priority: formData.priority,
         actionType: formData.actionType,
-        dueDate: formData.dueDate || formData.actionDate,
-        actionDate: formData.actionDate,
+        dueDate: formData.dueDate,
       });
 
       if (!result.success) {

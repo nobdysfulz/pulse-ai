@@ -101,14 +101,14 @@ export default function ToDoPage() {
     setGoogleCalendarConnected(false);
   };
   const todaysTasks = useMemo(() => {
-    return (allActions || []).filter((a) => a.actionDate === todayFormatted);
+    return (allActions || []).filter((a) => a.dueDate === todayFormatted);
   }, [allActions, todayFormatted]);
 
   const completedToday = useMemo(() => {
     const timezone = preferences?.timezone || 'America/New_York';
     return (allActions || []).filter((a) => {
-      if (a.status !== 'completed' || !a.completionDate) return false;
-      const completionDay = new Date(a.completionDate).toLocaleDateString('en-CA', {
+      if (a.status !== 'completed' || !a.completedAt) return false;
+      const completionDay = new Date(a.completedAt).toLocaleDateString('en-CA', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -121,8 +121,8 @@ export default function ToDoPage() {
   const overdueTasks = useMemo(() => {
     return (allActions || []).filter((a) =>
       a.status !== 'completed' &&
-      a.actionDate &&
-      a.actionDate < todayFormatted
+      a.dueDate &&
+      a.dueDate < todayFormatted
     );
   }, [allActions, todayFormatted]);
 
@@ -171,7 +171,7 @@ export default function ToDoPage() {
     try {
       await DailyAction.update(actionId, {
         status: newStatus,
-        completionDate: newStatus === 'completed' ? new Date().toISOString() : null
+        completedAt: newStatus === 'completed' ? new Date().toISOString() : null
       });
       await refreshUserData();
       toast.success(isCompleted ? "Task completed!" : "Task marked incomplete");
@@ -189,7 +189,6 @@ export default function ToDoPage() {
     }
 
     const frequency = formData.frequency || null;
-    const dueDate = formData.dueDate || formData.actionDate;
 
     try {
       await DailyAction.create({
@@ -199,10 +198,9 @@ export default function ToDoPage() {
         category: formData.category,
         actionType: formData.actionType,
         priority: formData.priority,
-        actionDate: formData.actionDate,
-        dueDate,
+        dueDate: formData.dueDate,
         frequency,
-        status: 'not_started'
+        status: 'pending'
       });
 
       toast.success('Task added to your action plan');
@@ -264,7 +262,7 @@ export default function ToDoPage() {
         task.category || '',
         task.priority || '',
         task.status || '',
-        task.actionDate || ''];
+        task.dueDate || ''];
 
 
       csvRows.push(row.join(','));
@@ -359,7 +357,7 @@ export default function ToDoPage() {
     let streak = 0;
     let currentStreak = 0;
     last7DaysInterval.forEach((day) => {
-      const completedOnDay = allActions.some((a) => a.status === 'completed' && a.completionDate && isSameDay(new Date(a.completionDate), day));
+      const completedOnDay = allActions.some((a) => a.status === 'completed' && a.completedAt && isSameDay(new Date(a.completedAt), day));
       if (completedOnDay) {
         currentStreak++;
       } else {
@@ -369,10 +367,10 @@ export default function ToDoPage() {
     });
     streak = Math.max(streak, currentStreak);
 
-    const completedLast7Days = allActions.filter((a) => a.status === 'completed' && a.completionDate && new Date(a.completionDate) >= subWeeks(now, 1));
+    const completedLast7Days = allActions.filter((a) => a.status === 'completed' && a.completedAt && new Date(a.completedAt) >= subWeeks(now, 1));
     const totalCompletionHours = completedLast7Days.reduce((sum, task) => {
       const createdDate = new Date(task.created_date);
-      const completionDate = new Date(task.completionDate);
+      const completionDate = new Date(task.completedAt);
       if (completionDate > createdDate) { // Ensure completion is after creation
         return sum + differenceInHours(completionDate, createdDate);
       }
@@ -380,17 +378,17 @@ export default function ToDoPage() {
     }, 0);
     const avgCompletionHours = completedLast7Days.length > 0 ? totalCompletionHours / completedLast7Days.length : 0;
 
-    // Overdue tasks are those that are not completed and whose actionDate is before today
+    // Overdue tasks are those that are not completed and whose dueDate is before today
     const overdueTasksCount = allActions.filter((a) =>
-      a.status !== 'completed' && a.actionDate && new Date(a.actionDate) < startOfDay(now)
+      a.status !== 'completed' && a.dueDate && new Date(a.dueDate) < startOfDay(now)
     ).length;
     const totalAssignedTasks = allActions.length;
     const overdueRate = totalAssignedTasks > 0 ? overdueTasksCount / totalAssignedTasks * 100 : 0;
 
     // --- Chart Data ---
     const completionTrend = last7DaysInterval.map((day) => {
-      const assigned = allActions.filter((a) => a.actionDate && isSameDay(new Date(a.actionDate), day));
-      const completed = assigned.filter((a) => a.status === 'completed' && a.completionDate && isSameDay(new Date(a.completionDate), day));
+      const assigned = allActions.filter((a) => a.dueDate && isSameDay(new Date(a.dueDate), day));
+      const completed = assigned.filter((a) => a.status === 'completed' && a.completedAt && isSameDay(new Date(a.completedAt), day));
       return {
         name: format(day, 'E'),
         completion: assigned.length > 0 ? completed.length / assigned.length * 100 : 0
@@ -419,7 +417,7 @@ export default function ToDoPage() {
     const categoryAllocation = Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
 
     const timeOfDayCompletion = completedLast7Days.reduce((acc, task) => {
-      const hour = getHours(new Date(task.completionDate));
+      const hour = getHours(new Date(task.completedAt));
       if (hour >= 8 && hour < 12) acc.Morning = (acc.Morning || 0) + 1; else
         if (hour >= 12 && hour < 17) acc.Afternoon = (acc.Afternoon || 0) + 1; else
           if (hour >= 17 && hour < 21) acc.Evening = (acc.Evening || 0) + 1; else
@@ -630,9 +628,11 @@ export default function ToDoPage() {
                 <LoadingIndicator text="Analyzing your patterns..." size="md" />
               </div>
             ) : (
-              <ReactMarkdown className="text-sm text-[#475569] leading-relaxed prose prose-sm max-w-none">
-                {aiTakeaways || 'Your activity patterns show steady progress. Focus on maintaining consistency and completing high-priority tasks during your most productive hours.'}
-              </ReactMarkdown>
+              <div className="text-sm text-[#475569] leading-relaxed prose prose-sm max-w-none">
+                <ReactMarkdown>
+                  {aiTakeaways || 'Your activity patterns show steady progress. Focus on maintaining consistency and completing high-priority tasks during your most productive hours.'}
+                </ReactMarkdown>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -769,15 +769,15 @@ function ScheduleView({ allActions }) {
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
 
   const tasksForSelectedDate = useMemo(() => {
-    // Filter for actions that have an actionDate and match the selectedDate
+    // Filter for actions that have a dueDate and match the selectedDate
     return allActions.filter((action) => {
-      if (!action.actionDate) return false;
+      if (!action.dueDate) return false;
       // FIX: The `new Date('YYYY-MM-DD')` constructor treats the date as UTC midnight.
       // This can cause the date to be off by one day in timezones behind UTC.
       // Parsing the string manually ensures it's treated as local time.
-      const [year, month, day] = action.actionDate.split('-').map(Number);
-      const actionDateObj = new Date(year, month - 1, day);
-      return isSameDay(actionDateObj, selectedDate);
+      const [year, month, day] = action.dueDate.split('-').map(Number);
+      const dueDateObj = new Date(year, month - 1, day);
+      return isSameDay(dueDateObj, selectedDate);
     });
   }, [allActions, selectedDate]);
 
@@ -868,7 +868,7 @@ function ScheduleView({ allActions }) {
 
 
   const DayButton = ({ day }) => {
-    const dayTasks = allActions.filter((a) => a.actionDate && isSameDay(new Date(a.actionDate), day));
+    const dayTasks = allActions.filter((a) => a.dueDate && isSameDay(new Date(a.dueDate), day));
     // Get unique categories for the day, default if none specified
     const categories = [...new Set(dayTasks.map((t) => {
       // Special case for Power Hour Theme quadrant which is based on actionType

@@ -35,9 +35,9 @@ export const calculatePulseScore = (goals, actions, agentProfile, contactCount =
     const startOfLast30Days = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startOfLast7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const actionsLast30Days = actions.filter(a => a.actionDate && new Date(a.actionDate) >= startOfLast30Days);
+    const actionsLast30Days = actions.filter(a => a.dueDate && new Date(a.dueDate) >= startOfLast30Days);
     const completedActionsLast30Days = actionsLast30Days.filter(a => a.status === 'completed');
-    const actionsLast7Days = actions.filter(a => a.actionDate && new Date(a.actionDate) >= startOfLast7Days);
+    const actionsLast7Days = actions.filter(a => a.dueDate && new Date(a.dueDate) >= startOfLast7Days);
     const completedActionsLast7Days = actionsLast7Days.filter(a => a.status === 'completed');
 
     // 1. Planning Score (0-20 points)
@@ -53,7 +53,7 @@ export const calculatePulseScore = (goals, actions, agentProfile, contactCount =
 
     // 2. Urgency Score (0-20 points)
     const calculateUrgencyScore = () => {
-        const overdueActions = actions.filter(a => a.actionDate && new Date(a.actionDate) < today && a.status !== 'completed' && a.status !== 'archived');
+        const overdueActions = actions.filter(a => a.dueDate && new Date(a.dueDate) < today && a.status !== 'completed' && a.status !== 'archived');
         const overduePenalty = Math.min(10, overdueActions.length * 1);
         let score = 10 - overduePenalty;
 
@@ -87,7 +87,7 @@ export const calculatePulseScore = (goals, actions, agentProfile, contactCount =
         let score = 0;
         if (goals.length > 3) score += 4;
 
-        const actionDates = new Set(actionsLast30Days.map(a => new Date(a.actionDate).toDateString()));
+        const actionDates = new Set(actionsLast30Days.map(a => new Date(a.dueDate).toDateString()));
         if (actionDates.size > 10) score += 6;
         
         const generatedTasks = actions.filter(a => a.generated === true);
@@ -144,7 +144,7 @@ export const calculatePulseScore = (goals, actions, agentProfile, contactCount =
     if (activeGoals.length < 3) diagnostics.weaknesses.push("Set at least 3 active goals to provide clear targets.");
 
     // Urgency Diagnostics
-    const overdueCount = actions.filter(a => a.actionDate && new Date(a.actionDate) < today && a.status !== 'completed' && a.status !== 'archived').length;
+    const overdueCount = actions.filter(a => a.dueDate && new Date(a.dueDate) < today && a.status !== 'completed' && a.status !== 'archived').length;
     if (overdueCount > 5) diagnostics.weaknesses.push(`High number of overdue tasks (${overdueCount}). Focus on clearing your backlog.`);
     if (urgencyScore < 10) diagnostics.threats.push("Lack of urgency in task completion may be slowing progress.");
 

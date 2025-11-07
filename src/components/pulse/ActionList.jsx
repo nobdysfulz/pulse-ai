@@ -34,19 +34,19 @@ export default function ActionList({ allActions, todayFormatted, onToggle }) {
     const todayStart = startOfDay(new Date());
 
     const todayActions = (allActions || []).filter((task) => {
-      if (!task.actionDate) return false;
-      return task.actionDate === todayFormatted && task.status !== 'completed';
+      if (!task.dueDate) return false;
+      return task.dueDate === todayFormatted && task.status !== 'completed';
     });
 
     const overdueActions = (allActions || []).filter((task) => {
-      if (!task.actionDate) return false;
-      return task.actionDate < todayFormatted && task.status !== 'completed';
+      if (!task.dueDate) return false;
+      return task.dueDate < todayFormatted && task.status !== 'completed';
     });
 
     const completedActions = (allActions || []).filter((task) => task.status === 'completed').sort((a, b) => {
-      if (!a.completionDate) return 1;
-      if (!b.completionDate) return -1;
-      return new Date(b.completionDate) - new Date(a.completionDate);
+      if (!a.completedAt) return 1;
+      if (!b.completedAt) return -1;
+      return new Date(b.completedAt) - new Date(a.completedAt);
     });
 
     return {

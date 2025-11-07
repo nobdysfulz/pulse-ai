@@ -15,8 +15,7 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
     actionType: 'lead_generation',
     priority: 'medium',
     category: 'power_hour',
-    actionDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0],
     frequency: ''
   });
 
@@ -38,8 +37,7 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
         actionType: 'lead_generation',
         priority: 'medium',
         category: 'power_hour',
-        actionDate: new Date().toISOString().split('T')[0],
-        dueDate: '',
+        dueDate: new Date().toISOString().split('T')[0],
         frequency: ''
       });
     } catch (error) {
@@ -138,12 +136,12 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
             </div>
 
             <div>
-              <Label htmlFor="actionDate">Date</Label>
+              <Label htmlFor="dueDate">Date</Label>
               <Input
-                id="actionDate"
+                id="dueDate"
                 type="date"
-                value={formData.actionDate}
-                onChange={(e) => setFormData({ ...formData, actionDate: e.target.value })}
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 className="mt-1"
               />
             </div>
