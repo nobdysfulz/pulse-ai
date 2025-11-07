@@ -233,3 +233,6 @@ verify_jwt = true
 
 [functions.sendEmail]
 verify_jwt = true
+
+[functions.fetchUserConnections]
+verify_jwt = false
