@@ -409,7 +409,14 @@ export default function ContentStudioPage() {
     setGeneratingTaskId(template.id);
 
     try {
-      const { data } = await supabase.functions.invoke('openaiChat', {
+      // Get fresh auth token
+      const token = window.__clerkGetToken ? await window.__clerkGetToken() : null;
+      if (!token) {
+        toast.error('Authentication token not available. Please refresh the page.');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('openaiChat', {
         body: {
           messages: [{ role: 'user', content: finalUserPrompt }],
           systemPrompt: finalSystemPrompt,
@@ -417,7 +424,15 @@ export default function ContentStudioPage() {
           maxTokens: 800,
           temperature: 0.7,
         },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
+
+      if (error) {
+        console.error('AI generation error:', error);
+        throw new Error(error.message || 'Failed to generate content');
+      }
 
       if (!data?.message) {
         throw new Error('No response returned from AI.');
@@ -446,7 +461,7 @@ export default function ContentStudioPage() {
       });
     } catch (error) {
       console.error('Calendar content generation failed:', error);
-      toast.error('Failed to generate content. Please try again.');
+      toast.error(error.message || 'Failed to generate content. Please try again.');
     } finally {
       setGeneratingTaskId(null);
     }
@@ -640,8 +655,16 @@ export default function ContentStudioPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-24 bg-white border border-dashed border-gray-300 rounded-lg">
-                <p className="text-lg font-medium text-[#475569]">No content available for this week. Check back soon for new materials.</p>
+              <div className="text-center py-24 bg-white border border-dashed border-[#E2E8F0] rounded-lg">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center mx-auto">
+                    <img src="/images/icons/pulse-ai-icon.png" alt="PULSE AI" className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#1E293B]">No Weekly Content Yet</h3>
+                  <p className="text-sm text-[#64748B]">
+                    Weekly featured content packs will appear here once they're available. In the meantime, use the AI Content Generator in the sidebar to create custom content!
+                  </p>
+                </div>
               </div>
             )}
           </div>

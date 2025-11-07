@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,12 +13,38 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, systemPrompt, model = 'google/gemini-2.5-flash' } = await req.json();
+    // Validate Clerk authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const userId: string = await validateClerkTokenWithJose(token);
+    
+    console.log('[openaiChat] Request from user:', userId);
+
+    const { messages, systemPrompt, model = 'google/gemini-2.5-flash', maxTokens, temperature } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
+
+    const requestBody: any = {
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt || 'You are a helpful AI assistant for real estate professionals.' },
+        ...messages
+      ],
+    };
+
+    // Add optional parameters if provided
+    if (maxTokens) requestBody.max_tokens = maxTokens;
+    if (temperature !== undefined) requestBody.temperature = temperature;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -25,18 +52,12 @@ serve(async (req) => {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt || 'You are a helpful AI assistant for real estate professionals.' },
-          ...messages
-        ],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
+      console.error('[openaiChat] Lovable AI error:', response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
@@ -44,11 +65,11 @@ serve(async (req) => {
     const generatedText = data.choices[0].message.content;
 
     return new Response(
-      JSON.stringify({ generatedText }),
+      JSON.stringify({ message: generatedText }), // Return as 'message' for frontend compatibility
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in openaiChat:', error);
+    console.error('[openaiChat] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

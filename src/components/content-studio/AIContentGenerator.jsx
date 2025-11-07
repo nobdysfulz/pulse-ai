@@ -140,13 +140,28 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
     const aiParams = getAIParams(contentType);
 
     try {
-      const { data } = await supabase.functions.invoke('openaiChat', {
+      // Get fresh auth token
+      const token = window.__clerkGetToken ? await window.__clerkGetToken() : null;
+      if (!token) {
+        toast.error('Authentication token not available. Please refresh the page.');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('openaiChat', {
         body: {
           messages: [{ role: 'user', content: finalUserPrompt }],
           systemPrompt: finalSystemPrompt,
           ...aiParams
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
         }
       });
+
+      if (error) {
+        console.error('AI generation error:', error);
+        throw new Error(error.message || 'Failed to generate content');
+      }
 
       if (data?.message) {
         onContentGenerated({
@@ -159,12 +174,13 @@ export default function AIContentGenerator({ userCredits, isSubscriber, marketCo
           source: 'creator',
         });
         setTopic('');
+        toast.success('Content created successfully!');
       } else {
         throw new Error("Received an empty response from AI.");
       }
     } catch (error) {
       console.error('Error generating content:', error);
-      toast.error('Failed to generate content. Please try again.');
+      toast.error(error.message || 'Failed to generate content. Please try again.');
     } finally {
       setIsGenerating(false);
     }
