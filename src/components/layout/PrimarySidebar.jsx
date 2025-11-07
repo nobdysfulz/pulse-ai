@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare, Brain } from 'lucide-react';
 import { UserContext } from '../context/UserContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useClerk } from '@clerk/clerk-react';
 
 export default function PrimarySidebar({ onNavigate }) {
