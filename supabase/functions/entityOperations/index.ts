@@ -29,8 +29,40 @@ const ALLOWED_TABLES = [
   'call_logs', 'ai_agent_conversations', 'ai_actions_log', 'ai_tool_usage', 'transactions',
   'role_play_scenarios', 'objection_scripts', 'client_personas', 'agent_voices',
   'task_templates', 'featured_content_packs', 'campaign_templates', 'legal_documents',
-  'feature_flags', 'ai_prompt_configs', 'graph_context_cache', 'user_credits'
+  'feature_flags', 'ai_prompt_configs', 'graph_context_cache', 'user_credits', 'content_preferences'
 ];
+// Utility: UUID check
+const isUuid = (str: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+
+// Map Clerk ID -> Internal UUID (stable)
+async function getInternalUserId(supabase: any, clerkId: string): Promise<string> {
+  // Try existing
+  const { data: existing, error: fetchErr } = await supabase
+    .from('user_identity_map')
+    .select('internal_user_id')
+    .eq('clerk_id', clerkId)
+    .maybeSingle();
+
+  if (fetchErr) {
+    console.warn('[entityOperations] user_identity_map fetch error:', fetchErr);
+  }
+
+  if (existing?.internal_user_id) return existing.internal_user_id;
+
+  // Create new mapping row (internal_user_id defaults via DB)
+  const { data: inserted, error: insertErr } = await supabase
+    .from('user_identity_map')
+    .insert({ clerk_id: clerkId })
+    .select('internal_user_id')
+    .single();
+
+  if (insertErr) {
+    console.error('[entityOperations] user_identity_map insert error:', insertErr);
+    throw insertErr;
+  }
+  return inserted.internal_user_id as string;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -139,10 +171,14 @@ serve(async (req) => {
     // Create Supabase client with service role (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    // Normalize user id to internal UUID (for tables using uuid user_id)
+    const internalUserId = await getInternalUserId(supabase, userId);
+
     console.log('📊 DB_OPERATION_START:', {
       table,
       operation,
       userId,
+      internalUserId,
       timestamp: new Date().toISOString()
     });
 
@@ -176,16 +212,21 @@ serve(async (req) => {
       }
 
       case 'filter': {
-        const { limit = 100, order, ascending = true, ...filterParams } = filters;
+        const { limit = 100, order, ascending = true, ...rawFilterParams } = filters;
         let query = supabase.from(table).select('*').limit(limit);
-        
-        // Apply filters
+
+        // Apply filters with user_id normalization
+        const filterParams: Record<string, any> = { ...rawFilterParams };
+        if (typeof filterParams.user_id === 'string' && !isUuid(filterParams.user_id)) {
+          filterParams.user_id = internalUserId;
+        }
+
         Object.entries(filterParams).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
-            query = query.eq(key, value);
+            query = query.eq(key, value as any);
           }
         });
-        
+
         if (order) {
           query = query.order(order, { ascending });
         }
@@ -256,10 +297,10 @@ serve(async (req) => {
           );
         }
 
-        // For user-scoped tables, automatically set user_id
-        const createData = table === 'profiles' 
+        // For user-scoped tables, automatically set user_id (normalize to internal UUID)
+        const createData = table === 'profiles'
           ? { ...data, id: userId }
-          : { ...data, user_id: userId };
+          : { ...data, user_id: internalUserId };
 
         console.log('📊 DB_CREATE_DATA:', {
           table,
@@ -385,10 +426,13 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
     
+    const anyErr: any = error;
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error',
-        code: 'UNKNOWN_ERROR',
+        error: anyErr?.message || 'Internal server error',
+        code: anyErr?.code || 'UNKNOWN_ERROR',
+        details: anyErr?.details,
+        hint: anyErr?.hint,
         timestamp: new Date().toISOString()
       }),
       { 

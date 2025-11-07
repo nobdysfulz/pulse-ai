@@ -1767,6 +1767,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_identity_map: {
+        Row: {
+          clerk_id: string
+          created_at: string
+          internal_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          clerk_id: string
+          created_at?: string
+          internal_user_id?: string
+          updated_at?: string
+        }
+        Update: {
+          clerk_id?: string
+          created_at?: string
+          internal_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_knowledge: {
         Row: {
           agent_type: string
