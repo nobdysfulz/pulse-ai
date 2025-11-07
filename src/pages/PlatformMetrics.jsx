@@ -66,7 +66,7 @@ export default function PlatformMetrics() {
     }, [filters.startDate, filters.endDate, filters.searchUser, filters.region]);
 
     useEffect(() => {
-        if (user && (user.role === 'admin' || user.subscriptionTier === 'Admin')) {
+        if (user && (user.isAdmin || user.subscriptionTier === 'Admin')) {
             loadMetrics();
         }
     }, [user, loadMetrics]);
@@ -79,7 +79,7 @@ export default function PlatformMetrics() {
         );
     }
 
-    if (user.role !== 'admin' && user.subscriptionTier !== 'Admin') {
+    if (user.isAdmin || user.subscriptionTier === 'Admin') {
         return (
             <div className="flex items-center justify-center h-screen">
                 <p className="text-slate-600">Access Denied</p>

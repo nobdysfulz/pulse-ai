@@ -1,6 +1,7 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { UserContext } from '../components/context/UserContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
 import SettingsSidebar from '../components/settings/SettingsSidebar';
 import SetupProgressTab from '../components/settings/SetupProgressTab';
@@ -38,6 +39,7 @@ import DataImportManager from '../components/settings/DataImportManager';
 
 export default function SettingsPage() {
   const { user, loading } = useContext(UserContext);
+  const isAdmin = useIsAdmin();
   const [activeTab, setActiveTab] = useState('account');
 
   useEffect(() => {
@@ -72,47 +74,47 @@ export default function SettingsPage() {
       
       // Admin Tabs
       case 'data-import':
-        return user?.role === 'admin' ? <DataImportManager /> : <AccessDenied />;
+        return isAdmin ? <DataImportManager /> : <AccessDenied />;
       case 'admin-users':
-        return user?.role === 'admin' ? <UserManagementTab /> : <AccessDenied />;
+        return isAdmin ? <UserManagementTab /> : <AccessDenied />;
       case 'admin-subscriptions':
-        return user?.role === 'admin' ? <ManualSubscriptionManager /> : <AccessDenied />;
+        return isAdmin ? <ManualSubscriptionManager /> : <AccessDenied />;
       case 'admin-content':
-        return user?.role === 'admin' ? <ContentTopicsManager /> : <AccessDenied />;
+        return isAdmin ? <ContentTopicsManager /> : <AccessDenied />;
       case 'admin-packs':
-        return user?.role === 'admin' ? <ContentPackManager /> : <AccessDenied />;
+        return isAdmin ? <ContentPackManager /> : <AccessDenied />;
       case 'admin-featured':
-        return user?.role === 'admin' ? <FeaturedContentPackManager /> : <AccessDenied />;
+        return isAdmin ? <FeaturedContentPackManager /> : <AccessDenied />;
       case 'admin-prompts':
-        return user?.role === 'admin' ? <AiPromptManager /> : <AccessDenied />;
+        return isAdmin ? <AiPromptManager /> : <AccessDenied />;
       case 'admin-campaigns':
-        return user?.role === 'admin' ? <CampaignTemplateManager /> : <AccessDenied />;
+        return isAdmin ? <CampaignTemplateManager /> : <AccessDenied />;
       case 'admin-scenarios':
-        return user?.role === 'admin' ? <ScenarioManager /> : <AccessDenied />;
+        return isAdmin ? <ScenarioManager /> : <AccessDenied />;
       case 'admin-personas':
-        return user?.role === 'admin' ? <ClientPersonaManager /> : <AccessDenied />;
+        return isAdmin ? <ClientPersonaManager /> : <AccessDenied />;
       case 'admin-scripts':
-        return user?.role === 'admin' ? <ObjectionScriptManager /> : <AccessDenied />;
+        return isAdmin ? <ObjectionScriptManager /> : <AccessDenied />;
       case 'admin-tasks':
-        return user?.role === 'admin' ? <TaskTemplateManager /> : <AccessDenied />; // Updated component
+        return isAdmin ? <TaskTemplateManager /> : <AccessDenied />;
       case 'admin-voices':
-        return user?.role === 'admin' ? <AgentVoiceManager /> : <AccessDenied />;
+        return isAdmin ? <AgentVoiceManager /> : <AccessDenied />;
       case 'admin-disclosures':
-        return user?.role === 'admin' ? <DisclosureManager /> : <AccessDenied />;
+        return isAdmin ? <DisclosureManager /> : <AccessDenied />;
       
       // NEW Admin Tabs
       case 'admin-emails':
-        return user?.role === 'admin' ? <EmailCampaignManager /> : <AccessDenied />;
+        return isAdmin ? <EmailCampaignManager /> : <AccessDenied />;
       case 'admin-monitoring':
-        return user?.role === 'admin' ? <SystemMonitoringDashboard /> : <AccessDenied />;
+        return isAdmin ? <SystemMonitoringDashboard /> : <AccessDenied />;
       case 'admin-errors':
-        return user?.role === 'admin' ? <SystemErrorsManager /> : <AccessDenied />;
+        return isAdmin ? <SystemErrorsManager /> : <AccessDenied />;
       case 'admin-flags':
-        return user?.role === 'admin' ? <FeatureFlagsManager /> : <AccessDenied />;
+        return isAdmin ? <FeatureFlagsManager /> : <AccessDenied />;
       case 'admin-integrations':
-        return user?.role === 'admin' ? <IntegrationHealthMonitor /> : <AccessDenied />;
-      case 'admin-autopilot': // New case for Autopilot Monitoring
-        return user?.role === 'admin' ? <AutopilotMonitoring /> : <AccessDenied />;
+        return isAdmin ? <IntegrationHealthMonitor /> : <AccessDenied />;
+      case 'admin-autopilot':
+        return isAdmin ? <AutopilotMonitoring /> : <AccessDenied />;
       
       default:
         return <ProfileTab />;

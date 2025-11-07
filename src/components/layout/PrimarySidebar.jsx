@@ -11,7 +11,7 @@ export default function PrimarySidebar({ onNavigate }) {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = useIsAdmin();
   const isSubscriberOrAdmin = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
 
   const handleLogout = async () => {

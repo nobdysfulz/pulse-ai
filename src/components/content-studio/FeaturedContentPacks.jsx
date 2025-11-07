@@ -37,7 +37,15 @@ export default function FeaturedContentPacks() {
       setShowUpgradeModal(true);
       return;
     }
-    window.open(pack.url, '_blank');
+    
+    // Get URL from contentItems array
+    const url = pack.contentItems?.[0]?.url;
+    if (!url) {
+      toast.error("No download link available for this pack");
+      return;
+    }
+    
+    window.open(url, '_blank');
     toast.success(`Opening ${pack.title}...`);
   };
 
@@ -52,7 +60,8 @@ export default function FeaturedContentPacks() {
           ) : (
             packs.map((pack) => {
               const isLocked = pack.isPremium && !isSubscriber;
-              const Icon = pack.type === 'link' ? ExternalLink : Download;
+              const contentType = pack.contentItems?.[0]?.type || 'link';
+              const Icon = contentType === 'link' ? ExternalLink : Download;
 
               return (
                 <div
@@ -78,7 +87,7 @@ export default function FeaturedContentPacks() {
                     <Button
                       className="flex-shrink-0"
                       size="icon"
-                      disabled={isLocked && pack.type === 'file'}
+                      disabled={isLocked && contentType === 'file'}
                     >
                       {isLocked ? <Lock className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                     </Button>

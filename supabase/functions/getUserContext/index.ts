@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       pulseScoresResult,
       pulseConfigResult,
       agentIntelligenceResult,
+      userRolesResult,
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('user_onboarding').select('*').eq('user_id', userId).maybeSingle(),
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
       supabase.from('pulse_scores').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(30),
       supabase.from('pulse_config').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('agent_intelligence_profiles').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
 
     // Check for profile fetch error (critical)
@@ -76,10 +78,19 @@ Deno.serve(async (req) => {
     if (pulseScoresResult.error) console.warn('[getUserContext] Pulse scores error:', pulseScoresResult.error);
     if (pulseConfigResult.error) console.warn('[getUserContext] Pulse config error:', pulseConfigResult.error);
     if (agentIntelligenceResult.error) console.warn('[getUserContext] Agent intelligence error:', agentIntelligenceResult.error);
+    if (userRolesResult.error) console.warn('[getUserContext] User roles error:', userRolesResult.error);
+
+    // Extract roles array and determine if user is admin
+    const roles = (userRolesResult.data || []).map((r: any) => r.role);
+    const isAdmin = roles.includes('admin');
 
     // Build complete user context
     const context = {
-      user: profileResult.data,
+      user: {
+        ...profileResult.data,
+        isAdmin, // Add computed admin status to user object
+        roles, // Add roles array
+      },
       onboarding: onboardingResult.data || null,
       marketConfig: marketConfigResult.data || null,
       preferences: preferencesResult.data || null,

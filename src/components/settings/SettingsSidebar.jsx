@@ -1,10 +1,12 @@
 
 import React, { useContext, useState } from 'react';
 import { UserContext } from '../context/UserContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { User, MapPin, Settings, Bell, Link as LinkIcon, Gift, Brain, Shield, Share2, KeyRound, ChevronDown } from 'lucide-react';
 
 export default function SettingsSidebar({ activeTab, onTabChange }) {
   const { user } = useContext(UserContext);
+  const isAdmin = useIsAdmin();
   const [adminExpanded, setAdminExpanded] = useState(false);
 
   const regularMenuItems = [
@@ -80,7 +82,7 @@ export default function SettingsSidebar({ activeTab, onTabChange }) {
         })}
 
         {/* Admin Section with Expandable Sub-menu */}
-        {user?.role === 'admin' && (
+        {isAdmin && (
           <div className="mt-2">
             <button
               onClick={() => setAdminExpanded(!adminExpanded)}

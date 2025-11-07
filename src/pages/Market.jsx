@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { UserContext } from '../components/context/UserContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -203,7 +204,7 @@ export default function MarketPage() {
     const daysSinceLastGeneration = Math.floor((now - lastGeneratedDate) / (1000 * 60 * 60 * 24));
 
     // Admin: no restrictions
-    if (user.subscriptionTier === 'Admin' || user.role === 'admin') {
+    if (user.subscriptionTier === 'Admin' || user.isAdmin) {
       return true;
     }
 
@@ -223,7 +224,7 @@ export default function MarketPage() {
     const now = new Date();
     const daysSinceLastGeneration = Math.floor((now - lastGeneratedDate) / (1000 * 60 * 60 * 24));
 
-    if (user.subscriptionTier === 'Admin' || user.role === 'admin') return 0;
+    if (user.subscriptionTier === 'Admin' || user.isAdmin) return 0;
     if (user.subscriptionTier === 'Subscriber') return Math.max(0, 7 - daysSinceLastGeneration);
     return Math.max(0, 30 - daysSinceLastGeneration);
   };

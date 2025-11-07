@@ -87,7 +87,7 @@ export default function SupportAgentPage() {
         return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
     }
 
-    if (!user || user.role !== 'admin') {
+    if (!user || !user.isAdmin) {
         return (
             <div className="flex items-center justify-center h-full p-8">
                 <Card className="w-full max-w-md text-center">

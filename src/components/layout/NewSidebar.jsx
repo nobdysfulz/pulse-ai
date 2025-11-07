@@ -151,7 +151,7 @@ export default function NewSidebar({ user, credits, tasksDueTodayCount, onMobile
     }
   };
 
-  const isAdminOrAdminTier = useMemo(() => user?.role === 'admin' || user?.subscriptionTier === 'Admin', [user]);
+  const isAdminOrAdminTier = useIsAdminOrAdminTier();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
