@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -175,6 +175,11 @@ const ExpenseCategory = ({
 };
 
 export default function Step2Financial({ planData, setPlanData }) {
+  const [openAccordions, setOpenAccordions] = React.useState(() => [
+    ...PERSONAL_EXPENSE_CATEGORIES.map((c) => `personal-${c.key}`),
+    ...BUSINESS_EXPENSE_CATEGORIES.map((c) => `business-${c.key}`)
+  ]);
+
   const financialSummary = useMemo(() => calculateFinancialSummary(planData), [
     planData.personalExpenses,
     planData.businessExpenses,
@@ -236,7 +241,7 @@ export default function Step2Financial({ planData, setPlanData }) {
             <CardTitle className="text-lg font-semibold text-slate-800">Personal Expenses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Accordion type="multiple" defaultValue={PERSONAL_EXPENSE_CATEGORIES.map((c) => `personal-${c.key}`)}>
+            <Accordion type="multiple" value={openAccordions} onValueChange={setOpenAccordions}>
               {PERSONAL_EXPENSE_CATEGORIES.map((category) => (
                 <ExpenseCategory
                   key={category.key}
@@ -259,7 +264,7 @@ export default function Step2Financial({ planData, setPlanData }) {
             <CardTitle className="text-lg font-semibold text-slate-800">Business Expenses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Accordion type="multiple" defaultValue={BUSINESS_EXPENSE_CATEGORIES.map((c) => `business-${c.key}`)}>
+            <Accordion type="multiple" value={openAccordions} onValueChange={setOpenAccordions}>
               {BUSINESS_EXPENSE_CATEGORIES.map((category) => (
                 <ExpenseCategory
                   key={category.key}
