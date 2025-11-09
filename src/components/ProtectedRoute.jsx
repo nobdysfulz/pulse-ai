@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { LoadingIndicator } from '@/components/ui/LoadingIndicator';
+import LoadingIndicator from '@/components/ui/LoadingIndicator';
 
 export default function ProtectedRoute({ children }) {
   const [session, setSession] = useState(null);
