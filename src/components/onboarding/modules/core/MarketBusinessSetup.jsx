@@ -87,7 +87,6 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
 
       // Save Market Config
       const marketData = {
-        userId: user.id,
         marketName: formData.primaryTerritory,
         state: formData.state,
         city: formData.city
