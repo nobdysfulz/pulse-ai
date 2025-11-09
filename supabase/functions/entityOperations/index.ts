@@ -35,35 +35,6 @@ const ALLOWED_TABLES = [
 const isUuid = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 
-// Map Clerk ID -> Internal UUID (stable)
-async function getInternalUserId(supabase: any, clerkId: string): Promise<string> {
-  // Try existing
-  const { data: existing, error: fetchErr } = await supabase
-    .from('user_identity_map')
-    .select('internal_user_id')
-    .eq('clerk_id', clerkId)
-    .maybeSingle();
-
-  if (fetchErr) {
-    console.warn('[entityOperations] user_identity_map fetch error:', fetchErr);
-  }
-
-  if (existing?.internal_user_id) return existing.internal_user_id;
-
-  // Create new mapping row (internal_user_id defaults via DB)
-  const { data: inserted, error: insertErr } = await supabase
-    .from('user_identity_map')
-    .insert({ clerk_id: clerkId })
-    .select('internal_user_id')
-    .single();
-
-  if (insertErr) {
-    console.error('[entityOperations] user_identity_map insert error:', insertErr);
-    throw insertErr;
-  }
-  return inserted.internal_user_id as string;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -168,14 +139,10 @@ serve(async (req) => {
     // Create Supabase client with service role (bypasses RLS)
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Normalize user id to internal UUID (for tables using uuid user_id)
-    const internalUserId = await getInternalUserId(supabase, userId);
-
     console.log('📊 DB_OPERATION_START:', {
       table,
       operation,
       userId,
-      internalUserId,
       timestamp: new Date().toISOString()
     });
 
@@ -212,13 +179,8 @@ serve(async (req) => {
         const { limit = 100, order, ascending = true, ...rawFilterParams } = filters;
         let query = supabase.from(table).select('*').limit(limit);
 
-        // Apply filters with user_id normalization
-        const filterParams: Record<string, any> = { ...rawFilterParams };
-        if (typeof filterParams.user_id === 'string' && !isUuid(filterParams.user_id)) {
-          filterParams.user_id = internalUserId;
-        }
-
-        Object.entries(filterParams).forEach(([key, value]) => {
+        // Apply filters directly
+        Object.entries(rawFilterParams).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
             query = query.eq(key, value as any);
           }
@@ -294,10 +256,10 @@ serve(async (req) => {
           );
         }
 
-        // For user-scoped tables, automatically set user_id (normalize to internal UUID)
+        // For user-scoped tables, automatically set user_id using authenticated user ID
         const createData = table === 'profiles'
           ? { ...data, id: userId }
-          : { ...data, user_id: internalUserId };
+          : { ...data, user_id: userId };
 
         console.log('📊 DB_CREATE_DATA:', {
           table,
