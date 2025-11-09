@@ -114,16 +114,30 @@ serve(async (req) => {
         );
     }
 
-    // Update credits atomically (upsert on user_id)
-    const { error: updateError } = await supabase
-      .from('user_credits')
-      .upsert({
-        user_id: userId,
-        credits_available: newBalance,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+    // Persist credits (avoid unique constraint by conditional update/insert)
+    let persistenceError: any = null;
+    if (creditData) {
+      const { error } = await supabase
+        .from('user_credits')
+        .update({
+          credits_available: newBalance,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+      persistenceError = error;
+    } else {
+      const { error } = await supabase
+        .from('user_credits')
+        .insert({
+          user_id: userId,
+          credits_available: newBalance,
+          updated_at: new Date().toISOString(),
+        });
+      persistenceError = error;
+    }
 
-    if (updateError) throw updateError;
+    if (persistenceError) throw persistenceError;
+
 
     // Log transaction
     const { error: logError } = await supabase
