@@ -86,7 +86,7 @@ const ExpenseRow = ({ expense, onChange, onRemove }) => {
       <div className="flex-1 space-y-1">
         <Label className="text-xs uppercase tracking-wide text-slate-500">Name</Label>
         <Input
-          value={expense.name}
+          value={expense.name || ''}
           onChange={(e) => onChange('name', e.target.value)}
           placeholder="Expense name"
         />
@@ -96,7 +96,8 @@ const ExpenseRow = ({ expense, onChange, onRemove }) => {
         <Input
           type="number"
           min="0"
-          value={expense.amount}
+          step="0.01"
+          value={expense.amount || ''}
           onChange={(e) => onChange('amount', e.target.value)}
           placeholder="0"
         />
@@ -199,7 +200,8 @@ export default function Step2Financial({ planData, setPlanData }) {
   const handleChangeExpense = (type, categoryKey, expenseId, field, value) => {
     setPlanData((prev) => {
       const nextExpenses = { ...(prev[`${type}Expenses`] || {}) };
-      const updated = (nextExpenses[categoryKey] || []).map((expense) =>
+      const categoryExpenses = nextExpenses[categoryKey] || [];
+      const updated = categoryExpenses.map((expense) =>
         expense.id === expenseId ? { ...expense, [field]: value } : expense,
       );
       nextExpenses[categoryKey] = updated;
