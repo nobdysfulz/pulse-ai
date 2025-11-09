@@ -4,11 +4,13 @@ import { createPageUrl } from '@/utils';
 import { Home, CheckSquare, Target, Users, LogOut, TrendingUp, Camera, Award, MessageSquare, Brain } from 'lucide-react';
 import { UserContext } from '../context/UserContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import { useClerk } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function PrimarySidebar({ onNavigate }) {
   const { user } = useContext(UserContext);
-  const { signOut } = useClerk();
+  const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -16,8 +18,13 @@ export default function PrimarySidebar({ onNavigate }) {
   const isSubscriberOrAdmin = user?.subscriptionTier === 'Subscriber' || user?.subscriptionTier === 'Admin';
 
   const handleLogout = async () => {
-    await signOut();
-    onNavigate?.(); 
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to log out');
+    } else {
+      navigate('/login');
+    }
+    onNavigate?.();
   };
 
   // Calculate active states based on currentPath

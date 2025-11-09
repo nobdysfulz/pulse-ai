@@ -6,22 +6,20 @@ import { LifeBuoy, LogOut, ChevronDown, User, Settings, BookOpen, Bell } from 'l
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useClerk } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export default function TopHeader() {
   const { user, loading, setSupportChatOpen } = useContext(UserContext);
-  const { signOut } = useClerk();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      toast.success('Successfully logged out.');
-      navigate(createPageUrl('Login'));
-    } catch (error) {
-      toast.error('Failed to log out.');
-      console.error('Logout error:', error);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to log out');
+    } else {
+      toast.success('Successfully logged out');
+      navigate('/login');
     }
   };
 

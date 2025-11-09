@@ -2,7 +2,7 @@
 import React, { useState, useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { UserOnboarding, UserMarketConfig, UserPreferences } from '@/api/entities';
-import { useAuth } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,8 +27,12 @@ const createPageUrl = (pageName) => {
 
 export default function OnboardingFlow({ isOpen, onComplete }) {
   const { user, refreshUserData } = useContext(UserContext);
-  const { getToken } = useAuth();
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const navigate = useNavigate();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({

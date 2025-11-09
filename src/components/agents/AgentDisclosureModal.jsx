@@ -6,10 +6,14 @@ import { Label } from '@/components/ui/label';
 import { X, AlertCircle } from 'lucide-react';
 import { UserOnboarding } from '@/api/entities';
 import { toast } from 'sonner';
-import { useAuth } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AgentDisclosureModal({ isOpen, onAccept, onDecline, userId }) {
-  const { getToken } = useAuth();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
 

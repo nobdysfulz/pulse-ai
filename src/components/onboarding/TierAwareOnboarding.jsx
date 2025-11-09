@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@clerk/clerk-react";
 import { UserOnboarding } from "@/api/entities";
 import OnboardingSidebar from "./OnboardingSidebar";
 import { buildActiveModules, determineInitialPhase, normalizeOnboardingProgress } from "./onboardingLogic";
@@ -110,7 +109,11 @@ const getUserOnboarding = async (userId, token) => {
 
 function TierAwareOnboarding({ initialPhase = "core" }) {
   const { user, onboarding: onboardingContext, refreshUserData } = useContext(UserContext);
-  const { getToken } = useAuth();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [currentPhase, setCurrentPhase] = useState(initialPhase);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState(new Set());

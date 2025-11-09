@@ -5,11 +5,14 @@ import { Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ExternalServiceConnection } from '@/api/entities';
-import { useAuth } from '@clerk/clerk-react';
 
 export default function IntegrationsSetup({ data, onNext, onBack }) {
   const { user } = useContext(UserContext);
-  const { getToken } = useAuth();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(null);
   const [connected, setConnected] = useState({

@@ -2,20 +2,21 @@ import React, { useContext } from 'react';
 import { UserContext } from '../context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useClerk } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 export default function SecurityTab() {
     const { user, setSupportChatOpen } = useContext(UserContext);
-    const { signOut } = useClerk();
+    const navigate = useNavigate();
 
     const handleSignOut = async () => {
-        try {
-            await signOut();
-            toast.success("You have been signed out.");
-        } catch (error) {
-            console.error("Sign out failed:", error);
+        const { error } = await supabase.auth.signOut();
+        if (error) {
             toast.error("Sign out failed. Please try again.");
+        } else {
+            toast.success("You have been signed out.");
+            navigate('/login');
         }
     };
 

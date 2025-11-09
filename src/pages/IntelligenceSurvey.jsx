@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from '../components/context/UserContext';
 import { AgentIntelligenceProfile, UserOnboarding } from '@/api/entities';
-import { useAuth } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -52,7 +52,11 @@ const sections = [...new Set(questions.map(q => q.section))];
 
 export default function IntelligenceSurveyPage() {
   const { user, refreshUserData } = useContext(UserContext);
-  const { getToken } = useAuth();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);

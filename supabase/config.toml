@@ -1,8 +1,5 @@
 project_id = "pdbggzsmgcrguhscynnk"
 
-[functions.clerkWebhook]
-verify_jwt = false
-
 [functions.entityOperations]
 verify_jwt = false
 
@@ -142,9 +139,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.getUserContext]
-verify_jwt = false
-
-[functions.clerkSyncProfile]
 verify_jwt = false
 
 [functions.processReferral]

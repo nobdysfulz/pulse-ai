@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { UserPreferences, UserOnboarding } from '@/api/entities';
-import { useUser } from '@clerk/clerk-react';
+import { UserContext } from '../../../context/UserContext';
 import { toast } from 'sonner';
 
 const COACHING_STYLES = [
@@ -32,7 +32,7 @@ const TIMEZONES = [
 ];
 
 export default function BrandPreferencesSetup({ data, onNext, allData }) {
-  const { user: clerkUser } = useUser();
+  const { user } = React.useContext(UserContext);
   const [formData, setFormData] = useState({
     coachingStyle: 'balanced',
     activityMode: 'get_moving',
@@ -51,11 +51,11 @@ export default function BrandPreferencesSetup({ data, onNext, allData }) {
     
     setSaving(true);
     try {
-      if (!clerkUser?.id) throw new Error('No user found');
+      if (!user?.id) throw new Error('No user found');
 
       // Save User Preferences
       const preferencesData = {
-        userId: clerkUser.id,
+        userId: user.id,
         coachingStyle: formData.coachingStyle,
         activityMode: formData.activityMode,
         timezone: formData.timezone,
@@ -65,7 +65,7 @@ export default function BrandPreferencesSetup({ data, onNext, allData }) {
         emailNotifications: formData.emailNotifications
       };
 
-      const existingPreferences = await UserPreferences.filter({ userId: clerkUser.id });
+      const existingPreferences = await UserPreferences.filter({ userId: user.id });
       if (existingPreferences.length > 0) {
         await UserPreferences.update(existingPreferences[0].id, preferencesData);
       } else {

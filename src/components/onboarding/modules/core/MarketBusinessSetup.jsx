@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { UserMarketConfig, UserOnboarding, Profile } from '@/api/entities';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { UserContext } from '../../../context/UserContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const US_STATES = [
@@ -42,8 +43,12 @@ const DATABASE_SIZES = [
 ];
 
 export default function MarketBusinessSetup({ data, onNext, allData }) {
-  const { user: clerkUser } = useUser();
-  const { getToken } = useAuth();
+  const { user } = React.useContext(UserContext);
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [formData, setFormData] = useState({
     // Market Config
     primaryTerritory: '',
@@ -75,20 +80,20 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
 
     setSaving(true);
     try {
-      if (!clerkUser?.id) throw new Error('No user found');
+      if (!user?.id) throw new Error('No user found');
       
       const token = await getToken();
       if (!token) throw new Error('Failed to get authentication token');
 
       // Save Market Config
       const marketData = {
-        userId: clerkUser.id,
+        userId: user.id,
         marketName: formData.primaryTerritory,
         state: formData.state,
         city: formData.city
       };
 
-      const existingMarket = await UserMarketConfig.filter({ userId: clerkUser.id }, '-created_at', token);
+      const existingMarket = await UserMarketConfig.filter({ userId: user.id }, '-created_at', token);
       if (existingMarket.length > 0) {
         await UserMarketConfig.update(existingMarket[0].id, marketData, token);
       } else {
@@ -99,9 +104,9 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
       const profileData = {
         years_experience: getYearsFromExperience(formData.experienceLevel)
       };
-      const existingProfile = await Profile.filter({ id: clerkUser.id }, '-created_at', token);
+      const existingProfile = await Profile.filter({ id: user.id }, '-created_at', token);
       if (existingProfile.length > 0) {
-        await Profile.update(clerkUser.id, profileData, token);
+        await Profile.update(user.id, profileData, token);
       }
 
       // Progress is tracked via completed_steps in TierAwareOnboarding

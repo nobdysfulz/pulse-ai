@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { UserGuidelines, UserOnboarding } from '@/api/entities';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@clerk/clerk-react';
+import { supabase } from '@/integrations/supabase/client';
 import OnboardingWelcome from './OnboardingWelcome';
 import EmailCategoriesStep from './EmailCategoriesStep';
 import EmailStyleStep from './EmailStyleStep';
@@ -14,7 +14,11 @@ import TransactionPartiesStep from './TransactionPartiesStep';
 
 export default function AgentOnboardingFlow({ onComplete }) {
   const { user } = useContext(UserContext);
-  const { getToken } = useAuth();
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
   const [currentStep, setCurrentStep] = useState(0);
   const [guidelines, setGuidelines] = useState([]);
   const [saving, setSaving] = useState(false);

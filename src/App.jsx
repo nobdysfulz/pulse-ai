@@ -1,5 +1,4 @@
 import './App.css'
-import ClerkSupabaseSync from '@/components/context/ClerkSupabaseSync'
 import { Toaster } from "@/components/ui/toaster"
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import React from 'react'
@@ -63,13 +62,12 @@ function App() {
           <Route path="/auth/callback/google-workspace" element={<GoogleWorkspaceAuthConfirmation />} />
           <Route path="/auth/callback/zoom" element={<ZoomAuthConfirmation />} />
 
-          {/* Protected routes - WITH ClerkSupabaseSync */}
+          {/* Protected routes */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <ClerkSupabaseSync />
                 <Layout>
                   <ErrorBoundary>
                     <Dashboard />
