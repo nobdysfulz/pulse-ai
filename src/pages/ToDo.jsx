@@ -182,9 +182,10 @@ export default function ToDoPage() {
   }, [refreshUserData]);
 
   const handleCreateManualAction = useCallback(async (formData) => {
-    if (!user) {
+    if (!user || !user.id) {
       const error = new Error('User data not available');
-      toast.error('Unable to add task at this time. Please try again.');
+      toast.error('Unable to add task. Please refresh the page or log in again.');
+      console.error('[ToDo] handleCreateManualAction failed: user not loaded', { user, contextLoading });
       throw error;
     }
 

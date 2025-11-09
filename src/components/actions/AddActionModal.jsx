@@ -29,7 +29,6 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
     
     try {
       await onCreateAction(formData);
-      onClose(); // Close modal on success
       // Reset form after successful creation
       setFormData({
         title: '',
@@ -40,9 +39,13 @@ export default function AddActionModal({ isOpen, onClose, onCreateAction }) {
         dueDate: new Date().toISOString().split('T')[0],
         frequency: ''
       });
+      onClose(); // Close modal after reset
     } catch (error) {
       console.error('Error creating action:', error);
-      toast.error('Failed to create task. Please try again.');
+      // Error message already shown by parent component
+      if (!error.message?.includes('User data not available')) {
+        toast.error('Failed to create task. Please try again.');
+      }
     }
   };
 
