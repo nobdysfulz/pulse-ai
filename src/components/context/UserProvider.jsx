@@ -3,6 +3,7 @@ import { UserContext } from './UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Mail } from 'lucide-react';
+import { normalizeOnboardingProgress } from '../onboarding/onboardingLogic';
 
 // Set global token getter for entities.js
 if (typeof window !== 'undefined') {
@@ -183,13 +184,38 @@ export default function UserProvider({ children }) {
         }));
     };
 
+    // Normalize agent profile from snake_case to camelCase
+    const normalizeAgentProfile = (profile) => {
+        if (!profile) return null;
+        
+        return {
+            id: profile.id,
+            userId: profile.user_id,
+            experienceLevel: profile.experience_level,
+            workCommitment: profile.work_commitment,
+            businessStructure: profile.business_structure,
+            databaseSize: profile.database_size,
+            sphereWarmth: profile.sphere_warmth,
+            previousYearTransactions: profile.previous_year_transactions,
+            previousYearVolume: profile.previous_year_volume,
+            averagePricePoint: profile.average_price_point,
+            businessConsistency: profile.business_consistency,
+            biggestChallenges: profile.biggest_challenges,
+            growthTimeline: profile.growth_timeline,
+            learningPreference: profile.learning_preference,
+            surveyCompletedAt: profile.survey_completed_at,
+            createdAt: profile.created_at,
+            updatedAt: profile.updated_at,
+        };
+    };
+
     const populateUserData = (context) => {
         // Use correct keys from getUserContext and normalize data
         setUser(normalizeUser(context.user, session));
         setMarketConfig(context.marketConfig || null);
-        setAgentProfile(context.agentProfile || null);
+        setAgentProfile(normalizeAgentProfile(context.agentProfile));
         setPreferences(context.preferences || null);
-        setOnboarding(context.onboarding || null);
+        setOnboarding(normalizeOnboardingProgress(context.onboarding));
         setActions(normalizeActions(context.actions));
         setAgentConfig(context.agentConfig || null);
         setUserAgentSubscription(context.userAgentSubscription || null);
