@@ -8,7 +8,7 @@ import { createPageUrl } from '@/utils';
 export default function InsufficientCreditsModal({ isOpen, onClose }) {
   const navigate = useNavigate();
 
-  const handleUpgrade = () => {
+  const handleViewPlans = () => {
     navigate(createPageUrl('Plans'));
     onClose();
   };
@@ -23,7 +23,7 @@ export default function InsufficientCreditsModal({ isOpen, onClose }) {
             <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-[#7C3AED]" />
             </div>
-            <h2 className="text-xl font-semibold text-[#1E293B]">Upgrade Required</h2>
+            <h2 className="text-xl font-semibold text-[#1E293B]">Insufficient Credits</h2>
           </div>
           <button onClick={onClose} className="text-[#475569] hover:text-[#1E293B]">
             <X className="w-5 h-5" />
@@ -32,14 +32,14 @@ export default function InsufficientCreditsModal({ isOpen, onClose }) {
 
         <CardContent className="p-6">
           <p className="text-base text-[#475569] mb-6 leading-relaxed">
-            This feature requires a premium subscription. Upgrade now to unlock unlimited content generation, advanced AI tools, and more.
+            You don't have enough credits to use this feature. Upgrade your plan to get more credits and unlock unlimited content generation, advanced AI tools, and more.
           </p>
 
           <div className="flex items-center justify-end gap-3">
             <Button variant="outline" onClick={onClose}>
               Maybe Later
             </Button>
-            <Button onClick={handleUpgrade}>
+            <Button onClick={handleViewPlans} className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white">
               View Plans
             </Button>
           </div>
