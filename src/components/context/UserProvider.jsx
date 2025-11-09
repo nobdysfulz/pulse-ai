@@ -107,16 +107,93 @@ export default function UserProvider({ children }) {
         }
     }, [session]);
 
+    // Normalize user profile from snake_case to camelCase
+    const normalizeUser = (profileRow, currentSession) => {
+        if (!profileRow) return null;
+        
+        const id = currentSession?.user?.id || profileRow?.id || null;
+        const email = currentSession?.user?.email || profileRow?.email || '';
+        const fullName = profileRow?.full_name || '';
+        
+        // Derive firstName/lastName from full_name
+        const nameParts = fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        return {
+            id,
+            email,
+            fullName,
+            firstName,
+            lastName,
+            phone: profileRow?.phone || '',
+            avatar: profileRow?.avatar_url || '',
+            licenseNumber: profileRow?.license_number || '',
+            licenseState: profileRow?.license_state || '',
+            brokerage: profileRow?.brokerage || '',
+            isAdmin: profileRow?.isAdmin || false,
+            roles: profileRow?.roles || [],
+            role: (profileRow?.isAdmin || profileRow?.role === 'admin') ? 'admin' : 'user',
+            createdAt: profileRow?.created_at,
+            updatedAt: profileRow?.updated_at,
+        };
+    };
+
+    // Normalize actions from snake_case to camelCase
+    const normalizeActions = (rows) => {
+        if (!Array.isArray(rows)) return [];
+        
+        return rows.map(row => ({
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            category: row.category,
+            priority: row.priority,
+            status: row.status,
+            frequency: row.frequency,
+            dueDate: row.due_date,
+            actionType: row.action_type,
+            completedAt: row.completed_at,
+            scheduledTime: row.scheduled_time,
+            duration: row.duration_minutes ?? 60,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            generated: row.generated,
+        }));
+    };
+
+    // Normalize goals from snake_case to camelCase
+    const normalizeGoals = (rows) => {
+        if (!Array.isArray(rows)) return [];
+        
+        return rows.map(row => ({
+            id: row.id,
+            title: row.title,
+            goalType: row.goal_type,
+            unit: row.unit,
+            timeframe: row.timeframe,
+            type: row.timeframe, // compatibility alias used in UI
+            targetValue: row.target_value,
+            currentValue: row.current_value,
+            status: row.status,
+            deadline: row.deadline,
+            confidenceScore: row.confidence_score,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        }));
+    };
+
     const populateUserData = (context) => {
-        setUser(context.profile || null);
-        setMarketConfig(context.market || null);
-        setAgentProfile(context.intelligence || null);
+        // Use correct keys from getUserContext and normalize data
+        setUser(normalizeUser(context.user, session));
+        setMarketConfig(context.marketConfig || null);
+        setAgentProfile(context.agentProfile || null);
         setPreferences(context.preferences || null);
         setOnboarding(context.onboarding || null);
-        setActions(context.recentActions || []);
+        setActions(normalizeActions(context.actions));
         setAgentConfig(context.agentConfig || null);
         setUserAgentSubscription(context.userAgentSubscription || null);
-        setGoals(context.goals || []);
+        setGoals(normalizeGoals(context.goals));
         setBusinessPlan(context.businessPlan || null);
         setPulseHistory(context.pulseHistory || []);
         setPulseConfig(context.pulseConfig || null);
