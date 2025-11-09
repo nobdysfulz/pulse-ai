@@ -1835,6 +1835,7 @@ export type Database = {
       }
       user_onboarding: {
         Row: {
+          agent_intelligence_completed: boolean | null
           agent_onboarding_completed: boolean | null
           call_center_onboarding_completed: boolean | null
           created_at: string | null
@@ -1844,6 +1845,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_intelligence_completed?: boolean | null
           agent_onboarding_completed?: boolean | null
           call_center_onboarding_completed?: boolean | null
           created_at?: string | null
@@ -1853,6 +1855,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_intelligence_completed?: boolean | null
           agent_onboarding_completed?: boolean | null
           call_center_onboarding_completed?: boolean | null
           created_at?: string | null
