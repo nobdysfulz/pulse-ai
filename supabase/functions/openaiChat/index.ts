@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
+import { validateSupabaseAuth } from '../_shared/supabaseAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,8 +22,7 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.substring(7);
-    const userId: string = await validateClerkTokenWithJose(token);
+    const userId = await validateSupabaseAuth(authHeader);
     
     console.log('[openaiChat] Request from user:', userId);
 

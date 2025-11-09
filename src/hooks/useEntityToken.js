@@ -1,38 +1,57 @@
-import { useAuth } from '@clerk/clerk-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Custom hook to get Clerk JWT token for entity operations
+ * Custom hook to get Supabase JWT token for entity operations
  * Provides a consistent way to retrieve tokens across the app
  */
 export const useEntityToken = () => {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [session, setSession] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Get current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoaded(true);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setIsLoaded(true);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const getEntityToken = useCallback(async () => {
     if (!isLoaded) {
       throw new Error('Auth not loaded yet');
     }
 
-    if (!isSignedIn) {
+    if (!session) {
       throw new Error('User not signed in');
     }
 
     try {
-      const token = await getToken();
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      if (!token) {
+      if (!currentSession) {
         throw new Error('Failed to retrieve authentication token');
       }
       
-      return token;
+      return currentSession.access_token;
     } catch (error) {
       console.error('[useEntityToken] Error getting token:', error);
       throw new Error('Authentication failed. Please log in again.');
     }
-  }, [getToken, isLoaded, isSignedIn]);
+  }, [session, isLoaded]);
 
   return {
     getEntityToken,
-    isReady: isLoaded && isSignedIn,
+    isReady: isLoaded && !!session,
   };
 };

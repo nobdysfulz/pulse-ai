@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserContext } from './UserContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Mail } from 'lucide-react';
 
 // Set global token getter for entities.js
 if (typeof window !== 'undefined') {
-  window.__clerkGetToken = null;
+  window.__getSupabaseToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('No active session');
+    return session.access_token;
+  };
 }
 
 export default function UserProvider({ children }) {
-    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-    const { getToken } = useAuth();
+    const [session, setSession] = useState(null);
     const [user, setUser] = useState(null);
     const [marketConfig, setMarketConfig] = useState(null);
     const [agentProfile, setAgentProfile] = useState(null);
@@ -28,7 +32,7 @@ export default function UserProvider({ children }) {
     const [isSupportChatOpen, setSupportChatOpen] = useState(false);
 
     const fetchUserData = useCallback(async () => {
-        if (!isClerkLoaded || !clerkUser) {
+        if (!session) {
             setLoading(false);
             return;
         }
@@ -38,12 +42,8 @@ export default function UserProvider({ children }) {
         setError(null);
         
         try {
-            // Get Clerk session token
-            const token = await getToken();
-            if (!token) {
-                throw new Error('Failed to get authentication token');
-            }
-
+            const token = session.access_token;
+            
             console.log('[UserProvider] Calling getUserContext backend function...');
             
             // Call backend function to get all user data at once
@@ -61,167 +61,155 @@ export default function UserProvider({ children }) {
                 
                 // Check if it's an authentication error
                 if (contextError.message?.includes('401') || contextError.message?.includes('Token') || contextError.message?.includes('expired')) {
-                    // Try to refresh the token and retry once
-                    console.log('[UserProvider] Attempting to refresh token...');
+                    // Try to refresh the session and retry once
+                    console.log('[UserProvider] Attempting to refresh session...');
                     try {
-                        const newToken = await getToken({ skipCache: true });
+                        const { data: { session: newSession } } = await supabase.auth.refreshSession();
                         
-                        if (newToken && newToken !== token) {
-                            console.log('[UserProvider] Retrying with fresh token...');
-                            // Retry with fresh token
+                        if (newSession) {
+                            console.log('[UserProvider] Retrying with fresh session...');
                             const { data: retryContext, error: retryError } = await supabase.functions.invoke(
                                 'getUserContext',
                                 {
                                     headers: {
-                                        Authorization: `Bearer ${newToken}`,
+                                        Authorization: `Bearer ${newSession.access_token}`,
                                     },
                                 }
                             );
                             
                             if (!retryError && retryContext) {
-                                console.log('[UserProvider] Retry successful with fresh token');
-                                // Set context and skip the error throw
-                                setUser(retryContext.user);
-                                setOnboarding(retryContext.onboarding || {
-                                    userId: clerkUser.id,
-                                    onboardingCompleted: false,
-                                    agentOnboardingCompleted: false,
-                                    agentIntelligenceCompleted: false,
-                                    completedSteps: []
-                                });
-                                setMarketConfig(retryContext.marketConfig);
-                                setAgentProfile(retryContext.agentProfile);
-                                setPreferences(retryContext.preferences || {
-                                    userId: clerkUser.id,
-                                    coachingStyle: 'balanced',
-                                    activityMode: 'get_moving',
-                                    dailyReminders: true,
-                                    weeklyReports: true,
-                                    marketUpdates: true,
-                                    emailNotifications: true,
-                                    timezone: 'America/New_York'
-                                });
-                                setActions(retryContext.actions || []);
-                                setAgentConfig(retryContext.agentConfig);
-                                setUserAgentSubscription(retryContext.userAgentSubscription);
-                                setGoals(retryContext.goals || []);
-                                setBusinessPlan(retryContext.businessPlan);
-                                setPulseHistory(retryContext.pulseHistory || []);
-                                setPulseConfig(retryContext.pulseConfig);
+                                console.log('[UserProvider] Successfully fetched user data on retry');
+                                populateUserData(retryContext);
                                 setLoading(false);
-                                return; // Exit successfully
+                                return;
                             }
                         }
-                    } catch (retryErr) {
-                        console.error('[UserProvider] Token refresh/retry failed:', retryErr);
+                    } catch (refreshError) {
+                        console.error('[UserProvider] Failed to refresh session:', refreshError);
                     }
                 }
                 
-                throw new Error('Failed to load user context: ' + (contextError.message || 'Unknown error'));
+                throw contextError;
             }
 
-            if (!context) {
-                throw new Error('No context data returned from backend');
+            if (context) {
+                console.log('[UserProvider] Successfully fetched user data');
+                populateUserData(context);
+            } else {
+                console.warn('[UserProvider] No context data returned');
             }
-
-            console.log('[UserProvider] Context loaded successfully from backend');
-
-            // Set all state from backend response
-            setUser(context.user);
-            setOnboarding(context.onboarding || {
-                userId: clerkUser.id,
-                onboardingCompleted: false,
-                agentOnboardingCompleted: false,
-                agentIntelligenceCompleted: false,
-                completedSteps: []
-            });
-            setMarketConfig(context.marketConfig);
-            setAgentProfile(context.agentProfile);
-            setPreferences(context.preferences || {
-                userId: clerkUser.id,
-                coachingStyle: 'balanced',
-                activityMode: 'get_moving',
-                dailyReminders: true,
-                weeklyReports: true,
-                marketUpdates: true,
-                emailNotifications: true,
-                timezone: 'America/New_York'
-            });
-            setActions(context.actions || []);
-            setAgentConfig(context.agentConfig);
-            setUserAgentSubscription(context.userAgentSubscription);
-            setGoals(context.goals || []);
-            setBusinessPlan(context.businessPlan);
-            setPulseHistory(context.pulseHistory || []);
-            setPulseConfig(context.pulseConfig);
-
-            console.log('[UserProvider] All context data set successfully');
 
         } catch (err) {
-            console.error("[UserProvider] Critical error in fetchUserData:", err);
-            setError("Unable to load your data. Please refresh the page or contact support if the issue persists.");
+            console.error('[UserProvider] Error in fetchUserData:', err);
+            setError(err.message || 'Failed to load user data');
         } finally {
             setLoading(false);
         }
-    }, [clerkUser, isClerkLoaded, getToken]);
+    }, [session]);
 
+    const populateUserData = (context) => {
+        setUser(context.profile || null);
+        setMarketConfig(context.market || null);
+        setAgentProfile(context.intelligence || null);
+        setPreferences(context.preferences || null);
+        setOnboarding(context.onboarding || null);
+        setActions(context.recentActions || []);
+        setAgentConfig(context.agentConfig || null);
+        setUserAgentSubscription(context.userAgentSubscription || null);
+        setGoals(context.goals || []);
+        setBusinessPlan(context.businessPlan || null);
+        setPulseHistory(context.pulseHistory || []);
+        setPulseConfig(context.pulseConfig || null);
+    };
+
+    // Set up auth state listener
     useEffect(() => {
-        // Set global token getter for entities.js
-        if (typeof window !== 'undefined') {
-            window.__clerkGetToken = getToken;
+        // Check active session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
+
+        // Listen for auth changes
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Fetch user data when session changes
+    useEffect(() => {
+        if (session) {
+            fetchUserData();
+        } else {
+            setLoading(false);
         }
-        
-        fetchUserData();
-    }, [fetchUserData, getToken]);
+    }, [session, fetchUserData]);
 
-    const contextValue = useMemo(() => ({
-        user,
-        marketConfig,
-        agentProfile,
-        preferences,
-        onboarding,
-        actions,
-        agentConfig,
-        userAgentSubscription,
-        goals,
-        businessPlan,
-        pulseHistory,
-        pulseConfig,
-        loading,
-        error,
-        refreshUserData: fetchUserData,
-        isSupportChatOpen,
-        setSupportChatOpen
-    }), [
-        user, marketConfig, agentProfile, preferences, onboarding, actions,
-        agentConfig, userAgentSubscription, goals, businessPlan, pulseHistory,
-        pulseConfig, loading, error, fetchUserData, isSupportChatOpen, setSupportChatOpen
-    ]);
+    const contextValue = useMemo(
+        () => ({
+            user,
+            marketConfig,
+            agentProfile,
+            preferences,
+            onboarding,
+            actions,
+            agentConfig,
+            userAgentSubscription,
+            goals,
+            businessPlan,
+            pulseHistory,
+            pulseConfig,
+            loading,
+            error,
+            refreshUserData: fetchUserData,
+            isSupportChatOpen,
+            setSupportChatOpen,
+        }),
+        [
+            user,
+            marketConfig,
+            agentProfile,
+            preferences,
+            onboarding,
+            actions,
+            agentConfig,
+            userAgentSubscription,
+            goals,
+            businessPlan,
+            pulseHistory,
+            pulseConfig,
+            loading,
+            error,
+            fetchUserData,
+            isSupportChatOpen,
+        ]
+    );
 
-    if (error && !loading) {
+    // Error UI with retry button
+    if (error) {
         return (
-            <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-semibold text-[#1E293B] mb-2">Connection Error</h2>
-                    <p className="text-sm text-[#64748B] mb-6">{error}</p>
+                    <h2 className="text-2xl font-bold mb-4 text-red-600">
+                        Failed to Load User Data
+                    </h2>
+                    <p className="text-gray-600 mb-6">{error}</p>
                     <div className="space-y-3">
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        <Button onClick={fetchUserData} className="w-full">
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Try Again
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => window.location.href = 'mailto:support@pulse.pwru.app'}
+                            className="w-full"
                         >
-                            Refresh Page
-                        </button>
-                        <button
-                            onClick={() => window.open('mailto:support@pwru.app', '_blank')}
-                            className="w-full border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#64748B] px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
+                            <Mail className="mr-2 h-4 w-4" />
                             Contact Support
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

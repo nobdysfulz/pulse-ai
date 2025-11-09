@@ -1,7 +1,7 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
+import { validateSupabaseAuth } from '../_shared/supabaseAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,12 +30,9 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.substring(7);
-
-    // ✅ PROPERLY VALIDATE CLERK JWT
     let userId: string;
     try {
-      userId = await validateClerkTokenWithJose(token);
+      userId = await validateSupabaseAuth(authHeader);
       console.log(`[updateUserData] ✓ Validated user: ${userId}`);
     } catch (error) {
       console.error('[updateUserData] JWT validation failed:', error);

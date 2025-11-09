@@ -1,25 +1,29 @@
 // Entity API helpers - enhanced with compatibility layer
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@clerk/clerk-react';
 
-// Helper to get Clerk token with optional token parameter
-const getClerkToken = async (providedToken) => {
+// Helper to get Supabase token
+const getSupabaseToken = async (providedToken) => {
   // If token is provided directly, use it
   if (providedToken) {
     return providedToken;
   }
   
   // Otherwise try to get from global reference (fallback for legacy code)
-  if (window.__clerkGetToken) {
+  if (window.__getSupabaseToken) {
     try {
-      return await window.__clerkGetToken();
+      return await window.__getSupabaseToken();
     } catch (error) {
-      console.error('[getClerkToken] Error from window.__clerkGetToken:', error);
+      console.error('[getSupabaseToken] Error from window.__getSupabaseToken:', error);
       throw new Error('Failed to retrieve authentication token. Please log in again.');
     }
   }
   
-  throw new Error('No authentication token available. Please pass token to entity methods or ensure UserProvider is initialized.');
+  // Final fallback: get directly from supabase client
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('No active session. Please log in again.');
+  }
+  return session.access_token;
 };
 
 // Helper to convert camelCase to snake_case
@@ -125,7 +129,7 @@ const addResponseAliases = (tableName, obj) => {
 const createEntity = (tableName) => ({
   list: async (orderBy = '-created_at', token = null) => {
     try {
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
       const normalizedOrder = normalizeOrder(orderBy);
       const isDescending = normalizedOrder.startsWith('-');
       const column = normalizedOrder.replace('-', '');
@@ -155,7 +159,7 @@ const createEntity = (tableName) => ({
   filter: async (filters = {}, orderBy = '-created_at', token = null) => {
     try {
       console.log('🔐 Entity.filter - Input token provided:', !!token);
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
       console.log('🔐 Entity.filter - Using authToken:', !!authToken, 'Length:', authToken?.length);
       console.log('🔐 Entity.filter - Token preview:', authToken?.substring(0, 50) + '...');
       
@@ -189,7 +193,7 @@ const createEntity = (tableName) => ({
 
   get: async (id, token = null) => {
     try {
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {
@@ -212,7 +216,7 @@ const createEntity = (tableName) => ({
 
   create: async (payload, token = null) => {
     try {
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
 
       // Handle agent_voices special case: store extra fields in voice_settings
       let finalPayload = { ...payload };
@@ -250,7 +254,7 @@ const createEntity = (tableName) => ({
 
   update: async (id, payload, token = null) => {
     try {
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
 
       // Handle agent_voices special case
       let finalPayload = { ...payload };
@@ -289,7 +293,7 @@ const createEntity = (tableName) => ({
 
   delete: async (id, token = null) => {
     try {
-      const authToken = await getClerkToken(token);
+      const authToken = await getSupabaseToken(token);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {
@@ -633,7 +637,7 @@ export const User = {
 export const TaskOperations = {
   updateStatus: async (taskId, status) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('updateTaskStatus', {
         body: { taskId, status },
         headers: { Authorization: `Bearer ${token}` },
@@ -648,7 +652,7 @@ export const TaskOperations = {
 
   create: async (taskData) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('createTask', {
         body: taskData,
         headers: { Authorization: `Bearer ${token}` },
@@ -665,7 +669,7 @@ export const TaskOperations = {
 export const CreditOperations = {
   deduct: async (amount, description, metadata = {}) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageCredits', {
         body: { operation: 'deduct', amount, description, metadata },
         headers: { Authorization: `Bearer ${token}` },
@@ -680,7 +684,7 @@ export const CreditOperations = {
 
   add: async (amount, description, metadata = {}) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageCredits', {
         body: { operation: 'add', amount, description, metadata },
         headers: { Authorization: `Bearer ${token}` },
@@ -695,7 +699,7 @@ export const CreditOperations = {
 
   set: async (amount, description, metadata = {}) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageCredits', {
         body: { operation: 'set', amount, description, metadata },
         headers: { Authorization: `Bearer ${token}` },
@@ -712,7 +716,7 @@ export const CreditOperations = {
 export const GoalOperations = {
   create: async (goalData) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageGoal', {
         body: { operation: 'create', goalData },
         headers: { Authorization: `Bearer ${token}` },
@@ -727,7 +731,7 @@ export const GoalOperations = {
 
   update: async (goalId, goalData) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageGoal', {
         body: { operation: 'update', goalId, goalData },
         headers: { Authorization: `Bearer ${token}` },
@@ -742,7 +746,7 @@ export const GoalOperations = {
 
   delete: async (goalId) => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('manageGoal', {
         body: { operation: 'delete', goalId },
         headers: { Authorization: `Bearer ${token}` },
@@ -759,7 +763,7 @@ export const GoalOperations = {
 export const ConnectionOperations = {
   fetchAll: async () => {
     try {
-      const token = await getClerkToken();
+      const token = await getSupabaseToken();
       const { data, error } = await supabase.functions.invoke('fetchUserConnections', {
         headers: { Authorization: `Bearer ${token}` },
       });

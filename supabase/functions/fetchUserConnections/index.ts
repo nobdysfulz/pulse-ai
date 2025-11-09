@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { validateClerkTokenWithJose } from '../_shared/clerkAuth.ts';
+import { validateSupabaseAuth } from '../_shared/supabaseAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,8 +27,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const token = authHeader.substring(7);
-    const userId: string = await validateClerkTokenWithJose(token);
+    const userId = await validateSupabaseAuth(authHeader);
 
     console.log('[fetchUserConnections] Fetching connections for user:', userId);
 
