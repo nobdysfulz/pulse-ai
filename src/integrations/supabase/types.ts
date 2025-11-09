@@ -331,38 +331,89 @@ export type Database = {
       }
       business_plans: {
         Row: {
-          annual_gci_goal: number | null
-          average_commission: number | null
-          conversion_rates: Json | null
+          avg_sale_price: number | null
+          brokerage_cap: number | null
+          brokerage_split_buyers: number | null
+          brokerage_split_sellers: number | null
+          buyer_deals: number | null
+          buyer_seller_split: number | null
+          commission_rate: number | null
           created_at: string | null
+          detailed_plan: Json | null
+          gci_required: number | null
           id: string
-          lead_sources: Json | null
-          monthly_breakdown: Json | null
-          transactions_needed: number | null
+          income_split: number | null
+          is_active: boolean | null
+          listing_deals: number | null
+          net_income_goal: number | null
+          plan_year: number
+          tax_rate: number | null
+          team_split_buyers: number | null
+          team_split_sellers: number | null
+          total_agreements: number | null
+          total_appointments: number | null
+          total_contracts: number | null
+          total_conversations: number | null
+          total_deals_needed: number | null
+          total_volume: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          annual_gci_goal?: number | null
-          average_commission?: number | null
-          conversion_rates?: Json | null
+          avg_sale_price?: number | null
+          brokerage_cap?: number | null
+          brokerage_split_buyers?: number | null
+          brokerage_split_sellers?: number | null
+          buyer_deals?: number | null
+          buyer_seller_split?: number | null
+          commission_rate?: number | null
           created_at?: string | null
+          detailed_plan?: Json | null
+          gci_required?: number | null
           id?: string
-          lead_sources?: Json | null
-          monthly_breakdown?: Json | null
-          transactions_needed?: number | null
+          income_split?: number | null
+          is_active?: boolean | null
+          listing_deals?: number | null
+          net_income_goal?: number | null
+          plan_year?: number
+          tax_rate?: number | null
+          team_split_buyers?: number | null
+          team_split_sellers?: number | null
+          total_agreements?: number | null
+          total_appointments?: number | null
+          total_contracts?: number | null
+          total_conversations?: number | null
+          total_deals_needed?: number | null
+          total_volume?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          annual_gci_goal?: number | null
-          average_commission?: number | null
-          conversion_rates?: Json | null
+          avg_sale_price?: number | null
+          brokerage_cap?: number | null
+          brokerage_split_buyers?: number | null
+          brokerage_split_sellers?: number | null
+          buyer_deals?: number | null
+          buyer_seller_split?: number | null
+          commission_rate?: number | null
           created_at?: string | null
+          detailed_plan?: Json | null
+          gci_required?: number | null
           id?: string
-          lead_sources?: Json | null
-          monthly_breakdown?: Json | null
-          transactions_needed?: number | null
+          income_split?: number | null
+          is_active?: boolean | null
+          listing_deals?: number | null
+          net_income_goal?: number | null
+          plan_year?: number
+          tax_rate?: number | null
+          team_split_buyers?: number | null
+          team_split_sellers?: number | null
+          total_agreements?: number | null
+          total_appointments?: number | null
+          total_contracts?: number | null
+          total_conversations?: number | null
+          total_deals_needed?: number | null
+          total_volume?: number | null
           updated_at?: string | null
           user_id?: string
         }
