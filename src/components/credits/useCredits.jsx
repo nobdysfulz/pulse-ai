@@ -20,7 +20,7 @@ export default function useCredits() {
     
     // For subscribers, give a large number of credits and don't fetch from DB.
     if (isSubscriber) {
-        setUserCredits({ creditsRemaining: 9999999, creditsUsed: 0 }); // Use a large number instead of Infinity
+        setUserCredits({ creditsAvailable: 9999999, creditsUsed: 0 }); // Use a large number instead of Infinity
         setCreditsLoading(false);
         return;
     }
@@ -33,7 +33,7 @@ export default function useCredits() {
           if (creditsData.length > 0) {
             setUserCredits(creditsData[0]);
           } else {
-            const newCredits = await UserCredit.create({ userId: user.id, creditsRemaining: 100, creditsUsed: 0 });
+            const newCredits = await UserCredit.create({ userId: user.id, creditsAvailable: 100, creditsUsed: 0 });
             setUserCredits(newCredits);
           }
         } catch (error) {
@@ -56,7 +56,7 @@ export default function useCredits() {
   const hasSufficientCredits = useCallback((amount) => {
     if (isSubscriber) return true;
     if (!userCredits) return false;
-    return userCredits.creditsRemaining >= amount;
+    return userCredits.creditsAvailable >= amount;
   }, [userCredits, isSubscriber]);
 
   const deductCredits = useCallback(async (amount, feature, description = '') => {
@@ -71,7 +71,7 @@ export default function useCredits() {
     }
     
     // Logic for Free users - use backend credit operations
-    if (!userCredits || userCredits.creditsRemaining < amount) {
+    if (!userCredits || userCredits.creditsAvailable < amount) {
       toast.error("Insufficient credits for this action.");
       return false;
     }
@@ -95,7 +95,7 @@ export default function useCredits() {
       if (result.success) {
         setUserCredits(prev => ({
           ...prev,
-          creditsRemaining: result.newBalance
+          creditsAvailable: result.newBalance
         }));
         return true;
       } else {

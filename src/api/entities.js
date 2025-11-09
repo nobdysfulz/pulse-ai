@@ -231,7 +231,22 @@ const createEntity = (tableName) => ({
         };
       }
 
-      const snakePayload = objectToSnakeCase(finalPayload);
+      // Apply field compatibility mapping (reverse direction for create/update)
+      const compatMap = fieldCompatibilityMap[tableName] || {};
+      const reverseMappedPayload = { ...finalPayload };
+      Object.entries(compatMap).forEach(([camelKey, dbColumn]) => {
+        if (reverseMappedPayload[camelKey] !== undefined) {
+          // Convert to the intermediate camelCase form that objectToSnakeCase will handle
+          // e.g., creditsRemaining -> creditsAvailable, resetDate -> lastResetAt
+          const intermediateCamelKey = dbColumn.split('_').map((word, i) => 
+            i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+          ).join('');
+          reverseMappedPayload[intermediateCamelKey] = reverseMappedPayload[camelKey];
+          delete reverseMappedPayload[camelKey];
+        }
+      });
+
+      const snakePayload = objectToSnakeCase(reverseMappedPayload);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {
@@ -269,7 +284,22 @@ const createEntity = (tableName) => ({
         };
       }
 
-      const snakePayload = objectToSnakeCase(finalPayload);
+      // Apply field compatibility mapping (reverse direction for create/update)
+      const compatMap = fieldCompatibilityMap[tableName] || {};
+      const reverseMappedPayload = { ...finalPayload };
+      Object.entries(compatMap).forEach(([camelKey, dbColumn]) => {
+        if (reverseMappedPayload[camelKey] !== undefined) {
+          // Convert to the intermediate camelCase form that objectToSnakeCase will handle
+          // e.g., creditsRemaining -> creditsAvailable, resetDate -> lastResetAt
+          const intermediateCamelKey = dbColumn.split('_').map((word, i) => 
+            i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+          ).join('');
+          reverseMappedPayload[intermediateCamelKey] = reverseMappedPayload[camelKey];
+          delete reverseMappedPayload[camelKey];
+        }
+      });
+
+      const snakePayload = objectToSnakeCase(reverseMappedPayload);
 
       const { data, error } = await supabase.functions.invoke('entityOperations', {
         body: {

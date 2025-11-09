@@ -580,6 +580,33 @@ export type Database = {
           },
         ]
       }
+      content_preferences: {
+        Row: {
+          created_at: string | null
+          default_length: string | null
+          default_tone: string | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_length?: string | null
+          default_tone?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          default_length?: string | null
+          default_tone?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_topics: {
         Row: {
           category: string
