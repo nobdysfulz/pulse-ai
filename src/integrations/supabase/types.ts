@@ -1034,46 +1034,58 @@ export type Database = {
       }
       goals: {
         Row: {
+          category: string | null
           confidence_score: number | null
           created_at: string | null
           current_value: number | null
           deadline: string | null
           goal_type: string
           id: string
+          is_active: boolean | null
+          progress_percentage: number | null
           status: string | null
           target_value: number | null
           timeframe: string | null
           title: string
+          trend: string | null
           unit: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          category?: string | null
           confidence_score?: number | null
           created_at?: string | null
           current_value?: number | null
           deadline?: string | null
           goal_type: string
           id?: string
+          is_active?: boolean | null
+          progress_percentage?: number | null
           status?: string | null
           target_value?: number | null
           timeframe?: string | null
           title: string
+          trend?: string | null
           unit?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          category?: string | null
           confidence_score?: number | null
           created_at?: string | null
           current_value?: number | null
           deadline?: string | null
           goal_type?: string
           id?: string
+          is_active?: boolean | null
+          progress_percentage?: number | null
           status?: string | null
           target_value?: number | null
           timeframe?: string | null
           title?: string
+          trend?: string | null
           unit?: string | null
           updated_at?: string | null
           user_id?: string
