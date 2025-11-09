@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
       goalsResult,
       businessPlanResult,
       pulseScoresResult,
-      pulseConfigResult,
       agentIntelligenceResult,
       userRolesResult,
     ] = await Promise.all([
@@ -50,11 +49,10 @@ Deno.serve(async (req) => {
       supabase.from('user_preferences').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('daily_actions').select('*').eq('user_id', userId).order('due_date', { ascending: false }).limit(50),
       supabase.from('agent_config').select('*').eq('user_id', userId).maybeSingle(),
-      supabase.from('user_agent_subscription').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_agent_subscriptions').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('goals').select('*').eq('user_id', userId),
       supabase.from('business_plans').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('pulse_scores').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(30),
-      supabase.from('pulse_config').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('agent_intelligence_profiles').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
@@ -75,7 +73,6 @@ Deno.serve(async (req) => {
     if (goalsResult.error) console.warn('[getUserContext] Goals error:', goalsResult.error);
     if (businessPlanResult.error) console.warn('[getUserContext] Business plan error:', businessPlanResult.error);
     if (pulseScoresResult.error) console.warn('[getUserContext] Pulse scores error:', pulseScoresResult.error);
-    if (pulseConfigResult.error) console.warn('[getUserContext] Pulse config error:', pulseConfigResult.error);
     if (agentIntelligenceResult.error) console.warn('[getUserContext] Agent intelligence error:', agentIntelligenceResult.error);
     if (userRolesResult.error) console.warn('[getUserContext] User roles error:', userRolesResult.error);
 
@@ -99,7 +96,7 @@ Deno.serve(async (req) => {
       goals: goalsResult.data || [],
       businessPlan: businessPlanResult.data || null,
       pulseHistory: pulseScoresResult.data || [],
-      pulseConfig: pulseConfigResult.data || null,
+      pulseConfig: null,
       agentProfile: agentIntelligenceResult.data || null,
     };
 
