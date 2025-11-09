@@ -124,6 +124,19 @@ serve(async (req) => {
         return obj;
       }, {});
 
+    // If no valid columns were provided, skip DB write but return success
+    if (Object.keys(filteredProgressData).length === 0) {
+      console.warn('ℹ️ NO_VALID_COLUMNS_PROVIDED: Skipping DB operation', {
+        providedColumns,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+      return new Response(
+        JSON.stringify({ success: true, data: null, ignored: providedColumns }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const updateData = {
       user_id: userId,
       ...filteredProgressData,
