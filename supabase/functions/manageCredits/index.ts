@@ -63,7 +63,7 @@ serve(async (req) => {
     // Get current credit balance
     const { data: creditData, error: fetchError } = await supabase
       .from('user_credits')
-      .select('credits')
+      .select('credits_available')
       .eq('user_id', userId)
       .single();
 
@@ -71,7 +71,7 @@ serve(async (req) => {
       throw fetchError;
     }
 
-    const currentBalance = creditData?.credits || 0;
+    const currentBalance = creditData?.credits_available || 0;
     let newBalance = currentBalance;
     let transactionType = '';
     let transactionAmount = 0;
@@ -117,7 +117,7 @@ serve(async (req) => {
       .from('user_credits')
       .upsert({
         user_id: userId,
-        credits: newBalance,
+        credits_available: newBalance,
         updated_at: new Date().toISOString(),
       });
 
