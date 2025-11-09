@@ -99,14 +99,11 @@ export default function MarketBusinessSetup({ data, onNext, allData }) {
         await UserMarketConfig.create(marketData, token);
       }
 
-      // Update profile with experience level using entity update
+      // Update profile with experience level
       const profileData = {
         years_experience: getYearsFromExperience(formData.experienceLevel)
       };
-      const existingProfile = await Profile.filter({ id: user.id }, '-created_at', token);
-      if (existingProfile.length > 0) {
-        await Profile.update(user.id, profileData, token);
-      }
+      await Profile.update(user.id, profileData);
 
       // Progress is tracked via completed_steps in TierAwareOnboarding
       await onNext(formData);
