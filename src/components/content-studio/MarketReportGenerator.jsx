@@ -64,7 +64,11 @@ Create a well-structured report with:
 Use markdown formatting for professional presentation. Include specific data points and actionable insights that would be valuable for real estate professionals and their clients.`;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           messages: [{
             role: 'user',

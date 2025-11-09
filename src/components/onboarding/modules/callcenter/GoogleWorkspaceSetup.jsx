@@ -35,7 +35,11 @@ export default function GoogleWorkspaceSetup({ data, onNext, onBack }) {
   const handleConnect = async () => {
     setConnecting(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const response = await supabase.functions.invoke('initiateGoogleWorkspaceOAuth', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           redirectPath: '/onboarding'
         }

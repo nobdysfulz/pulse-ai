@@ -77,7 +77,11 @@ export default function SingleCallModal({ isOpen, onClose, onCallStarted }) {
                 campaignName: `Single Call - ${callType}`
             });
 
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Not authenticated');
             const { data, error } = await supabase.functions.invoke('sendContactsToElevenLabs', {
+                headers: { Authorization: `Bearer ${token}` },
                 body: {
                     contacts,
                     callType,

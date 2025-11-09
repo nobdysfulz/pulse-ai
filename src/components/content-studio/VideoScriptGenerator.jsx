@@ -62,7 +62,11 @@ Create a structured script with sections for "Opening Hook," "Main Content," and
 For each section, provide the narration and visual direction.`;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           messages: [{
             role: 'user',
@@ -78,15 +82,18 @@ For each section, provide the narration and visual direction.`;
                 properties: {
                   sections: {
                     type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  title: { type: 'string' },
-                  duration: { type: 'string', description: "e.g., '10-15 seconds'" },
-                  content: { type: 'string', description: "The narration/what to say." },
-                  shot_suggestion: { type: 'string', description: "Visual shot idea." }
-                },
-                  required: ['title', 'duration', 'content', 'shot_suggestion']
+                    items: {
+                      type: 'object',
+                      properties: {
+                        title: { type: 'string' },
+                        duration: { type: 'string', description: "e.g., '10-15 seconds'" },
+                        content: { type: 'string', description: "The narration/what to say." },
+                        shot_suggestion: { type: 'string', description: "Visual shot idea." }
+                      },
+                        required: ['title', 'duration', 'content', 'shot_suggestion']
+                      }
+                    }
+                  }
                 }
               }
             }

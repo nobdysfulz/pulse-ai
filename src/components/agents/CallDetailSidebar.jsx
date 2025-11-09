@@ -90,7 +90,10 @@ export default function CallDetailSidebar({ log, onBack, onDelete }) {
         if (log.recordingUrl) {
           setAudioLoading(true);
           try {
-            const { data } = await supabase.functions.invoke('getSignedAudioUrl', { body: { file_uri: log.recordingUrl } });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Not authenticated');
+            const { data } = await supabase.functions.invoke('getSignedAudioUrl', { headers: { Authorization: `Bearer ${token}` }, body: { file_uri: log.recordingUrl } });
             if (data.signed_url) {
               setAudioUrl(data.signed_url);
             }

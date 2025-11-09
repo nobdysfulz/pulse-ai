@@ -22,7 +22,11 @@ export default function PhoneNumberSetup({ data, onNext, onBack }) {
 
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const response = await supabase.functions.invoke('getTwilioAvailableNumbers', {
+        headers: { Authorization: `Bearer ${token}` },
         body: { areaCode: areaCode }
       });
 
@@ -51,7 +55,11 @@ export default function PhoneNumberSetup({ data, onNext, onBack }) {
 
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const response = await supabase.functions.invoke('purchaseTwilioNumber', {
+        headers: { Authorization: `Bearer ${token}` },
         body: { phoneNumber: selectedNumber }
       });
 

@@ -45,7 +45,11 @@ export default function TodaysFocus({ actions, onToggleAction, onRefresh }) {
       // If task is from Lofty and being marked complete, sync back to Lofty
       if (isCompleted && action.loftyTaskId) {
         try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          if (!token) throw new Error('Not authenticated');
           await supabase.functions.invoke('loftySync', {
+            headers: { Authorization: `Bearer ${token}` },
             body: {
               action: 'markTaskComplete',
               data: { loftyTaskId: action.loftyTaskId }

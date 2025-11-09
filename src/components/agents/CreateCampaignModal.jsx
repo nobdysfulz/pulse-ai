@@ -36,7 +36,10 @@ export default function CreateCampaignModal({ isOpen, onClose, onCampaignStarted
     
     const handleDownloadTemplate = async () => {
         try {
-            const { data } = await supabase.functions.invoke('downloadCampaignTemplate', { body: {} });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Not authenticated');
+            const { data } = await supabase.functions.invoke('downloadCampaignTemplate', { headers: { Authorization: `Bearer ${token}` }, body: {} });
 
             if (data.downloadUrl) {
                 // If a signed URL is provided, open it to trigger download
@@ -113,7 +116,10 @@ export default function CreateCampaignModal({ isOpen, onClose, onCampaignStarted
                 agent_phone: user?.phone
             };
 
-            const { data } = await supabase.functions.invoke('sendContactsToElevenLabs', { body: { contacts, callType, agentData, campaignName } });
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Not authenticated');
+            const { data } = await supabase.functions.invoke('sendContactsToElevenLabs', { headers: { Authorization: `Bearer ${token}` }, body: { contacts, callType, agentData, campaignName } });
 
             if (data.requiresOnboarding) {
                  toast.error("AI Agent Setup Incomplete", { description: data.error });

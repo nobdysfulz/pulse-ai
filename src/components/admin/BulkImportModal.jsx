@@ -66,7 +66,12 @@ export default function BulkImportModal({
     try {
       const csvText = await file.text();
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
       const { data, error } = await supabase.functions.invoke('bulkImportData', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           entityType,
           csvData: csvText,

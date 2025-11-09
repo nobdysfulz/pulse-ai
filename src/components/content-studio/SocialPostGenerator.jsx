@@ -48,7 +48,11 @@ export default function SocialPostGenerator() {
     // Remove setError(null) as we use toasts now
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data, error } = await supabase.functions.invoke('generateSocialPostTool', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           topic,
           platform,

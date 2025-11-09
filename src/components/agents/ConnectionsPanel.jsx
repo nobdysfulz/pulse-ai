@@ -23,7 +23,11 @@ export default function ConnectionsPanel({ agentType }) {
   const loadIntegrationStatus = async () => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data } = await supabase.functions.invoke('getIntegrationContext', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           userId: user.id
         }

@@ -59,7 +59,11 @@ Provide a compelling topic title, 3-5 specific talking points with local relevan
 Create content that would work well for Facebook Live, Instagram Live, or YouTube Live streaming.`;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           messages: [{
             role: 'user',
@@ -74,33 +78,34 @@ Create content that would work well for Facebook Live, Instagram Live, or YouTub
                 type: 'object',
                 properties: {
                   topic: {
-              type: 'string',
-              description: 'A compelling, specific topic title that grabs attention'
-            },
-            talking_points: { 
-              type: 'array', 
-              items: { type: 'string' },
-              description: 'Specific talking points with local relevance, not generic advice'
-            },
-            cta: { 
-              type: 'string',
-              description: 'A strong call to action that generates leads or engagement'
-            },
-            estimated_duration: {
-              type: 'string',
-              description: 'Estimated duration for the live session'
-            },
-            suggested_hashtags: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Relevant hashtags for the live video'
+                    type: 'string',
+                    description: 'A compelling, specific topic title that grabs attention'
+                  },
+                  talking_points: { 
+                    type: 'array', 
+                    items: { type: 'string' },
+                    description: 'Specific talking points with local relevance, not generic advice'
+                  },
+                  cta: { 
+                    type: 'string',
+                    description: 'A strong call to action that generates leads or engagement'
+                  },
+                  estimated_duration: {
+                    type: 'string',
+                    description: 'Estimated duration for the live session'
+                  },
+                  suggested_hashtags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Relevant hashtags for the live video'
+                  }
+                },
+                required: ['topic', 'talking_points', 'cta']
+              }
             }
-          },
-          required: ['topic', 'talking_points', 'cta']
+          }
         }
-      }
-    }
-  });
+      });
 
   if (error) throw error;
 

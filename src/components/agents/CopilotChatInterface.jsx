@@ -102,7 +102,11 @@ export default function CopilotChatInterface({
         }
       };
 
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data, error } = await supabase.functions.invoke('copilotChat', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           userPrompt: messageText,
           conversationId: internalConversationId,

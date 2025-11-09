@@ -168,7 +168,11 @@ export default function AgentChatInterface({ agentType }) {
       // Only send user/assistant messages to backend, not system messages
       const conversationHistory = messages.filter(m => m.role !== 'system');
       
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data, error } = await supabase.functions.invoke(functionName, {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           message: messageText,
           conversationId: conversationId,

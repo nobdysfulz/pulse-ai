@@ -55,7 +55,11 @@ For each day of the month, provide specific content ideas with:
 - Consider holidays and seasonal events for next month`;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
       const { data: response, error } = await supabase.functions.invoke('openaiChat', {
+        headers: { Authorization: `Bearer ${token}` },
         body: {
           messages: [{
             role: 'user',
