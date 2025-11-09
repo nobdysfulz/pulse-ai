@@ -459,11 +459,15 @@ const buildUserObject = (session, profile, roles = []) => {
   };
 };
 
-// Note: This function is deprecated - we now use Clerk for authentication
-// Keeping for backward compatibility with legacy code
 const getActiveSession = async () => {
-  console.warn('[entities] getActiveSession() is deprecated - use Clerk instead');
-  return null;
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error('[entities] Failed to get session:', error);
+    return null;
+  }
+  
+  return session;
 };
 
 const loadProfile = async (userId) => {
@@ -621,15 +625,21 @@ export const User = {
   updateMyUserData: async (payload = {}) => {
     const session = await getActiveSession();
     if (!session) {
-      throw new Error('Not authenticated');
+      console.error('[entities] No active session - user may need to re-login');
+      throw new Error('Your session has expired. Please log in again.');
     }
 
-    const profile = await loadProfile(session.user.id);
-    const updates = normalizeProfileUpdates(payload, profile);
+    try {
+      const profile = await loadProfile(session.user.id);
+      const updates = normalizeProfileUpdates(payload, profile);
 
-    await applyProfileUpdate(session.user.id, updates);
+      await applyProfileUpdate(session.user.id, updates);
 
-    return await fetchUserProfileWithSession();
+      return await fetchUserProfileWithSession();
+    } catch (error) {
+      console.error('[entities] Failed to update user data:', error);
+      throw new Error(`Failed to save: ${error.message}`);
+    }
   },
 };
 
