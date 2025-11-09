@@ -49,14 +49,16 @@ serve(async (req) => {
     const body = await req.json();
     const { operation, amount, description, metadata = {} } = body;
 
-    if (!operation || !amount) {
+    // Validate params
+    const amt = Number(amount);
+    if (!operation || !Number.isFinite(amt) || amt <= 0) {
       return new Response(
-        JSON.stringify({ error: 'Missing operation or amount' }),
+        JSON.stringify({ error: 'Missing operation or invalid amount' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[manageCredits] ${operation} ${amount} credits for user:`, userId);
+    console.log(`[manageCredits] ${operation} ${amt} credits for user:`, userId);
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -65,7 +67,7 @@ serve(async (req) => {
       .from('user_credits')
       .select('credits_available')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       throw fetchError;
@@ -78,31 +80,31 @@ serve(async (req) => {
 
     switch (operation) {
       case 'deduct':
-        if (currentBalance < amount) {
+        if (currentBalance < amt) {
           return new Response(
             JSON.stringify({ 
               error: 'Insufficient credits',
               currentBalance,
-              required: amount 
+              required: amt 
             }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        newBalance = currentBalance - amount;
+        newBalance = currentBalance - amt;
         transactionType = 'deduction';
-        transactionAmount = -amount;
+        transactionAmount = -amt;
         break;
 
       case 'add':
-        newBalance = currentBalance + amount;
+        newBalance = currentBalance + amt;
         transactionType = 'addition';
-        transactionAmount = amount;
+        transactionAmount = amt;
         break;
 
       case 'set':
-        newBalance = amount;
-        transactionType = amount > currentBalance ? 'addition' : 'deduction';
-        transactionAmount = amount - currentBalance;
+        newBalance = amt;
+        transactionType = amt > currentBalance ? 'addition' : 'deduction';
+        transactionAmount = amt - currentBalance;
         break;
 
       default:
@@ -112,14 +114,14 @@ serve(async (req) => {
         );
     }
 
-    // Update credits atomically
+    // Update credits atomically (upsert on user_id)
     const { error: updateError } = await supabase
       .from('user_credits')
       .upsert({
         user_id: userId,
         credits_available: newBalance,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'user_id' });
 
     if (updateError) throw updateError;
 
