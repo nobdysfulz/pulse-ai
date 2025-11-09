@@ -18,12 +18,46 @@ const getSupabaseToken = async (providedToken) => {
     }
   }
   
-  // Final fallback: get directly from supabase client
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    throw new Error('No active session. Please log in again.');
+  // Final fallback: get directly from supabase client with refresh
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('[getSupabaseToken] Session error:', error);
+      throw new Error('Authentication error. Please log in again.');
+    }
+    
+    if (!session) {
+      throw new Error('No active session. Please log in again.');
+    }
+    
+    // Check if token is about to expire (within 5 minutes)
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    
+    if (expiresAt - now < fiveMinutes) {
+      console.log('[getSupabaseToken] Token expiring soon, refreshing...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('[getSupabaseToken] Refresh error:', refreshError);
+        throw new Error('Failed to refresh session. Please log in again.');
+      }
+      
+      if (refreshData?.session) {
+        return refreshData.session.access_token;
+      }
+    }
+    
+    return session.access_token;
+  } catch (error) {
+    console.error('[getSupabaseToken] Error:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to retrieve authentication token. Please log in again.');
   }
-  return session.access_token;
 };
 
 // Helper to convert camelCase to snake_case

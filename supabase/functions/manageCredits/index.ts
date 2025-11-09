@@ -1,6 +1,7 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { validateSupabaseAuth } from '../_shared/supabaseAuth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,21 +22,29 @@ serve(async (req) => {
     }
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!authHeader) {
+      console.error('[manageCredits] Missing Authorization header');
       return new Response(
         JSON.stringify({ error: 'Missing or invalid Authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const token = authHeader.substring(7);
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid JWT format');
+    // Validate the JWT token and get user ID
+    let userId: string;
+    try {
+      userId = await validateSupabaseAuth(authHeader);
+      console.log('[manageCredits] Authenticated user:', userId);
+    } catch (error) {
+      console.error('[manageCredits] Auth validation failed:', error);
+      return new Response(
+        JSON.stringify({ 
+          error: error instanceof Error ? error.message : 'Authentication failed',
+          code: 'AUTH001' 
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
 
     const body = await req.json();
     const { operation, amount, description, metadata = {} } = body;
