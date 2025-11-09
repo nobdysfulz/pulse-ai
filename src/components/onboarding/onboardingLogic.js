@@ -12,18 +12,21 @@ export const normalizeOnboardingProgress = (record) => {
   }
 
   // Map DB schema to expected format
-  // Core completion is determined by onboarding_completion_date
+  const completedSteps = record.completed_steps ?? record.completedSteps ?? [];
+  
+  // Core is complete if onboarding_completed is true OR onboarding_completion_date exists
+  const coreComplete = record.onboarding_completed || !!record.onboarding_completion_date;
+  
   // Call center completion is determined by completed_steps containing all callcenter steps
   const callCenterSteps = ['phone', 'voice', 'identity', 'workspace', 'call-confirm'];
-  const completedSteps = record.completed_steps ?? record.completedSteps ?? [];
   const hasAllCallCenterSteps = callCenterSteps.every(step => completedSteps.includes(step));
 
   return {
     ...record,
-    onboardingCompleted: !!record.onboarding_completion_date,
+    onboardingCompleted: coreComplete,
     agentOnboardingCompleted: record.agent_onboarding_completed ?? false,
     agentIntelligenceCompleted: record.agent_intelligence_completed ?? false,
-    callCenterOnboardingCompleted: hasAllCallCenterSteps,
+    callCenterOnboardingCompleted: record.call_center_onboarding_completed || hasAllCallCenterSteps,
     completedSteps: completedSteps
   };
 };

@@ -18,11 +18,10 @@ export default function CoreConfirmation({ data, onNext, allData }) {
     try {
       if (!user?.id) throw new Error('No user found');
 
-      toast.success('Core setup completed!');
-      
-      // Call onNext to trigger proper flow orchestration
+      // Call onNext to trigger proper flow orchestration which will save completion
       if (onNext) {
         await onNext({});
+        toast.success('Core setup completed!');
       }
     } catch (error) {
       console.error('[CoreConfirmation] Error completing:', error);

@@ -1841,10 +1841,14 @@ export type Database = {
           agent_intelligence_completed: boolean | null
           agent_intelligence_completion_date: string | null
           agent_onboarding_completed: boolean | null
+          agent_onboarding_completion_date: string | null
           call_center_onboarding_completed: boolean | null
+          call_center_onboarding_completion_date: string | null
+          completed_steps: string[] | null
           created_at: string | null
           id: string
           onboarding_completed: boolean | null
+          onboarding_completion_date: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1852,10 +1856,14 @@ export type Database = {
           agent_intelligence_completed?: boolean | null
           agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
+          agent_onboarding_completion_date?: string | null
           call_center_onboarding_completed?: boolean | null
+          call_center_onboarding_completion_date?: string | null
+          completed_steps?: string[] | null
           created_at?: string | null
           id?: string
           onboarding_completed?: boolean | null
+          onboarding_completion_date?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1863,10 +1871,14 @@ export type Database = {
           agent_intelligence_completed?: boolean | null
           agent_intelligence_completion_date?: string | null
           agent_onboarding_completed?: boolean | null
+          agent_onboarding_completion_date?: string | null
           call_center_onboarding_completed?: boolean | null
+          call_center_onboarding_completion_date?: string | null
+          completed_steps?: string[] | null
           created_at?: string | null
           id?: string
           onboarding_completed?: boolean | null
+          onboarding_completion_date?: string | null
           updated_at?: string | null
           user_id?: string
         }

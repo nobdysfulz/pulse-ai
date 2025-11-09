@@ -95,7 +95,15 @@ serve(async (req) => {
     }
 
     // 🏗️ Schema validation - only use columns that exist
-    const validColumns = ['onboarding_completed', 'agent_onboarding_completed', 'call_center_onboarding_completed'];
+    const validColumns = [
+      'onboarding_completed',
+      'onboarding_completion_date', 
+      'agent_onboarding_completed',
+      'agent_onboarding_completion_date',
+      'call_center_onboarding_completed',
+      'call_center_onboarding_completion_date',
+      'completed_steps'
+    ];
     const providedColumns = Object.keys(progressData);
     const invalidColumns = providedColumns.filter(col => !validColumns.includes(col));
     

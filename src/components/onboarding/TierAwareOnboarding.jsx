@@ -380,11 +380,15 @@ function TierAwareOnboarding({ initialPhase = "core" }) {
       const updates = {};
 
       if (moduleKey === "core") {
+        updates.onboarding_completed = true;
         updates.onboarding_completion_date = new Date().toISOString();
       } else if (moduleKey === "agents") {
         updates.agent_onboarding_completed = true;
+        updates.agent_onboarding_completion_date = new Date().toISOString();
+      } else if (moduleKey === "callcenter") {
+        updates.call_center_onboarding_completed = true;
+        updates.call_center_onboarding_completion_date = new Date().toISOString();
       }
-      // Note: callcenter completion is tracked via completed_steps only
 
       const { error } = await supabase.functions.invoke("saveOnboardingProgress", {
         headers: {
@@ -402,6 +406,9 @@ function TierAwareOnboarding({ initialPhase = "core" }) {
 
       console.log(`✅ Module ${moduleKey} marked as complete`);
       toast.success(`${MODULES[moduleKey].title} complete!`);
+      
+      // Refresh user data to update context
+      await refreshUserData();
     } catch (error) {
       console.error(`❌ Error completing module ${moduleKey}:`, error);
       toast.error(`Failed to save completion status`);
